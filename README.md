@@ -10,6 +10,7 @@ Docs:
 - `docs/STATUS.md`
 - `docs/ROADMAP.md`
 - `docs/REPO_FACTS.json`
+- `docs/TRAINING_ROADMAP.md`
 
 Quickstart:
 - `python -m afs_scawful datasets index`
@@ -28,5 +29,19 @@ Example `mounts.json`:
     { "name": "Training", "path": "~/Mounts/windows-training" },
     { "name": "Reference", "path": "~/docs/reference" }
   ]
+}
+```
+
+Training monitor (AFS Studio):
+- Use `training_monitor` in `mounts.json` or a separate `training_monitor.json` in the same config dirs.
+- Optional override: `AFS_TRAINING_MONITOR_CONFIG=/path/to/training_monitor.json`
+
+Example `training_monitor` block:
+```json
+{
+  "training_monitor": {
+    "windows_mount_path": "~/Mounts/windows-training",
+    "windows_training_dir": "D:/afs_training"
+  }
 }
 ```

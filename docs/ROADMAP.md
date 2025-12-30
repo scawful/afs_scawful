@@ -1,13 +1,15 @@
 # ROADMAP
 
 ## Committed
-- Minimal module layout + package stubs
-- One small utility
+- Plugin config helpers (training paths/resources + mounts)
+- Dataset registry indexing CLI
+- Resource indexing CLI
 
 ## Planned
-- Local config template
-- Example generator
+- Validator base + initial validators (ASM/C++/KG/ASAR)
+- Generator base + one small generator
+- Training monitor schema validation
 
 ## Ideas
-- Idea: Local validation hooks for training data
-- Idea: Minimal dataset manifest generator
+- Idea: Dataset manifest + QA summary reports
+- Idea: Lightweight training campaign runner (local-only)
