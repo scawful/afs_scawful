@@ -3,12 +3,16 @@
 from __future__ import annotations
 
 import argparse
+import asyncio
+import json
 from pathlib import Path
 from typing import Iterable
 
-from .registry import index_datasets, build_dataset_registry, write_dataset_registry
+from .registry import build_dataset_registry, index_datasets, write_dataset_registry
 from .resource_index import ResourceIndexer
 from .paths import resolve_datasets_root, resolve_index_root
+from .training import TrainingSample
+from .validators import default_validators
 
 
 def _datasets_index_command(args: argparse.Namespace) -> int:
@@ -41,6 +45,45 @@ def _resources_index_command(args: argparse.Namespace) -> int:
     output_path = indexer.write_index(result)
     print(f"resource_index: {output_path}")
     return 0
+
+
+async def _run_validators(sample: TrainingSample, validators) -> list[tuple[str, object]]:
+    results: list[tuple[str, object]] = []
+    for validator in validators:
+        if validator.can_validate(sample):
+            result = await validator.validate(sample)
+            results.append((validator.name, result))
+    return results
+
+
+def _validators_list_command(args: argparse.Namespace) -> int:
+    validators = default_validators()
+    for validator in validators:
+        print(f"{validator.name}\t{validator.domain}")
+    return 0
+
+
+def _validators_run_command(args: argparse.Namespace) -> int:
+    sample_path = Path(args.sample).expanduser().resolve()
+    payload = json.loads(sample_path.read_text(encoding="utf-8"))
+    sample = TrainingSample.from_dict(payload)
+
+    validators = default_validators()
+    if args.name:
+        validators = [v for v in validators if v.name in args.name]
+
+    results = asyncio.run(_run_validators(sample, validators))
+    if not results:
+        print("(no validators)")
+        return 1
+
+    overall_ok = True
+    for name, result in results:
+        status = "ok" if result.valid else "fail"
+        if not result.valid:
+            overall_ok = False
+        print(f"{name}\t{status}\t{result.score:.2f}")
+    return 0 if overall_ok else 1
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -77,6 +120,21 @@ def build_parser() -> argparse.ArgumentParser:
     resources_index.add_argument("--output", help="Output index path.")
     resources_index.set_defaults(func=_resources_index_command)
 
+    validators_parser = subparsers.add_parser("validators", help="Validation tools.")
+    validators_sub = validators_parser.add_subparsers(dest="validators_command")
+
+    validators_list = validators_sub.add_parser("list", help="List validators.")
+    validators_list.set_defaults(func=_validators_list_command)
+
+    validators_run = validators_sub.add_parser("run", help="Validate a sample JSON.")
+    validators_run.add_argument("sample", help="Path to sample JSON.")
+    validators_run.add_argument(
+        "--name",
+        action="append",
+        help="Validator name to run (repeatable).",
+    )
+    validators_run.set_defaults(func=_validators_run_command)
+
     return parser
 
 
@@ -90,6 +148,9 @@ def main(argv: Iterable[str] | None = None) -> int:
         parser.print_help()
         return 1
     if args.command == "resources" and not getattr(args, "resources_command", None):
+        parser.print_help()
+        return 1
+    if args.command == "validators" and not getattr(args, "validators_command", None):
         parser.print_help()
         return 1
     return args.func(args)
