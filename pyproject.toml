@@ -12,6 +12,9 @@ authors = [
 test = [
   "pytest>=7.4"
 ]
+research = [
+  "pypdf>=4.0"
+]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

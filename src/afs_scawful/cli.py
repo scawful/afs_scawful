@@ -12,6 +12,15 @@ from .generators import DocSectionConfig, DocSectionGenerator, write_jsonl
 from .registry import build_dataset_registry, index_datasets, write_dataset_registry
 from .resource_index import ResourceIndexer
 from .paths import resolve_datasets_root, resolve_index_root
+from .research import (
+    build_research_catalog,
+    load_research_catalog,
+    open_pdf,
+    resolve_paper_path,
+    resolve_research_catalog_path,
+    resolve_research_root,
+    write_research_catalog,
+)
 from .training import TrainingSample
 from .validators import default_validators
 
@@ -113,6 +122,81 @@ def _generators_doc_sections_command(args: argparse.Namespace) -> int:
     return 0 if not result.errors else 1
 
 
+def _research_catalog_command(args: argparse.Namespace) -> int:
+    root = Path(args.root).expanduser().resolve() if args.root else resolve_research_root()
+    output_path = (
+        Path(args.output).expanduser().resolve()
+        if args.output
+        else resolve_research_catalog_path()
+    )
+    catalog = build_research_catalog(
+        root,
+        include_abstract=not args.no_abstract,
+        max_pages=args.max_pages,
+        max_abstract_chars=args.max_abstract_chars,
+    )
+    write_research_catalog(catalog, output_path)
+    print(f"research_catalog: {output_path}")
+    errors = catalog.get("errors", [])
+    print(f"papers={catalog.get('count', 0)} errors={len(errors)}")
+    for err in errors[:5]:
+        print(f"error: {err.get('path')}: {err.get('error')}")
+    return 0 if not errors else 1
+
+
+def _research_list_command(args: argparse.Namespace) -> int:
+    catalog_path = (
+        Path(args.catalog).expanduser().resolve()
+        if args.catalog
+        else resolve_research_catalog_path()
+    )
+    catalog = load_research_catalog(catalog_path)
+    for entry in catalog.get("papers", []):
+        if not isinstance(entry, dict):
+            continue
+        title = entry.get("title") or "(untitled)"
+        print(f"{entry.get('id')}\t{title}\t{entry.get('relative_path')}")
+    return 0
+
+
+def _research_show_command(args: argparse.Namespace) -> int:
+    catalog_path = (
+        Path(args.catalog).expanduser().resolve()
+        if args.catalog
+        else resolve_research_catalog_path()
+    )
+    catalog = load_research_catalog(catalog_path)
+    entry_path = resolve_paper_path(catalog, args.paper_id)
+    if entry_path is None:
+        print(f"Paper not found: {args.paper_id}")
+        return 1
+    for entry in catalog.get("papers", []):
+        if entry.get("path") == str(entry_path):
+            print(json.dumps(entry, indent=2, sort_keys=True))
+            return 0
+    print(f"Paper not found: {args.paper_id}")
+    return 1
+
+
+def _research_open_command(args: argparse.Namespace) -> int:
+    catalog_path = (
+        Path(args.catalog).expanduser().resolve()
+        if args.catalog
+        else resolve_research_catalog_path()
+    )
+    catalog = load_research_catalog(catalog_path)
+    entry_path = resolve_paper_path(catalog, args.paper_id)
+    if entry_path is None:
+        print(f"Paper not found: {args.paper_id}")
+        return 1
+    print(str(entry_path))
+    if args.open:
+        if not open_pdf(entry_path):
+            print("Unable to open PDF with the default viewer.")
+            return 1
+    return 0
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="afs_scawful")
     subparsers = parser.add_subparsers(dest="command")
@@ -195,6 +279,52 @@ def build_parser() -> argparse.ArgumentParser:
     )
     doc_sections.set_defaults(func=_generators_doc_sections_command)
 
+    research_parser = subparsers.add_parser("research", help="Research PDF tools.")
+    research_sub = research_parser.add_subparsers(dest="research_command")
+
+    research_catalog = research_sub.add_parser(
+        "catalog", help="Build a research PDF catalog."
+    )
+    research_catalog.add_argument("--root", help="Research root override.")
+    research_catalog.add_argument("--output", help="Output catalog path.")
+    research_catalog.add_argument(
+        "--no-abstract",
+        action="store_true",
+        help="Skip abstract extraction.",
+    )
+    research_catalog.add_argument(
+        "--max-pages",
+        type=int,
+        default=2,
+        help="Max pages to scan for abstract extraction.",
+    )
+    research_catalog.add_argument(
+        "--max-abstract-chars",
+        type=int,
+        default=1200,
+        help="Max abstract characters to store.",
+    )
+    research_catalog.set_defaults(func=_research_catalog_command)
+
+    research_list = research_sub.add_parser("list", help="List catalog entries.")
+    research_list.add_argument("--catalog", help="Catalog path override.")
+    research_list.set_defaults(func=_research_list_command)
+
+    research_show = research_sub.add_parser("show", help="Show catalog entry JSON.")
+    research_show.add_argument("paper_id", help="Catalog id, path, or filename.")
+    research_show.add_argument("--catalog", help="Catalog path override.")
+    research_show.set_defaults(func=_research_show_command)
+
+    research_open = research_sub.add_parser("open", help="Print or open a PDF.")
+    research_open.add_argument("paper_id", help="Catalog id, path, or filename.")
+    research_open.add_argument("--catalog", help="Catalog path override.")
+    research_open.add_argument(
+        "--open",
+        action="store_true",
+        help="Open using the OS default viewer.",
+    )
+    research_open.set_defaults(func=_research_open_command)
+
     return parser
 
 
@@ -214,6 +344,9 @@ def main(argv: Iterable[str] | None = None) -> int:
         parser.print_help()
         return 1
     if args.command == "generators" and not getattr(args, "generators_command", None):
+        parser.print_help()
+        return 1
+    if args.command == "research" and not getattr(args, "research_command", None):
         parser.print_help()
         return 1
     return args.func(args)

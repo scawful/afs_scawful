@@ -11,12 +11,16 @@ Docs:
 - `docs/ROADMAP.md`
 - `docs/REPO_FACTS.json`
 - `docs/TRAINING_ROADMAP.md`
+- `docs/TRAINING_PLAN.md`
+- `docs/PDF_WORKFLOW.md`
 
 Quickstart:
 - `python -m afs_scawful datasets index`
 - `python -m afs_scawful resources index`
 - `python -m afs_scawful validators list`
 - `python -m afs_scawful generators doc-sections --output ~/src/training/index/doc_sections.jsonl`
+- `python -m afs_scawful research catalog`
+- `python -m afs_scawful research list`
 
 Mounts (AFS Studio):
 - Create `mounts.json` in `~/.config/afs/afs_scawful/` or `~/.config/afs/plugins/afs_scawful/config/`

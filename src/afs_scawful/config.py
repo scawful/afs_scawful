@@ -59,3 +59,16 @@ def load_training_resources(config_path: Path | None = None) -> dict[str, Any]:
                 _expand_path(p) for p in resource["resource_roots"] if isinstance(p, str)
             ]
     return data
+
+
+def load_research_paths(config_path: Path | None = None) -> dict[str, dict[str, Path]]:
+    path = config_path or _find_config("research_paths.toml")
+    data = _load_toml(path)
+    expanded: dict[str, dict[str, Path]] = {}
+    if "paths" in data and isinstance(data["paths"], dict):
+        expanded["paths"] = {
+            key: _expand_path(value)
+            for key, value in data["paths"].items()
+            if isinstance(value, str)
+        }
+    return expanded
