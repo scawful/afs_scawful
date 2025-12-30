@@ -8,6 +8,7 @@ import json
 from pathlib import Path
 from typing import Iterable
 
+from .generators import DocSectionConfig, DocSectionGenerator, write_jsonl
 from .registry import build_dataset_registry, index_datasets, write_dataset_registry
 from .resource_index import ResourceIndexer
 from .paths import resolve_datasets_root, resolve_index_root
@@ -86,6 +87,32 @@ def _validators_run_command(args: argparse.Namespace) -> int:
     return 0 if overall_ok else 1
 
 
+def _generators_doc_sections_command(args: argparse.Namespace) -> int:
+    index_path = Path(args.index).expanduser().resolve() if args.index else None
+    roots = [Path(path).expanduser().resolve() for path in args.root] if args.root else None
+    config = DocSectionConfig(min_chars=args.min_chars, max_chars=args.max_chars)
+    generator = DocSectionGenerator(
+        resource_index=index_path,
+        resource_roots=roots,
+        config=config,
+    )
+    result = generator.generate()
+    output_path = (
+        Path(args.output).expanduser().resolve()
+        if args.output
+        else resolve_index_root() / "doc_sections.jsonl"
+    )
+    write_jsonl(result.samples, output_path)
+    print(f"doc_sections: {output_path}")
+    print(
+        f"samples={len(result.samples)} skipped={result.skipped} errors={len(result.errors)}"
+    )
+    if result.errors:
+        for err in result.errors[:5]:
+            print(f"error: {err}")
+    return 0 if not result.errors else 1
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="afs_scawful")
     subparsers = parser.add_subparsers(dest="command")
@@ -135,6 +162,39 @@ def build_parser() -> argparse.ArgumentParser:
     )
     validators_run.set_defaults(func=_validators_run_command)
 
+    generators_parser = subparsers.add_parser("generators", help="Generator tools.")
+    generators_sub = generators_parser.add_subparsers(dest="generators_command")
+
+    doc_sections = generators_sub.add_parser(
+        "doc-sections", help="Generate samples from documentation."
+    )
+    doc_sections.add_argument(
+        "--index",
+        help="Resource index path override (optional).",
+    )
+    doc_sections.add_argument(
+        "--root",
+        action="append",
+        help="Resource root override (repeatable).",
+    )
+    doc_sections.add_argument(
+        "--output",
+        help="Output JSONL path (default: training index/doc_sections.jsonl).",
+    )
+    doc_sections.add_argument(
+        "--min-chars",
+        type=int,
+        default=120,
+        help="Minimum section length to keep.",
+    )
+    doc_sections.add_argument(
+        "--max-chars",
+        type=int,
+        default=2000,
+        help="Maximum section length to keep.",
+    )
+    doc_sections.set_defaults(func=_generators_doc_sections_command)
+
     return parser
 
 
@@ -151,6 +211,9 @@ def main(argv: Iterable[str] | None = None) -> int:
         parser.print_help()
         return 1
     if args.command == "validators" and not getattr(args, "validators_command", None):
+        parser.print_help()
+        return 1
+    if args.command == "generators" and not getattr(args, "generators_command", None):
         parser.print_help()
         return 1
     return args.func(args)
