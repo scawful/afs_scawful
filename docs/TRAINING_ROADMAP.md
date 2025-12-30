@@ -7,10 +7,11 @@ Scope: AFS Scawful training data pipelines and monitoring. Research-only.
 - Resource indexing (local)
 - Plugin config loader for training paths/resources
 - Validator base + initial validators (ASM/C++/KG/ASAR)
+- Generator base + doc-section generator
 
 ## Planned (near-term)
-- Generator base + one small generator
 - Training monitor schema validation and config docs
+- Generator QA summary + manifest output
 
 ## Planned (mid-term)
 - Generator runner that produces dataset manifests

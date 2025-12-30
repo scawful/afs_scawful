@@ -5,9 +5,10 @@
 - Dataset registry indexing CLI
 - Resource indexing CLI
 - Validator base + initial validators (ASM/C++/KG/ASAR)
+- Generator base + doc-section generator
 
 ## Planned
-- Generator base + one small generator
+- Generator QA summary + manifest output
 - Training monitor schema validation
 
 ## Ideas

@@ -16,6 +16,7 @@ Quickstart:
 - `python -m afs_scawful datasets index`
 - `python -m afs_scawful resources index`
 - `python -m afs_scawful validators list`
+- `python -m afs_scawful generators doc-sections --output ~/src/training/index/doc_sections.jsonl`
 
 Mounts (AFS Studio):
 - Create `mounts.json` in `~/.config/afs/afs_scawful/` or `~/.config/afs/plugins/afs_scawful/config/`
