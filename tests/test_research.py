@@ -24,3 +24,28 @@ def test_build_research_catalog_regex(tmp_path: Path) -> None:
     assert entry["title"] == "Test Paper"
     assert entry["author"] == "Jane Doe"
     assert entry["metadata_source"] == "regex"
+
+
+def test_build_research_catalog_overrides(tmp_path: Path) -> None:
+    research_root = tmp_path / "Research"
+    research_root.mkdir()
+    pdf_path = research_root / "paper.pdf"
+    pdf_path.write_bytes(b"%PDF-1.0 /Title (Ignored)")
+
+    overrides = {
+        "papers": {
+            "paper.pdf": {
+                "title": "Manual Title",
+                "author": "Manual Author",
+            }
+        }
+    }
+    catalog = build_research_catalog(
+        research_root,
+        overrides=overrides,
+        include_abstract=False,
+    )
+    entry = catalog["papers"][0]
+    assert entry["title"] == "Manual Title"
+    assert entry["author"] == "Manual Author"
+    assert entry["metadata_source"] == "override"

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 import tomllib
 from pathlib import Path
 from typing import Any
@@ -72,3 +73,12 @@ def load_research_paths(config_path: Path | None = None) -> dict[str, dict[str, 
             if isinstance(value, str)
         }
     return expanded
+
+
+def load_research_overrides(config_path: Path | None = None) -> dict[str, Any]:
+    path = config_path or _find_config("research_overrides.json")
+    if not path or not path.exists():
+        return {}
+    payload = path.read_text(encoding="utf-8")
+    data = json.loads(payload)
+    return data if isinstance(data, dict) else {}

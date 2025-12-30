@@ -12,7 +12,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Iterable
 
-from .config import load_research_paths
+from .config import load_research_overrides, load_research_paths
 
 try:  # Optional dependency for richer metadata extraction.
     from pypdf import PdfReader
@@ -229,10 +229,12 @@ def build_paper_entry(
 
 def build_research_catalog(
     root: Path,
+    overrides: dict[str, object] | None = None,
     include_abstract: bool = True,
     max_pages: int = 2,
     max_abstract_chars: int = 1200,
 ) -> dict[str, object]:
+    override_map = normalize_overrides(overrides)
     papers: list[dict[str, object]] = []
     errors: list[dict[str, str]] = []
     for path in iter_pdf_paths(root):
@@ -244,6 +246,7 @@ def build_research_catalog(
                 max_pages=max_pages,
                 max_abstract_chars=max_abstract_chars,
             )
+            apply_overrides(entry, override_map)
         except Exception as exc:  # pragma: no cover - defensive
             errors.append({"path": str(path), "error": str(exc)})
             continue
@@ -259,6 +262,53 @@ def build_research_catalog(
     if errors:
         catalog["errors"] = errors
     return catalog
+
+
+def normalize_overrides(overrides: dict[str, object] | None) -> dict[str, dict[str, object]]:
+    if not overrides:
+        return {}
+    if "papers" in overrides and isinstance(overrides["papers"], dict):
+        data = overrides["papers"]
+    else:
+        data = overrides
+    cleaned: dict[str, dict[str, object]] = {}
+    for key, value in data.items():
+        if isinstance(value, dict):
+            cleaned[str(key)] = value
+    return cleaned
+
+
+def apply_overrides(entry: dict[str, object], overrides: dict[str, dict[str, object]]) -> None:
+    if not overrides:
+        return
+    keys = [
+        entry.get("id"),
+        entry.get("filename"),
+        entry.get("relative_path"),
+        entry.get("path"),
+    ]
+    override: dict[str, object] | None = None
+    for key in keys:
+        if isinstance(key, str) and key in overrides:
+            override = overrides[key]
+            break
+    if not override:
+        return
+    touched = False
+    for field, value in override.items():
+        if isinstance(value, str):
+            cleaned = value.strip()
+            if not cleaned:
+                continue
+            entry[field] = cleaned
+            touched = True
+        elif value is not None:
+            entry[field] = value
+            touched = True
+    if touched:
+        entry["metadata_source"] = "override"
+        if "abstract_excerpt" in override:
+            entry["abstract_source"] = "override"
 
 
 def write_research_catalog(catalog: dict[str, object], output_path: Path) -> None:

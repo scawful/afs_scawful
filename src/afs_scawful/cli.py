@@ -5,9 +5,11 @@ from __future__ import annotations
 import argparse
 import asyncio
 import json
+import os
 from pathlib import Path
 from typing import Iterable
 
+from .config import load_research_overrides
 from .generators import DocSectionConfig, DocSectionGenerator, write_jsonl
 from .registry import build_dataset_registry, index_datasets, write_dataset_registry
 from .resource_index import ResourceIndexer
@@ -129,8 +131,13 @@ def _research_catalog_command(args: argparse.Namespace) -> int:
         if args.output
         else resolve_research_catalog_path()
     )
+    overrides_path = args.overrides or os.getenv("AFS_RESEARCH_OVERRIDES")
+    overrides = load_research_overrides(
+        Path(overrides_path).expanduser().resolve() if overrides_path else None
+    )
     catalog = build_research_catalog(
         root,
+        overrides=overrides,
         include_abstract=not args.no_abstract,
         max_pages=args.max_pages,
         max_abstract_chars=args.max_abstract_chars,
@@ -287,6 +294,7 @@ def build_parser() -> argparse.ArgumentParser:
     )
     research_catalog.add_argument("--root", help="Research root override.")
     research_catalog.add_argument("--output", help="Output catalog path.")
+    research_catalog.add_argument("--overrides", help="Overrides JSON path.")
     research_catalog.add_argument(
         "--no-abstract",
         action="store_true",

@@ -17,14 +17,32 @@ python -m afs_scawful research open 2512-20957v2-XXXXXXXX --open
 ## Overrides
 - `AFS_RESEARCH_ROOT=/path/to/Research`
 - `AFS_RESEARCH_CATALOG=/path/to/research_catalog.json`
+- `AFS_RESEARCH_OVERRIDES=/path/to/research_overrides.json`
 - Optional config: `research_paths.toml` in `~/.config/afs/afs_scawful/` or
   `~/.config/afs/plugins/afs_scawful/config/`
+- Optional overrides: `research_overrides.json` in the same config directories.
 
 Example `research_paths.toml`:
 ```toml
 [paths]
 research_root = "~/Documents/Research"
 research_catalog = "~/src/context/index/research_catalog.json"
+```
+
+Example `research_overrides.json`:
+```json
+{
+  "papers": {
+    "2510.04950v1.pdf": {
+      "title": "Unknown / needs verification",
+      "author": "Unknown / needs verification"
+    },
+    "7799_Quantifying_Human_AI_Syne.pdf": {
+      "title": "Unknown / needs verification",
+      "author": "Unknown / needs verification"
+    }
+  }
+}
 ```
 
 ## Notes

@@ -2,7 +2,12 @@
 
 __version__ = "0.0.0"
 
-from .config import load_research_paths, load_training_paths, load_training_resources
+from .config import (
+    load_research_overrides,
+    load_research_paths,
+    load_training_paths,
+    load_training_resources,
+)
 from .paths import resolve_datasets_root, resolve_index_root, resolve_training_root
 from .research import (
     build_research_catalog,
@@ -16,6 +21,7 @@ from .resource_index import ResourceIndexer
 
 __all__ = [
     "load_research_paths",
+    "load_research_overrides",
     "load_training_paths",
     "load_training_resources",
     "resolve_training_root",
