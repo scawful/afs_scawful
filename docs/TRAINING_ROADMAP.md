@@ -6,9 +6,9 @@ Scope: AFS Scawful training data pipelines and monitoring. Research-only.
 - Dataset registry indexing (local)
 - Resource indexing (local)
 - Plugin config loader for training paths/resources
+- Validator base + initial validators (ASM/C++/KG/ASAR)
 
 ## Planned (near-term)
-- Validator base + initial validators (ASM/C++/KG/ASAR)
 - Generator base + one small generator
 - Training monitor schema validation and config docs
 

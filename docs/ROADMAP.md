@@ -4,9 +4,9 @@
 - Plugin config helpers (training paths/resources + mounts)
 - Dataset registry indexing CLI
 - Resource indexing CLI
+- Validator base + initial validators (ASM/C++/KG/ASAR)
 
 ## Planned
-- Validator base + initial validators (ASM/C++/KG/ASAR)
 - Generator base + one small generator
 - Training monitor schema validation
 
