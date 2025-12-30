@@ -23,5 +23,5 @@ def test_resource_indexer_dedupes(tmp_path: Path) -> None:
     result = indexer.build_index()
     assert result.total_files == 2
     assert result.duplicates_found == 1
-    assert result.by_type.get("txt", 0) == 1
-    assert result.by_type.get("md", 0) == 1
+    assert result.by_type.get("text", 0) == 1
+    assert result.by_type.get("markdown", 0) == 1
