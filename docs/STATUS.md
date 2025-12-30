@@ -1,7 +1,7 @@
 # STATUS
 
 Stage: Prototype
-Now: package stub; guardrails; config helpers for training paths/resources.
-Not yet: plugin features; generators.
-Next: minimal plugin layout; one small utility.
+Now: config helpers; dataset registry builder; resource indexer.
+Not yet: generators; training runtime.
+Next: hook registry/index outputs into AFS Studio.
 Issues: no runtime yet.
