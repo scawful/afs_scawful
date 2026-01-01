@@ -1,0 +1,30 @@
+name = "afs-scawful"
+description = "AFS personal configuration and extensions"
+aliases = ["afs_scawful"]  # Old name for backward compatibility
+tags = ["ai", "tools", "experimental", "private"]
+platforms = ["mac", "linux"]
+
+stage = "beta"
+is_product = false
+public = false
+commercial_intent = "none"
+
+# Technology stack
+languages = ["python"]
+build_system = "setuptools"
+requires_version = {python = "3.11"}
+
+[dependencies]
+# Internal dependencies
+internal = ["lab/afs"]
+
+# External Python packages
+external = ["anthropic", "openai"]
+
+# Build dependencies
+build = ["pip", "setuptools"]
+
+[sync]
+type = "git"
+direction = "both"
+remote = "server"
