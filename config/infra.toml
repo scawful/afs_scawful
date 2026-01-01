@@ -1,0 +1,64 @@
+# AFS Training Infrastructure Configuration
+# Centralized configuration for all infrastructure components
+
+[vultr]
+# Vultr API and deployment settings
+default_gpu_plan = "vcg-a100-3c-30g-20vram"  # A100 20GB
+default_region = "sjc"                        # San Jose
+max_runtime_hours = 48                        # Default auto-shutdown timer
+
+# SSH key ID from Vultr (use `vultr-cli ssh-key list` to find)
+# ssh_key_id = "your-key-id-here"
+
+[backup]
+# Primary backup destination (SSH accessible)
+primary_host = "halext-nj"
+primary_path = "/home/halext/models/afs_training"
+
+# Google Drive backup folder
+gdrive_folder_id = "1EclHzbfNxtC9qVr8baV61GhQrenWdWsJ"
+
+# Local backup path (relative to project root)
+local_backup_path = "models"
+
+[training]
+# Remote training directory on Vultr instances
+remote_training_dir = "/opt/training"
+
+# Checkpoint settings
+checkpoint_interval_steps = 50
+export_interval_steps = 500
+
+# Dataset paths (on training instance)
+datasets_dir = "/opt/training/datasets"
+
+[monitoring]
+# Idle detection settings
+idle_threshold_percent = 5
+idle_alert_minutes = 15
+idle_shutdown_minutes = 30
+
+# Disk space warning threshold
+disk_warning_threshold = 85
+
+# Cost check interval (seconds)
+cost_check_interval = 300
+
+[exports]
+# Export verification settings
+max_retries = 5
+retry_delay_seconds = 60
+export_timeout_seconds = 600
+
+# Verify exports before shutdown
+verify_before_shutdown = true
+
+[logging]
+# Log directory on training instances
+remote_log_dir = "/opt/training/logs"
+
+# Local log directory
+local_log_dir = "infra/logs"
+
+# Retention
+max_log_age_days = 30

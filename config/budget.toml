@@ -1,0 +1,36 @@
+# AFS Training Budget Configuration
+# Thresholds for cost alerts and automatic actions
+
+[daily]
+# Alert when approaching these thresholds
+warning_threshold = 75.00      # Send warning alert
+critical_threshold = 90.00     # Send critical alert
+hard_limit = 100.00            # Auto-shutdown all instances
+
+[monthly]
+# Monthly budget tracking
+warning_threshold = 500.00
+critical_threshold = 750.00
+
+[alerts]
+# ntfy.sh configuration
+ntfy_topic = "afs-training"
+ntfy_server = "https://ntfy.sh"
+
+# Enable/disable alert types
+alert_on_training_start = true
+alert_on_training_complete = true
+alert_on_export_complete = true
+alert_on_budget_warning = true
+alert_on_idle_detection = true
+alert_on_disk_warning = true
+
+[monitoring]
+# Cost check interval in seconds
+check_interval = 300           # 5 minutes
+
+# Idle detection settings (for reference - actual config in idle_monitor.sh)
+idle_threshold_percent = 5
+idle_alert_minutes = 15
+idle_shutdown_minutes = 30
+disk_warning_threshold = 85
