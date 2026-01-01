@@ -25,6 +25,21 @@ from .research import (
 )
 from .training import TrainingSample
 from .validators import default_validators
+from .models import (
+    list_models,
+    get_model_info,
+    deploy_to_ollama,
+    test_model_ollama,
+    test_model_python,
+    chat_with_model,
+    backup_model,
+    verify_backups,
+    print_model_status,
+)
+from .cost_tracker import VultrCostTracker, format_cost_report
+from .budget import BudgetEnforcer, format_budget_status
+from .dashboard import Dashboard
+from .alerting import AlertDispatcher, Alert, AlertLevel
 
 
 def _datasets_index_command(args: argparse.Namespace) -> int:
@@ -204,6 +219,273 @@ def _research_open_command(args: argparse.Namespace) -> int:
     return 0
 
 
+def _models_list_command(args: argparse.Namespace) -> int:
+    """List all available trained models."""
+    models = list_models()
+    if not models:
+        print("No models found in models/ directory")
+        return 1
+
+    for model in models:
+        status_symbols = []
+        if model.has_lora:
+            status_symbols.append("L")
+        if model.has_merged:
+            status_symbols.append("M")
+        if model.has_gguf:
+            status_symbols.append("G")
+        if model.has_ollama:
+            status_symbols.append("O")
+
+        status = "".join(status_symbols) if status_symbols else "-"
+        print(f"{model.name}\t{model.size_gb:.1f}GB\t[{status}]\t{len(model.checkpoints)} checkpoints")
+
+    print()
+    print("Status codes: L=LoRA, M=Merged, G=GGUF, O=Ollama")
+    return 0
+
+
+def _models_status_command(args: argparse.Namespace) -> int:
+    """Show detailed status for a model."""
+    model = get_model_info(args.model)
+    if not model:
+        print(f"Error: Model '{args.model}' not found")
+        print()
+        print("Available models:")
+        for m in list_models():
+            print(f"  {m.name}")
+        return 1
+
+    print_model_status(model)
+    return 0
+
+
+def _models_deploy_command(args: argparse.Namespace) -> int:
+    """Deploy a model to the specified target."""
+    model = get_model_info(args.model)
+    if not model:
+        print(f"Error: Model '{args.model}' not found")
+        return 1
+
+    if not model.has_lora:
+        print(f"Error: Model '{args.model}' has no LoRA adapters")
+        return 1
+
+    if args.target == "ollama":
+        print(f"Deploying {args.model} to Ollama (quantization: {args.quantization})...")
+        success = deploy_to_ollama(
+            args.model,
+            quantization=args.quantization,
+            skip_merge=args.skip_merge,
+            skip_gguf=args.skip_gguf,
+        )
+        if success:
+            print()
+            print(f"✓ Model deployed successfully!")
+            print(f"  Test it: afs models test {args.model}")
+            print(f"  Chat with it: afs models chat {args.model}")
+            return 0
+        else:
+            print("✗ Deployment failed")
+            return 1
+    else:
+        print(f"Error: Unknown target '{args.target}'")
+        return 1
+
+
+def _models_test_command(args: argparse.Namespace) -> int:
+    """Test a deployed model."""
+    model = get_model_info(args.model)
+    if not model:
+        print(f"Error: Model '{args.model}' not found")
+        return 1
+
+    if args.method == "ollama":
+        if not model.has_ollama:
+            print(f"Error: Model '{args.model}' not deployed to Ollama")
+            print(f"Deploy it first: afs models deploy {args.model}")
+            return 1
+
+        print(f"Testing {args.model} with Ollama...")
+        success = test_model_ollama(args.model)
+        return 0 if success else 1
+
+    elif args.method == "python":
+        if not model.has_lora:
+            print(f"Error: Model '{args.model}' has no LoRA adapters")
+            return 1
+
+        prompt = args.prompt or "What is the SNES accumulator register?"
+        print(f"Testing {args.model} with Python CLI...")
+        print(f"Prompt: {prompt}")
+        print()
+        success = test_model_python(args.model, prompt)
+        return 0 if success else 1
+
+    else:
+        print(f"Error: Unknown test method '{args.method}'")
+        return 1
+
+
+def _models_chat_command(args: argparse.Namespace) -> int:
+    """Start interactive chat with a model."""
+    model = get_model_info(args.model)
+    if not model:
+        print(f"Error: Model '{args.model}' not found")
+        return 1
+
+    if not model.has_ollama:
+        print(f"Error: Model '{args.model}' not deployed to Ollama")
+        print(f"Deploy it first: afs models deploy {args.model}")
+        return 1
+
+    print(f"Starting chat with {args.model}...")
+    print("(Press Ctrl+D or type /bye to exit)")
+    print()
+    success = chat_with_model(args.model)
+    return 0 if success else 1
+
+
+def _models_backup_command(args: argparse.Namespace) -> int:
+    """Backup a model to all configured locations."""
+    model = get_model_info(args.model)
+    if not model:
+        print(f"Error: Model '{args.model}' not found")
+        return 1
+
+    print(f"Backing up {args.model} to all locations...")
+    success = backup_model(args.model)
+    return 0 if success else 1
+
+
+def _models_verify_command(args: argparse.Namespace) -> int:
+    """Verify model backups exist."""
+    model = get_model_info(args.model)
+    if not model:
+        print(f"Error: Model '{args.model}' not found")
+        return 1
+
+    print(f"Verifying backups for {args.model}...")
+    success = verify_backups(args.model)
+    return 0 if success else 1
+
+
+# Cost tracking commands
+def _cost_status_command(args: argparse.Namespace) -> int:
+    """Show current running costs."""
+    try:
+        tracker = VultrCostTracker()
+        costs = tracker.get_instance_costs()
+
+        if not costs:
+            print("No active training instances.")
+            return 0
+
+        for cost in costs:
+            print(
+                f"{cost.instance_name}: ${cost.total_cost:.2f} "
+                f"({cost.hours_running:.1f}h @ ${cost.hourly_rate:.2f}/h) [{cost.status}]"
+            )
+        print(f"\nTotal: ${sum(c.total_cost for c in costs):.2f}")
+        return 0
+    except Exception as e:
+        print(f"Error: {e}")
+        return 1
+
+
+def _cost_daily_command(args: argparse.Namespace) -> int:
+    """Show daily cost summary."""
+    try:
+        tracker = VultrCostTracker()
+        summary = tracker.get_daily_summary()
+        print(format_cost_report(summary))
+        return 0
+    except Exception as e:
+        print(f"Error: {e}")
+        return 1
+
+
+def _cost_balance_command(args: argparse.Namespace) -> int:
+    """Show account balance."""
+    try:
+        tracker = VultrCostTracker()
+        balance = tracker.get_account_balance()
+        print(f"Balance: ${balance['balance']:.2f}")
+        print(f"Pending charges: ${balance['pending_charges']:.2f}")
+        if balance['last_payment_date']:
+            print(f"Last payment: ${balance['last_payment_amount']:.2f} on {balance['last_payment_date']}")
+        return 0
+    except Exception as e:
+        print(f"Error: {e}")
+        return 1
+
+
+# Budget commands
+def _budget_check_command(args: argparse.Namespace) -> int:
+    """Check budget status."""
+    try:
+        enforcer = BudgetEnforcer()
+        status = enforcer.check_budget()
+        print(format_budget_status(status, enforcer.config))
+        return 0
+    except Exception as e:
+        print(f"Error: {e}")
+        return 1
+
+
+def _budget_enforce_command(args: argparse.Namespace) -> int:
+    """Enforce budget limits (may trigger alerts)."""
+    try:
+        enforcer = BudgetEnforcer()
+        status = enforcer.enforce(dry_run=args.dry_run)
+        print(format_budget_status(status, enforcer.config))
+        if status.status == "exceeded":
+            return 2
+        elif status.status == "critical":
+            return 1
+        return 0
+    except Exception as e:
+        print(f"Error: {e}")
+        return 1
+
+
+# Dashboard commands
+def _dashboard_command(args: argparse.Namespace) -> int:
+    """Show the training dashboard."""
+    try:
+        dashboard = Dashboard()
+        if args.watch:
+            dashboard.watch(interval=args.interval)
+        else:
+            print(dashboard.render(compact=args.compact))
+        return 0
+    except Exception as e:
+        print(f"Error: {e}")
+        return 1
+
+
+# Alert commands
+def _alert_test_command(args: argparse.Namespace) -> int:
+    """Send a test alert."""
+    try:
+        dispatcher = AlertDispatcher()
+        alert = Alert(
+            level=AlertLevel.INFO,
+            title="Test Alert",
+            message="This is a test alert from AFS training infrastructure.",
+            tags=["test"],
+        )
+        if dispatcher.send(alert):
+            print("Test alert sent successfully!")
+            return 0
+        else:
+            print("Failed to send test alert.")
+            return 1
+    except Exception as e:
+        print(f"Error: {e}")
+        return 1
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="afs_scawful")
     subparsers = parser.add_subparsers(dest="command")
@@ -333,6 +615,137 @@ def build_parser() -> argparse.ArgumentParser:
     )
     research_open.set_defaults(func=_research_open_command)
 
+    # Models command group
+    models_parser = subparsers.add_parser("models", help="Model deployment and management.")
+    models_sub = models_parser.add_subparsers(dest="models_command")
+
+    # afs models list
+    models_list = models_sub.add_parser("list", help="List all trained models.")
+    models_list.set_defaults(func=_models_list_command)
+
+    # afs models status <model>
+    models_status = models_sub.add_parser("status", help="Show detailed model status.")
+    models_status.add_argument("model", help="Model name (e.g., 7b_asm_v4)")
+    models_status.set_defaults(func=_models_status_command)
+
+    # afs models deploy <model>
+    models_deploy = models_sub.add_parser("deploy", help="Deploy a model to a target.")
+    models_deploy.add_argument("model", help="Model name (e.g., 7b_asm_v4)")
+    models_deploy.add_argument(
+        "--target",
+        choices=["ollama"],
+        default="ollama",
+        help="Deployment target (default: ollama)",
+    )
+    models_deploy.add_argument(
+        "--quantization",
+        choices=["Q4_K_M", "Q5_K_M", "Q8_0", "Q4_K_S"],
+        default="Q4_K_M",
+        help="GGUF quantization level (default: Q4_K_M)",
+    )
+    models_deploy.add_argument(
+        "--skip-merge",
+        action="store_true",
+        help="Skip LoRA merge if already done",
+    )
+    models_deploy.add_argument(
+        "--skip-gguf",
+        action="store_true",
+        help="Skip GGUF conversion if already done",
+    )
+    models_deploy.set_defaults(func=_models_deploy_command)
+
+    # afs models test <model>
+    models_test = models_sub.add_parser("test", help="Test a deployed model.")
+    models_test.add_argument("model", help="Model name (e.g., 7b_asm_v4)")
+    models_test.add_argument(
+        "--method",
+        choices=["ollama", "python"],
+        default="ollama",
+        help="Test method (default: ollama)",
+    )
+    models_test.add_argument(
+        "--prompt",
+        help="Custom test prompt (for python method)",
+    )
+    models_test.set_defaults(func=_models_test_command)
+
+    # afs models chat <model>
+    models_chat = models_sub.add_parser("chat", help="Interactive chat with a model.")
+    models_chat.add_argument("model", help="Model name (e.g., 7b_asm_v4)")
+    models_chat.set_defaults(func=_models_chat_command)
+
+    # afs models backup <model>
+    models_backup = models_sub.add_parser("backup", help="Backup a model to all locations.")
+    models_backup.add_argument("model", help="Model name (e.g., 7b_asm_v4)")
+    models_backup.set_defaults(func=_models_backup_command)
+
+    # afs models verify <model>
+    models_verify = models_sub.add_parser("verify", help="Verify model backups.")
+    models_verify.add_argument("model", help="Model name (e.g., 7b_asm_v4)")
+    models_verify.set_defaults(func=_models_verify_command)
+
+    # Cost command group
+    cost_parser = subparsers.add_parser("cost", help="Cost tracking and monitoring.")
+    cost_sub = cost_parser.add_subparsers(dest="cost_command")
+
+    # afs cost status
+    cost_status = cost_sub.add_parser("status", help="Show current running costs.")
+    cost_status.set_defaults(func=_cost_status_command)
+
+    # afs cost daily
+    cost_daily = cost_sub.add_parser("daily", help="Show daily cost summary.")
+    cost_daily.set_defaults(func=_cost_daily_command)
+
+    # afs cost balance
+    cost_balance = cost_sub.add_parser("balance", help="Show account balance.")
+    cost_balance.set_defaults(func=_cost_balance_command)
+
+    # Budget command group
+    budget_parser = subparsers.add_parser("budget", help="Budget management and enforcement.")
+    budget_sub = budget_parser.add_subparsers(dest="budget_command")
+
+    # afs budget check
+    budget_check = budget_sub.add_parser("check", help="Check budget status.")
+    budget_check.set_defaults(func=_budget_check_command)
+
+    # afs budget enforce
+    budget_enforce = budget_sub.add_parser("enforce", help="Enforce budget limits.")
+    budget_enforce.add_argument(
+        "--dry-run",
+        action="store_true",
+        help="Check only, don't take action",
+    )
+    budget_enforce.set_defaults(func=_budget_enforce_command)
+
+    # Dashboard command
+    dashboard_parser = subparsers.add_parser("dashboard", help="Training status dashboard.")
+    dashboard_parser.add_argument(
+        "--watch",
+        action="store_true",
+        help="Continuously update dashboard",
+    )
+    dashboard_parser.add_argument(
+        "--interval",
+        type=int,
+        default=30,
+        help="Update interval in seconds (default: 30)",
+    )
+    dashboard_parser.add_argument(
+        "--compact",
+        action="store_true",
+        help="Show compact single-line status",
+    )
+    dashboard_parser.set_defaults(func=_dashboard_command)
+
+    # Alert command group
+    alert_parser = subparsers.add_parser("alert", help="Alert management.")
+    alert_sub = alert_parser.add_subparsers(dest="alert_command")
+
+    # afs alert test
+    alert_test = alert_sub.add_parser("test", help="Send a test alert.")
+    alert_test.set_defaults(func=_alert_test_command)
+
     return parser
 
 
@@ -357,6 +770,19 @@ def main(argv: Iterable[str] | None = None) -> int:
     if args.command == "research" and not getattr(args, "research_command", None):
         parser.print_help()
         return 1
+    if args.command == "models" and not getattr(args, "models_command", None):
+        parser.print_help()
+        return 1
+    if args.command == "cost" and not getattr(args, "cost_command", None):
+        parser.print_help()
+        return 1
+    if args.command == "budget" and not getattr(args, "budget_command", None):
+        parser.print_help()
+        return 1
+    if args.command == "alert" and not getattr(args, "alert_command", None):
+        parser.print_help()
+        return 1
+    # Dashboard command doesn't have subcommands
     return args.func(args)
 
 
