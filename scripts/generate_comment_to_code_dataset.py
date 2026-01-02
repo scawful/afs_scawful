@@ -7,6 +7,7 @@ from __future__ import annotations
 import argparse
 import json
 import random
+import re
 from pathlib import Path
 from typing import Iterable
 
@@ -23,20 +24,47 @@ def iter_jsonl(path: Path) -> Iterable[dict]:
                 continue
 
 
+_FILE_MARKER_PATTERNS = [
+    r";\s*\*?\$[0-9A-Fa-f]+-\$[0-9A-Fa-f]+\s*(LOCAL|LONG|JUMP\s*LOCATION|ALTERNATE\s*ENTRY\s*POINT|DATA|MAIN\s*ENTRY\s*POINT)?\.?",
+    r"\*\$[0-9A-Fa-f]+-\$[0-9A-Fa-f]+\s*(LOCAL|LONG|JUMP\s*LOCATION|ALTERNATE\s*ENTRY\s*POINT|DATA|MAIN\s*ENTRY\s*POINT)?\.?",
+    r"={4,}",
+    r"-{4,}",
+    r";\s*TODO\s*$",
+    r";\s*\$[0-9A-Fa-f]+\s*$",
+]
+_file_marker_regexes = [re.compile(p, re.IGNORECASE) for p in _FILE_MARKER_PATTERNS]
+_org_regex = re.compile(r"\borg\s+\$[0-9A-Fa-f]+\b", re.IGNORECASE)
+
+
 def strip_code_fence(text: str) -> str:
     if "```" not in text:
         return text.strip()
     parts = text.split("```")
     if len(parts) < 2:
         return text.strip()
-    return parts[1].replace("asm", "", 1).strip()
+    cleaned = parts[1].strip()
+    if cleaned.lower().startswith("asm"):
+        cleaned = cleaned[3:].strip()
+    return cleaned
 
 
-def build_instruction(description: str) -> str:
+def clean_description(text: str) -> tuple[str, bool]:
+    original = text
+    cleaned = text
+    for pattern in _file_marker_regexes:
+        cleaned = pattern.sub("", cleaned)
+    cleaned = _org_regex.sub("", cleaned)
+    cleaned = re.sub(r"\s+", " ", cleaned).strip()
+    cleaned = re.sub(r"[\s,;:]+$", "", cleaned).strip()
+    return cleaned, cleaned != original
+
+
+def build_instruction(description: str) -> tuple[str, bool]:
+    description, was_cleaned = clean_description(description)
     description = description.strip().rstrip(".")
-    if not description:
-        return ""
-    return f"Write a 65816 routine that {description}."
+    if len(description) < 8 or not re.search(r"[A-Za-z]", description):
+        return "", was_cleaned
+    return f"Write a 65816 routine that {description}.", was_cleaned
 
 
 def main() -> None:
@@ -56,8 +84,8 @@ def main() -> None:
         for record in iter_jsonl(args.input):
             if args.sample_rate < 1.0 and random.random() > args.sample_rate:
                 continue
-            description = record.get("output", "")
-            instruction = build_instruction(description)
+            raw_description = record.get("output", "")
+            instruction, was_cleaned = build_instruction(raw_description)
             if not instruction:
                 continue
             code = strip_code_fence(record.get("input", ""))
@@ -72,6 +100,7 @@ def main() -> None:
                 "metadata": {
                     "label": record.get("label", ""),
                     "origin_domain": record.get("domain", ""),
+                    "description_cleaned": was_cleaned,
                 },
             }
             handle.write(json.dumps(payload, ensure_ascii=True) + "\n")

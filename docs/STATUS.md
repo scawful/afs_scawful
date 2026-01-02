@@ -23,7 +23,7 @@ See `MODEL_NAMING.md` for naming convention.
 - [x] Training infrastructure improvements (cost protection, alerts)
 - [x] Model naming convention (Oracle series)
 - [x] First production model (nayru-7b-v1)
-- [ ] GGUF conversion for Ollama
+- [x] GGUF conversion for Ollama (nayru-7b-v1-q4km, 4.7GB)
 - [ ] Eval framework with ASAR validation
 - [ ] DeepSeek-Coder-V2 exploration
 
@@ -42,7 +42,7 @@ See `MODEL_NAMING.md` for naming convention.
 
 ## Next Steps
 
-1. Convert nayru-7b-v1 to GGUF for local Ollama
-2. Test farore-1.5b-v1 autocomplete model
-3. Explore DeepSeek-Coder-V2-Lite for 128K context
-4. Build ASAR eval framework
+1. Test farore-1.5b-v1 autocomplete model
+2. Explore DeepSeek-Coder-V2-Lite for 128K context
+3. Build ASAR eval framework
+4. Train din-7b-v1 (optimization focus)

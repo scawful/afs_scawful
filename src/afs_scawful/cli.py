@@ -24,7 +24,9 @@ from .research import (
     write_research_catalog,
 )
 from .training import TrainingSample
-from .validators import default_validators
+from .validators import default_validators, enhanced_validators
+from .eval import EvalConfig, EvalPipeline
+from .integrations.ollama_client import Prompt
 from .models import (
     list_models,
     get_model_info,
@@ -486,6 +488,203 @@ def _alert_test_command(args: argparse.Namespace) -> int:
         return 1
 
 
+# Eval commands
+def _eval_test_command(args: argparse.Namespace) -> int:
+    """Run a single evaluation test."""
+    from .eval.config import ModelConfig
+
+    config = EvalConfig()
+    if args.model:
+        config.model.name = args.model
+
+    pipeline = EvalPipeline(config)
+
+    async def run():
+        result = await pipeline.eval_interactive(args.prompt)
+        print(f"\n{'='*60}")
+        print(f"Prompt: {args.prompt}")
+        print(f"{'='*60}")
+        print(f"\nResponse:\n{result.response.text}")
+        print(f"\n{'='*60}")
+        print(f"Valid: {'Yes' if result.success else 'No'}")
+        print(f"Score: {result.score:.2f}")
+        print(f"Latency: {result.response.latency_ms:.0f}ms")
+        if result.response.tokens_per_second > 0:
+            print(f"Tokens/s: {result.response.tokens_per_second:.1f}")
+        if result.validation.errors:
+            print(f"\nErrors:")
+            for err in result.validation.errors[:5]:
+                print(f"  - {err}")
+        if result.validation.details:
+            print(f"\nDetails:")
+            for key, val in result.validation.details.items():
+                if isinstance(val, dict) and "score" in val:
+                    print(f"  {key}: score={val['score']:.2f}")
+        return 0 if result.success else 1
+
+    try:
+        return asyncio.run(run())
+    except Exception as e:
+        print(f"Error: {e}")
+        return 1
+
+
+def _eval_batch_command(args: argparse.Namespace) -> int:
+    """Run batch evaluation from a prompts file."""
+    config = EvalConfig()
+    if args.model:
+        config.model.name = args.model
+    if args.config:
+        config = EvalConfig.from_yaml(Path(args.config))
+
+    pipeline = EvalPipeline(config)
+    prompts_path = Path(args.prompts).expanduser().resolve()
+
+    def progress(done: int, total: int, result):
+        status = "pass" if result.success else "FAIL"
+        print(f"[{done}/{total}] {status} score={result.score:.2f} {result.category}")
+
+    async def run():
+        report = await pipeline.eval_file(prompts_path)
+
+        # Print summary
+        print(f"\n{'='*60}")
+        print(f"Evaluation Complete: {report.model_name}")
+        print(f"{'='*60}")
+        print(f"Total: {report.total}")
+        print(f"Passed: {report.passed} ({report.pass_rate:.1%})")
+        print(f"Failed: {report.failed}")
+        print(f"Avg Score: {report.avg_score:.2f}")
+        print(f"Avg Latency: {report.avg_latency_ms:.0f}ms")
+        print(f"Duration: {report.duration_seconds:.1f}s")
+
+        # Write report
+        if args.report:
+            report_path = Path(args.report).expanduser().resolve()
+            if args.format == "json":
+                report_path.write_text(report.to_json())
+            else:
+                report_path.write_text(report.to_markdown())
+            print(f"\nReport saved: {report_path}")
+
+        return 0 if report.pass_rate >= 0.5 else 1
+
+    try:
+        return asyncio.run(run())
+    except Exception as e:
+        print(f"Error: {e}")
+        return 1
+
+
+def _eval_live_command(args: argparse.Namespace) -> int:
+    """Interactive evaluation REPL."""
+    config = EvalConfig()
+    if args.model:
+        config.model.name = args.model
+
+    pipeline = EvalPipeline(config)
+
+    print(f"Interactive Eval Mode - Model: {config.model.name}")
+    print("Enter prompts to evaluate (Ctrl+D or 'exit' to quit)")
+    print("-" * 60)
+
+    async def eval_prompt(prompt_text: str):
+        result = await pipeline.eval_interactive(prompt_text)
+        print(f"\nResponse:")
+        print(result.response.text)
+        print(f"\n[{'PASS' if result.success else 'FAIL'}] "
+              f"score={result.score:.2f} latency={result.response.latency_ms:.0f}ms")
+        if result.validation.errors:
+            for err in result.validation.errors[:3]:
+                print(f"  Error: {err}")
+        print()
+
+    try:
+        while True:
+            try:
+                prompt = input(">>> ").strip()
+                if not prompt or prompt.lower() in ("exit", "quit", "/bye"):
+                    break
+                asyncio.run(eval_prompt(prompt))
+            except EOFError:
+                break
+        print("\nExiting.")
+        return 0
+    except Exception as e:
+        print(f"Error: {e}")
+        return 1
+
+
+def _eval_dataset_command(args: argparse.Namespace) -> int:
+    """Validate a training dataset."""
+    from .validators.asar_validator_v2 import AsarValidatorV2
+    from .validators import AsmValidator
+
+    dataset_path = Path(args.input).expanduser().resolve()
+    if not dataset_path.exists():
+        print(f"Error: Dataset not found: {dataset_path}")
+        return 1
+
+    validators = []
+    if not args.skip_asm:
+        validators.append(AsmValidator())
+    if not args.skip_asar:
+        validators.append(AsarValidatorV2(
+            semantic_analysis=not args.skip_semantic,
+        ))
+
+    async def validate_dataset():
+        passed = 0
+        failed = 0
+        total = 0
+
+        with open(dataset_path, "r") as f:
+            for line_num, line in enumerate(f, 1):
+                line = line.strip()
+                if not line:
+                    continue
+                try:
+                    data = json.loads(line)
+                    sample = TrainingSample.from_dict(data)
+                except Exception as e:
+                    print(f"Line {line_num}: Parse error - {e}")
+                    failed += 1
+                    continue
+
+                total += 1
+                all_valid = True
+                for validator in validators:
+                    if validator.can_validate(sample):
+                        result = await validator.validate(sample)
+                        if not result.valid:
+                            all_valid = False
+                            if args.verbose:
+                                print(f"Line {line_num}: {validator.name} failed - {result.errors[:1]}")
+                            break
+
+                if all_valid:
+                    passed += 1
+                else:
+                    failed += 1
+
+                if total % 100 == 0:
+                    print(f"Processed {total} samples...")
+
+        print(f"\n{'='*60}")
+        print(f"Dataset Validation: {dataset_path.name}")
+        print(f"{'='*60}")
+        print(f"Total: {total}")
+        print(f"Passed: {passed} ({passed/total*100:.1f}%)" if total > 0 else "Passed: 0")
+        print(f"Failed: {failed}")
+        return 0 if failed == 0 else 1
+
+    try:
+        return asyncio.run(validate_dataset())
+    except Exception as e:
+        print(f"Error: {e}")
+        return 1
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="afs_scawful")
     subparsers = parser.add_subparsers(dest="command")
@@ -746,6 +945,39 @@ def build_parser() -> argparse.ArgumentParser:
     alert_test = alert_sub.add_parser("test", help="Send a test alert.")
     alert_test.set_defaults(func=_alert_test_command)
 
+    # Eval command group
+    eval_parser = subparsers.add_parser("eval", help="Model evaluation tools.")
+    eval_sub = eval_parser.add_subparsers(dest="eval_command")
+
+    # afs eval test --prompt "..."
+    eval_test = eval_sub.add_parser("test", help="Run a single evaluation test.")
+    eval_test.add_argument("--prompt", "-p", required=True, help="Prompt to evaluate.")
+    eval_test.add_argument("--model", "-m", help="Model name (default: nayru-7b-v1:latest)")
+    eval_test.set_defaults(func=_eval_test_command)
+
+    # afs eval batch --prompts file.jsonl
+    eval_batch = eval_sub.add_parser("batch", help="Batch evaluation from prompts file.")
+    eval_batch.add_argument("--prompts", "-p", required=True, help="JSONL file with prompts.")
+    eval_batch.add_argument("--report", "-r", help="Output report path.")
+    eval_batch.add_argument("--format", "-f", choices=["markdown", "json"], default="markdown")
+    eval_batch.add_argument("--model", "-m", help="Model name override.")
+    eval_batch.add_argument("--config", "-c", help="YAML config file.")
+    eval_batch.set_defaults(func=_eval_batch_command)
+
+    # afs eval live
+    eval_live = eval_sub.add_parser("live", help="Interactive evaluation REPL.")
+    eval_live.add_argument("--model", "-m", help="Model name (default: nayru-7b-v1:latest)")
+    eval_live.set_defaults(func=_eval_live_command)
+
+    # afs eval dataset --input train.jsonl
+    eval_dataset = eval_sub.add_parser("dataset", help="Validate a training dataset.")
+    eval_dataset.add_argument("--input", "-i", required=True, help="Dataset JSONL file.")
+    eval_dataset.add_argument("--verbose", "-v", action="store_true", help="Show validation errors.")
+    eval_dataset.add_argument("--skip-asm", action="store_true", help="Skip ASM validator.")
+    eval_dataset.add_argument("--skip-asar", action="store_true", help="Skip ASAR validator.")
+    eval_dataset.add_argument("--skip-semantic", action="store_true", help="Skip semantic analysis.")
+    eval_dataset.set_defaults(func=_eval_dataset_command)
+
     return parser
 
 
@@ -780,6 +1012,9 @@ def main(argv: Iterable[str] | None = None) -> int:
         parser.print_help()
         return 1
     if args.command == "alert" and not getattr(args, "alert_command", None):
+        parser.print_help()
+        return 1
+    if args.command == "eval" and not getattr(args, "eval_command", None):
         parser.print_help()
         return 1
     # Dashboard command doesn't have subcommands

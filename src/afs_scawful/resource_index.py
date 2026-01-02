@@ -275,6 +275,9 @@ def _parse_paths(raw: Any) -> list[Path]:
     roots: list[Path] = []
     if isinstance(raw, list):
         for item in raw:
+            if isinstance(item, Path):
+                roots.append(item)
+                continue
             if isinstance(item, str):
                 roots.append(Path(item).expanduser().resolve())
     return roots
