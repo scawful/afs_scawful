@@ -34,6 +34,13 @@ class ValidationConfig:
     use_behavioral: bool = False
     asar_rom_type: Literal["lorom", "hirom", "exlorom", "exhirom"] = "lorom"
     extract_symbols: bool = True
+    # Categories that skip ASM validation (use text quality instead)
+    skip_asm_categories: list[str] = field(default_factory=lambda: [
+        "explanation",
+        "memory_qa",
+        "documentation",
+        "code_explanation",
+    ])
 
 
 @dataclass

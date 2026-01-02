@@ -5,6 +5,7 @@ from __future__ import annotations
 import asyncio
 import json
 import logging
+import re
 from dataclasses import dataclass, field
 from datetime import datetime
 from pathlib import Path
@@ -17,6 +18,88 @@ from ..validators.asar_validator_v2 import AsarValidatorV2
 from .config import EvalConfig
 
 logger = logging.getLogger(__name__)
+
+
+# Patterns for detecting prompt category
+_EXPLANATION_PATTERNS = [
+    r"explain\s+(?:what|how|why)",
+    r"what\s+(?:does|is)\s+(?:the\s+)?(?:address|memory|register)",
+    r"describe\s+(?:the|how)",
+    r"what\s+(?:is|are)\s+stored?\s+(?:in|at)",
+    r"tell\s+me\s+about",
+]
+_CODE_PATTERNS = [
+    r"write\s+(?:a\s+)?(?:65816|asm|assembly|routine|subroutine|function|code)",
+    r"create\s+(?:a\s+)?(?:patch|hack|routine)",
+    r"implement\s+(?:a\s+)?",
+    r"fix\s+(?:the|this)\s+(?:bug|code|routine)",
+    r"optimize\s+(?:the|this)",
+]
+
+_explanation_regexes = [re.compile(p, re.IGNORECASE) for p in _EXPLANATION_PATTERNS]
+_code_regexes = [re.compile(p, re.IGNORECASE) for p in _CODE_PATTERNS]
+
+
+def detect_category(prompt_text: str) -> str:
+    """Auto-detect prompt category based on content."""
+    # Check for explanation patterns first
+    for pattern in _explanation_regexes:
+        if pattern.search(prompt_text):
+            return "explanation"
+
+    # Check for code generation patterns
+    for pattern in _code_regexes:
+        if pattern.search(prompt_text):
+            return "code_generation"
+
+    # Default to code generation (requires validation)
+    return "code_generation"
+
+
+def validate_text_response(text: str) -> ValidationResult:
+    """Validate a text/explanation response (no ASM validation)."""
+    # Basic quality checks for explanation responses
+    errors = []
+    warnings = []
+    score = 0.5
+
+    # Check minimum length
+    if len(text.strip()) < 20:
+        errors.append("Response too short")
+        score = 0.1
+    elif len(text.strip()) < 50:
+        warnings.append("Response is brief")
+        score = 0.4
+    else:
+        score = 0.7
+
+    # Check for substantive content (not just punctuation/whitespace)
+    words = re.findall(r'\b[a-zA-Z]+\b', text)
+    if len(words) < 5:
+        errors.append("Response lacks substantive content")
+        score = min(score, 0.2)
+    elif len(words) >= 20:
+        score = min(score + 0.2, 1.0)
+
+    # Check for technical terms (ALTTP/65816 context)
+    technical_terms = [
+        r'\$[0-9A-Fa-f]{2,6}',  # hex addresses
+        r'\b(?:LDA|STA|JMP|JSR|RTS|RTL)\b',  # opcodes
+        r'\blink\b',  # game character
+        r'\b(?:rupee|heart|sword|shield|item)\b',  # game items
+        r'\b(?:WRAM|SRAM|ROM|bank)\b',  # memory terms
+    ]
+    tech_count = sum(1 for p in technical_terms if re.search(p, text, re.IGNORECASE))
+    if tech_count >= 2:
+        score = min(score + 0.1, 1.0)
+
+    return ValidationResult(
+        valid=len(errors) == 0,
+        score=score,
+        errors=errors,
+        warnings=warnings,
+        details={"word_count": len(words), "tech_term_count": tech_count},
+    )
 
 
 @dataclass
@@ -239,8 +322,12 @@ class EvalPipeline:
                 semantic_analysis=self.config.validation.use_semantic,
             ))
 
-    async def validate_response(self, response: ModelResponse) -> ValidationResult:
-        """Validate a model response."""
+    async def validate_response(
+        self,
+        response: ModelResponse,
+        category: str = "",
+    ) -> ValidationResult:
+        """Validate a model response based on category."""
         if response.error:
             return ValidationResult(
                 valid=False,
@@ -248,6 +335,17 @@ class EvalPipeline:
                 errors=[f"Model error: {response.error}"],
             )
 
+        # Check if this category should skip ASM validation
+        skip_asm = category in self.config.validation.skip_asm_categories
+
+        if skip_asm:
+            # Use text-based validation for explanation/documentation
+            result = validate_text_response(response.text)
+            result.details["category"] = category
+            result.details["validation_mode"] = "text"
+            return result
+
+        # Full ASM validation for code generation
         sample = TrainingSample(
             instruction="",
             input="",
@@ -258,7 +356,7 @@ class EvalPipeline:
         # Run all validators and combine results
         all_errors: list[str] = []
         all_warnings: list[str] = []
-        all_details: dict[str, Any] = {}
+        all_details: dict[str, Any] = {"category": category, "validation_mode": "asm"}
         scores: list[float] = []
 
         for validator in self.validators:
@@ -290,13 +388,16 @@ class EvalPipeline:
             max_tokens=self.config.model.max_tokens,
         )
 
-        validation = await self.validate_response(response)
+        # Use provided category or auto-detect from prompt
+        category = prompt.category or detect_category(prompt.instruction)
+
+        validation = await self.validate_response(response, category=category)
 
         return EvalResult(
             prompt=prompt,
             response=response,
             validation=validation,
-            category=prompt.category,
+            category=category,
         )
 
     async def eval_batch(
@@ -341,8 +442,9 @@ class EvalPipeline:
         )
 
     async def eval_interactive(self, prompt_text: str) -> EvalResult:
-        """Run a single interactive evaluation."""
-        prompt = Prompt(instruction=prompt_text, category="interactive")
+        """Run a single interactive evaluation with auto-category detection."""
+        # Don't set category - let eval_single auto-detect from prompt text
+        prompt = Prompt(instruction=prompt_text, category="")
         return await self.eval_single(prompt)
 
     async def eval_file(self, path: Path) -> EvalReport:
