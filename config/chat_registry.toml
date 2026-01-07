@@ -1,0 +1,123 @@
+# AFS chat registry
+# Providers: ollama, studio, vertex
+
+[[models]]
+name = "din"
+provider = "ollama"
+model_id = "din-v4:latest"
+role = "generation, optimization, refactoring"
+tags = ["oracle"]
+
+[[models]]
+name = "nayru"
+provider = "ollama"
+model_id = "nayru-v7:latest"
+role = "explanation, analysis, documentation"
+tags = ["oracle"]
+
+[[models]]
+name = "farore"
+provider = "ollama"
+model_id = "farore-v3:latest"
+role = "autocomplete, FIM, quick inference"
+tags = ["oracle"]
+
+[[models]]
+name = "veran"
+provider = "ollama"
+model_id = "veran-v3:latest"
+role = "complex analysis, large context"
+tags = ["oracle"]
+
+[[models]]
+name = "onox"
+provider = "ollama"
+model_id = "onox-v1:latest"
+role = "aggressive optimization"
+tags = ["oracle"]
+
+[[models]]
+name = "twinrova"
+provider = "ollama"
+model_id = "twinrova-v1:latest"
+role = "MoE ensemble"
+tags = ["oracle", "moe"]
+
+[[models]]
+name = "agahnim"
+provider = "ollama"
+model_id = "agahnim-v1:latest"
+role = "patch merges, IPS/BPS workflows"
+tags = ["oracle", "patching"]
+
+[[models]]
+name = "hylia"
+provider = "ollama"
+model_id = "hylia-v1:latest"
+role = "mythos, cosmology, worldbuilding"
+tags = ["oracle", "lore"]
+
+[[models]]
+name = "majora"
+provider = "ollama"
+model_id = "majora-v1:latest"
+
+[[models]]
+name = "scawful-echo"
+provider = "ollama"
+model_id = "scawful-echo:latest"
+tags = ["avatar"]
+
+[[models]]
+name = "muse"
+provider = "ollama"
+model_id = "muse-v2:latest"
+tags = ["avatar"]
+
+[[models]]
+name = "scribe"
+provider = "ollama"
+model_id = "scribe:v2"
+tags = ["avatar"]
+
+[[routers]]
+name = "oracle"
+description = "Keyword router for Oracle series models."
+strategy = "keyword"
+default_model = "nayru"
+
+[[routers.rules]]
+keywords = ["optimize", "faster", "performance", "cycles", "tighten"]
+model = "onox"
+
+[[routers.rules]]
+keywords = ["refactor", "rewrite", "cleanup"]
+model = "din"
+
+[[routers.rules]]
+keywords = ["explain", "document", "describe", "what does", "why"]
+model = "nayru"
+
+[[routers.rules]]
+keywords = ["analyze", "deep", "edge case", "context"]
+model = "veran"
+
+[[routers.rules]]
+keywords = ["autocomplete", "fim", "fill in", "snippet", "quick"]
+model = "farore"
+
+[[routers.rules]]
+keywords = ["patch", "ips", "bps", "xdelta", "merge", "diff"]
+model = "agahnim"
+
+[[routers]]
+name = "twinrova"
+description = "Ensemble across core oracle experts."
+strategy = "ensemble"
+models = ["din", "nayru", "farore", "veran"]
+
+[[routers]]
+name = "avatar"
+description = "Avatar MoE (default to scawful-echo)."
+strategy = "keyword"
+default_model = "scawful-echo"

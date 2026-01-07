@@ -6,6 +6,7 @@ import argparse
 import asyncio
 import json
 import os
+import time
 from pathlib import Path
 from typing import Iterable
 
@@ -38,10 +39,20 @@ from .models import (
     verify_backups,
     print_model_status,
 )
+from .chat_harness import run_chat, load_chat_registry, build_provider
 from .cost_tracker import VultrCostTracker, format_cost_report
 from .budget import BudgetEnforcer, format_budget_status
 from .dashboard import Dashboard
 from .alerting import AlertDispatcher, Alert, AlertLevel
+from .infra_config import get_config
+from .vast import (
+    build_status_report,
+    default_status_output_path,
+    format_status,
+    list_instance_names,
+    send_alerts,
+    write_status_json,
+)
 
 
 def _datasets_index_command(args: argparse.Namespace) -> int:
@@ -372,6 +383,91 @@ def _models_verify_command(args: argparse.Namespace) -> int:
     return 0 if success else 1
 
 
+def _chat_run_command(args: argparse.Namespace) -> int:
+    """Run interactive chat with provider and router support."""
+    registry_path = (
+        Path(args.registry_path).expanduser().resolve()
+        if args.registry_path
+        else None
+    )
+    system_path = (
+        Path(args.system_file).expanduser().resolve()
+        if args.system_file
+        else None
+    )
+    return run_chat(
+        model=args.model,
+        router=args.router,
+        provider=args.provider,
+        system=args.system,
+        system_path=system_path,
+        temperature=args.temperature,
+        top_p=args.top_p,
+        max_tokens=args.max_tokens,
+        ollama_host=args.ollama_host,
+        registry_path=registry_path,
+        enable_tools=args.tools,
+    )
+
+
+def _chat_list_models_command(args: argparse.Namespace) -> int:
+    """List available chat models."""
+    registry_path = (
+        Path(args.registry_path).expanduser().resolve()
+        if args.registry_path
+        else None
+    )
+
+    if args.registry:
+        registry = load_chat_registry(registry_path)
+        models = registry.list_models(provider=args.provider)
+        if not models:
+            print("No registry models found.")
+            return 1
+        for model in models:
+            role = f" - {model.role}" if model.role else ""
+            print(f"{model.name} ({model.provider}:{model.model_id}){role}")
+        return 0
+
+    provider = args.provider or "ollama"
+    client = build_provider(provider, ollama_host=args.ollama_host)
+
+    async def run():
+        if not getattr(client, "supports_model_listing", False):
+            print("Provider does not support model listing.")
+            return 1
+        models = await client.list_models()
+        if not models:
+            print("No models returned.")
+            return 1
+        for name in models:
+            print(name)
+        return 0
+
+    try:
+        return asyncio.run(run())
+    except Exception as e:
+        print(f"Error: {e}")
+        return 1
+
+
+def _chat_list_routers_command(args: argparse.Namespace) -> int:
+    """List available chat routers."""
+    registry_path = (
+        Path(args.registry_path).expanduser().resolve()
+        if args.registry_path
+        else None
+    )
+    registry = load_chat_registry(registry_path)
+    routers = registry.list_routers()
+    if not routers:
+        print("No routers found.")
+        return 1
+    for router in routers:
+        print(f"{router.name} ({router.strategy}) - {router.description}")
+    return 0
+
+
 # Cost tracking commands
 def _cost_status_command(args: argparse.Namespace) -> int:
     """Show current running costs."""
@@ -488,14 +584,219 @@ def _alert_test_command(args: argparse.Namespace) -> int:
         return 1
 
 
+def _alert_send_command(args: argparse.Namespace) -> int:
+    """Send a custom alert."""
+    try:
+        dispatcher = AlertDispatcher()
+        if args.event:
+            toggles = {
+                "training-start": "alert_on_training_start",
+                "training-complete": "alert_on_training_complete",
+                "training-failed": "alert_on_training_failed",
+                "eval-complete": "alert_on_eval_complete",
+                "backup-complete": "alert_on_backup_complete",
+                "export-complete": "alert_on_export_complete",
+                "budget-warning": "alert_on_budget_warning",
+                "idle-detected": "alert_on_idle_detection",
+                "disk-warning": "alert_on_disk_warning",
+            }
+            toggle = toggles.get(args.event)
+            if toggle and not getattr(dispatcher.config, toggle, True):
+                print(f"Alert suppressed by config ({toggle}=false).")
+                return 0
+        tags = []
+        if args.tags:
+            tags = [tag.strip() for tag in args.tags.split(",") if tag.strip()]
+        alert = Alert(
+            level=AlertLevel(args.level),
+            title=args.title,
+            message=args.message,
+            instance=args.instance,
+            cost=args.cost,
+            tags=tags,
+        )
+        if dispatcher.send(alert):
+            print("Alert sent.")
+            return 0
+        print("Failed to send alert.")
+        return 1
+    except Exception as e:
+        print(f"Error: {e}")
+        return 1
+
+
+# Vast commands
+def _resolve_vast_output_path(args: argparse.Namespace) -> Path | None:
+    output_path = None
+    if getattr(args, "write_index", False):
+        output_path = default_status_output_path()
+    if getattr(args, "output", None):
+        output_path = Path(args.output).expanduser().resolve()
+    return output_path
+
+
+def _build_vast_report_from_args(args: argparse.Namespace):
+    instances_dir = (
+        Path(args.instances_dir).expanduser().resolve() if args.instances_dir else None
+    )
+    metadata_path = (
+        Path(args.metadata).expanduser().resolve() if args.metadata else None
+    )
+    training_dir = args.training_dir or get_config().training.remote_training_dir
+    include_remote = not args.skip_remote
+    return build_status_report(
+        instance_id=args.id,
+        name=args.name,
+        metadata_path=metadata_path,
+        instances_dir=instances_dir,
+        training_dir=training_dir,
+        include_remote=include_remote,
+        log_lines=args.log_lines,
+    )
+
+
+def _build_vast_reports_from_args(args: argparse.Namespace) -> list:
+    if not getattr(args, "all", False):
+        return [_build_vast_report_from_args(args)]
+
+    instances_dir = (
+        Path(args.instances_dir).expanduser().resolve() if args.instances_dir else None
+    )
+    names = list_instance_names(instances_dir)
+    if not names:
+        raise ValueError("No Vast instances found in metadata directory.")
+
+    reports = []
+    for name in names:
+        clone = argparse.Namespace(**vars(args))
+        clone.id = None
+        clone.name = name
+        clone.metadata = None
+        reports.append(_build_vast_report_from_args(clone))
+    return reports
+
+
+def _write_vast_reports_json(reports: list, output_path: Path) -> None:
+    if len(reports) == 1:
+        write_status_json(reports[0], output_path)
+        return
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    payload = [report.to_dict() for report in reports]
+    output_path.write_text(json.dumps(payload, indent=2), encoding="utf-8")
+
+
+def _print_vast_reports(reports: list) -> None:
+    for idx, report in enumerate(reports):
+        if idx:
+            print("\n" + ("-" * 60) + "\n")
+        print(format_status(report))
+
+
+def _vast_status_command(args: argparse.Namespace) -> int:
+    """Show Vast training status."""
+    try:
+        reports = _build_vast_reports_from_args(args)
+        output_path = _resolve_vast_output_path(args)
+        if output_path:
+            _write_vast_reports_json(reports, output_path)
+        if args.json:
+            payload = [report.to_dict() for report in reports]
+            if len(payload) == 1:
+                payload = payload[0]
+            print(json.dumps(payload, indent=2))
+        elif not args.quiet:
+            _print_vast_reports(reports)
+        return 0
+    except Exception as e:
+        print(f"Error: {e}")
+        instances_dir = (
+            Path(args.instances_dir).expanduser().resolve() if args.instances_dir else None
+        )
+        names = list_instance_names(instances_dir)
+        if names:
+            print("Known Vast instances:")
+            for name in names:
+                print(f"  - {name}")
+        return 1
+
+
+def _vast_check_command(args: argparse.Namespace) -> int:
+    """Check Vast instance health and optionally alert."""
+    try:
+        reports = _build_vast_reports_from_args(args)
+        output_path = _resolve_vast_output_path(args)
+        if output_path:
+            _write_vast_reports_json(reports, output_path)
+        if args.json:
+            payload = [report.to_dict() for report in reports]
+            if len(payload) == 1:
+                payload = payload[0]
+            print(json.dumps(payload, indent=2))
+        elif not args.quiet:
+            _print_vast_reports(reports)
+        if args.alert:
+            for report in reports:
+                send_alerts(report)
+        if any(report.issues for report in reports) and not args.no_fail:
+            return 2
+        return 0
+    except Exception as e:
+        print(f"Error: {e}")
+        return 1
+
+
+def _vast_watch_command(args: argparse.Namespace) -> int:
+    """Continuously watch Vast status."""
+    output_path = _resolve_vast_output_path(args)
+    try:
+        while True:
+            reports = _build_vast_reports_from_args(args)
+            if output_path:
+                _write_vast_reports_json(reports, output_path)
+            if args.alert:
+                for report in reports:
+                    send_alerts(report)
+            if args.json:
+                payload = [report.to_dict() for report in reports]
+                if len(payload) == 1:
+                    payload = payload[0]
+                print(json.dumps(payload, indent=2))
+            elif not args.quiet:
+                print("\033[2J\033[H", end="")
+                _print_vast_reports(reports)
+                print(f"\nRefreshing in {args.interval}s... (Ctrl+C to exit)")
+            time.sleep(args.interval)
+    except KeyboardInterrupt:
+        if not args.quiet:
+            print("\nExiting Vast watch.")
+        return 0
+    except Exception as e:
+        print(f"Error: {e}")
+        return 1
+
+
 # Eval commands
+def _apply_model_overrides(config: EvalConfig, args: argparse.Namespace) -> None:
+    if getattr(args, "model", None):
+        config.model.name = args.model
+    if getattr(args, "provider", None):
+        config.model.provider = args.provider
+    if getattr(args, "base_url", None):
+        config.model.base_url = args.base_url
+    if getattr(args, "studio_key_env", None):
+        config.model.studio_api_key_env = args.studio_key_env
+    if getattr(args, "vertex_project", None):
+        config.model.vertex_project = args.vertex_project
+    if getattr(args, "vertex_location", None):
+        config.model.vertex_location = args.vertex_location
+    if getattr(args, "gcloud_path", None):
+        config.model.gcloud_path = args.gcloud_path
+
+
 def _eval_test_command(args: argparse.Namespace) -> int:
     """Run a single evaluation test."""
-    from .eval.config import ModelConfig
-
     config = EvalConfig()
-    if args.model:
-        config.model.name = args.model
+    _apply_model_overrides(config, args)
 
     pipeline = EvalPipeline(config)
 
@@ -532,10 +833,9 @@ def _eval_test_command(args: argparse.Namespace) -> int:
 def _eval_batch_command(args: argparse.Namespace) -> int:
     """Run batch evaluation from a prompts file."""
     config = EvalConfig()
-    if args.model:
-        config.model.name = args.model
     if args.config:
         config = EvalConfig.from_yaml(Path(args.config))
+    _apply_model_overrides(config, args)
 
     pipeline = EvalPipeline(config)
     prompts_path = Path(args.prompts).expanduser().resolve()
@@ -579,8 +879,7 @@ def _eval_batch_command(args: argparse.Namespace) -> int:
 def _eval_live_command(args: argparse.Namespace) -> int:
     """Interactive evaluation REPL."""
     config = EvalConfig()
-    if args.model:
-        config.model.name = args.model
+    _apply_model_overrides(config, args)
 
     pipeline = EvalPipeline(config)
 
@@ -610,6 +909,28 @@ def _eval_live_command(args: argparse.Namespace) -> int:
                 break
         print("\nExiting.")
         return 0
+    except Exception as e:
+        print(f"Error: {e}")
+        return 1
+
+
+def _eval_list_models_command(args: argparse.Namespace) -> int:
+    """List available models for a provider."""
+    config = EvalConfig()
+    _apply_model_overrides(config, args)
+    pipeline = EvalPipeline(config)
+
+    async def run():
+        models = await pipeline.client.list_models()
+        if not models:
+            print("No models returned.")
+            return 1
+        for name in models:
+            print(name)
+        return 0
+
+    try:
+        return asyncio.run(run())
     except Exception as e:
         print(f"Error: {e}")
         return 1
@@ -683,6 +1004,45 @@ def _eval_dataset_command(args: argparse.Namespace) -> int:
     except Exception as e:
         print(f"Error: {e}")
         return 1
+
+
+def _add_vast_common_args(parser: argparse.ArgumentParser) -> None:
+    parser.add_argument("--id", help="Vast instance id")
+    parser.add_argument("--name", help="Instance label (matches metadata filename)")
+    parser.add_argument("--metadata", help="Path to instance metadata JSON")
+    parser.add_argument("--instances-dir", help="Directory containing instance metadata JSON")
+    parser.add_argument(
+        "--all",
+        action="store_true",
+        help="Report on all instances in the metadata directory",
+    )
+    parser.add_argument(
+        "--training-dir",
+        help="Remote training directory (default: /opt/training)",
+    )
+    parser.add_argument(
+        "--skip-remote",
+        action="store_true",
+        help="Skip SSH status checks",
+    )
+    parser.add_argument(
+        "--log-lines",
+        type=int,
+        default=120,
+        help="Log tail lines to scan (default: 120)",
+    )
+    parser.add_argument("--json", action="store_true", help="Output JSON to stdout")
+    parser.add_argument("--output", help="Write JSON to this path")
+    parser.add_argument(
+        "--write-index",
+        action="store_true",
+        help="Write JSON to training index (vast_status.json)",
+    )
+    parser.add_argument(
+        "--quiet",
+        action="store_true",
+        help="Suppress non-JSON output",
+    )
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -814,6 +1174,47 @@ def build_parser() -> argparse.ArgumentParser:
     )
     research_open.set_defaults(func=_research_open_command)
 
+    # Chat command group
+    chat_parser = subparsers.add_parser("chat", help="Interactive chat harness.")
+    chat_sub = chat_parser.add_subparsers(dest="chat_command")
+
+    chat_run = chat_sub.add_parser("run", help="Interactive chat session.")
+    chat_run.add_argument("--model", help="Model name or alias (default: none)")
+    chat_run.add_argument("--router", help="Router name (from registry)")
+    chat_run.add_argument(
+        "--provider",
+        choices=["ollama", "studio", "vertex"],
+        help="Provider for direct model chat",
+    )
+    chat_run.add_argument("--system", help="System prompt override")
+    chat_run.add_argument("--system-file", help="Path to system prompt file")
+    chat_run.add_argument("--temperature", type=float, default=0.7, help="Sampling temperature")
+    chat_run.add_argument("--top-p", type=float, default=0.8, help="Top-p sampling")
+    chat_run.add_argument("--max-tokens", type=int, default=512, help="Max response tokens")
+    chat_run.add_argument("--ollama-host", help="Ollama host override")
+    chat_run.add_argument("--registry-path", help="Chat registry TOML path")
+    chat_run.add_argument("--tools", action="store_true", help="Enable AFS tools")
+    chat_run.set_defaults(func=_chat_run_command)
+
+    chat_list_models = chat_sub.add_parser("list-models", help="List chat models.")
+    chat_list_models.add_argument(
+        "--provider",
+        choices=["ollama", "studio", "vertex"],
+        help="Provider to query",
+    )
+    chat_list_models.add_argument(
+        "--registry",
+        action="store_true",
+        help="List registry models instead of provider",
+    )
+    chat_list_models.add_argument("--ollama-host", help="Ollama host override")
+    chat_list_models.add_argument("--registry-path", help="Chat registry TOML path")
+    chat_list_models.set_defaults(func=_chat_list_models_command)
+
+    chat_list_routers = chat_sub.add_parser("list-routers", help="List chat routers.")
+    chat_list_routers.add_argument("--registry-path", help="Chat registry TOML path")
+    chat_list_routers.set_defaults(func=_chat_list_routers_command)
+
     # Models command group
     models_parser = subparsers.add_parser("models", help="Model deployment and management.")
     models_sub = models_parser.add_subparsers(dest="models_command")
@@ -937,6 +1338,43 @@ def build_parser() -> argparse.ArgumentParser:
     )
     dashboard_parser.set_defaults(func=_dashboard_command)
 
+    # Vast command group
+    vast_parser = subparsers.add_parser("vast", help="Vast AI monitoring.")
+    vast_sub = vast_parser.add_subparsers(dest="vast_command")
+
+    vast_status = vast_sub.add_parser("status", help="Show Vast training status.")
+    _add_vast_common_args(vast_status)
+    vast_status.set_defaults(func=_vast_status_command)
+
+    vast_check = vast_sub.add_parser("check", help="Health check and optional alerting.")
+    _add_vast_common_args(vast_check)
+    vast_check.add_argument(
+        "--alert",
+        action="store_true",
+        help="Send alerts when issues are detected",
+    )
+    vast_check.add_argument(
+        "--no-fail",
+        action="store_true",
+        help="Exit 0 even when issues are detected",
+    )
+    vast_check.set_defaults(func=_vast_check_command)
+
+    vast_watch = vast_sub.add_parser("watch", help="Continuously monitor Vast status.")
+    _add_vast_common_args(vast_watch)
+    vast_watch.add_argument(
+        "--interval",
+        type=int,
+        default=30,
+        help="Update interval in seconds (default: 30)",
+    )
+    vast_watch.add_argument(
+        "--alert",
+        action="store_true",
+        help="Send alerts when issues are detected",
+    )
+    vast_watch.set_defaults(func=_vast_watch_command)
+
     # Alert command group
     alert_parser = subparsers.add_parser("alert", help="Alert management.")
     alert_sub = alert_parser.add_subparsers(dest="alert_command")
@@ -944,6 +1382,39 @@ def build_parser() -> argparse.ArgumentParser:
     # afs alert test
     alert_test = alert_sub.add_parser("test", help="Send a test alert.")
     alert_test.set_defaults(func=_alert_test_command)
+
+    # afs alert send --message "..."
+    alert_send = alert_sub.add_parser("send", help="Send a custom alert.")
+    alert_send.add_argument("--message", "-m", required=True, help="Alert message.")
+    alert_send.add_argument("--title", "-t", default="AFS Alert", help="Alert title.")
+    alert_send.add_argument(
+        "--level",
+        choices=[level.value for level in AlertLevel],
+        default=AlertLevel.INFO.value,
+        help="Alert level.",
+    )
+    alert_send.add_argument(
+        "--event",
+        choices=[
+            "training-start",
+            "training-complete",
+            "training-failed",
+            "eval-complete",
+            "backup-complete",
+            "export-complete",
+            "budget-warning",
+            "idle-detected",
+            "disk-warning",
+        ],
+        help="Alert event type (respects alert toggles).",
+    )
+    alert_send.add_argument(
+        "--tags",
+        help="Comma-separated tags (e.g. training,complete).",
+    )
+    alert_send.add_argument("--instance", help="Instance label or ID.")
+    alert_send.add_argument("--cost", type=float, help="Cost value.")
+    alert_send.set_defaults(func=_alert_send_command)
 
     # Eval command group
     eval_parser = subparsers.add_parser("eval", help="Model evaluation tools.")
@@ -953,6 +1424,12 @@ def build_parser() -> argparse.ArgumentParser:
     eval_test = eval_sub.add_parser("test", help="Run a single evaluation test.")
     eval_test.add_argument("--prompt", "-p", required=True, help="Prompt to evaluate.")
     eval_test.add_argument("--model", "-m", help="Model name (default: nayru-7b-v1:latest)")
+    eval_test.add_argument("--provider", choices=["ollama", "studio", "vertex"], help="Model provider")
+    eval_test.add_argument("--base-url", help="Ollama base URL override")
+    eval_test.add_argument("--studio-key-env", help="Env var for AI Studio API key")
+    eval_test.add_argument("--vertex-project", help="Vertex AI project id")
+    eval_test.add_argument("--vertex-location", help="Vertex AI location")
+    eval_test.add_argument("--gcloud-path", help="Path to gcloud binary")
     eval_test.set_defaults(func=_eval_test_command)
 
     # afs eval batch --prompts file.jsonl
@@ -962,12 +1439,34 @@ def build_parser() -> argparse.ArgumentParser:
     eval_batch.add_argument("--format", "-f", choices=["markdown", "json"], default="markdown")
     eval_batch.add_argument("--model", "-m", help="Model name override.")
     eval_batch.add_argument("--config", "-c", help="YAML config file.")
+    eval_batch.add_argument("--provider", choices=["ollama", "studio", "vertex"], help="Model provider")
+    eval_batch.add_argument("--base-url", help="Ollama base URL override")
+    eval_batch.add_argument("--studio-key-env", help="Env var for AI Studio API key")
+    eval_batch.add_argument("--vertex-project", help="Vertex AI project id")
+    eval_batch.add_argument("--vertex-location", help="Vertex AI location")
+    eval_batch.add_argument("--gcloud-path", help="Path to gcloud binary")
     eval_batch.set_defaults(func=_eval_batch_command)
 
     # afs eval live
     eval_live = eval_sub.add_parser("live", help="Interactive evaluation REPL.")
     eval_live.add_argument("--model", "-m", help="Model name (default: nayru-7b-v1:latest)")
+    eval_live.add_argument("--provider", choices=["ollama", "studio", "vertex"], help="Model provider")
+    eval_live.add_argument("--base-url", help="Ollama base URL override")
+    eval_live.add_argument("--studio-key-env", help="Env var for AI Studio API key")
+    eval_live.add_argument("--vertex-project", help="Vertex AI project id")
+    eval_live.add_argument("--vertex-location", help="Vertex AI location")
+    eval_live.add_argument("--gcloud-path", help="Path to gcloud binary")
     eval_live.set_defaults(func=_eval_live_command)
+
+    # afs eval list-models
+    eval_list = eval_sub.add_parser("list-models", help="List models for a provider.")
+    eval_list.add_argument("--provider", choices=["ollama", "studio", "vertex"], help="Model provider")
+    eval_list.add_argument("--base-url", help="Ollama base URL override")
+    eval_list.add_argument("--studio-key-env", help="Env var for AI Studio API key")
+    eval_list.add_argument("--vertex-project", help="Vertex AI project id")
+    eval_list.add_argument("--vertex-location", help="Vertex AI location")
+    eval_list.add_argument("--gcloud-path", help="Path to gcloud binary")
+    eval_list.set_defaults(func=_eval_list_models_command)
 
     # afs eval dataset --input train.jsonl
     eval_dataset = eval_sub.add_parser("dataset", help="Validate a training dataset.")
@@ -1005,10 +1504,16 @@ def main(argv: Iterable[str] | None = None) -> int:
     if args.command == "models" and not getattr(args, "models_command", None):
         parser.print_help()
         return 1
+    if args.command == "chat" and not getattr(args, "chat_command", None):
+        parser.print_help()
+        return 1
     if args.command == "cost" and not getattr(args, "cost_command", None):
         parser.print_help()
         return 1
     if args.command == "budget" and not getattr(args, "budget_command", None):
+        parser.print_help()
+        return 1
+    if args.command == "vast" and not getattr(args, "vast_command", None):
         parser.print_help()
         return 1
     if args.command == "alert" and not getattr(args, "alert_command", None):
