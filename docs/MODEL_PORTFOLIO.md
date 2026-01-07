@@ -12,6 +12,7 @@ Sources:
 - `docs/MODEL_STRATEGY.md`
 - `docs/TRAINING_ROADMAP.md`
 - `docs/advanced_training_plan.md`
+- `/Users/scawful/src/docs/NAMING_CONVENTIONS.md`
 
 ## Zelda / ASM (Oracle series)
 
@@ -28,6 +29,15 @@ Current named models (from `docs/STATUS.md`):
 - farore-1.5b-v1: Testing (Windows)
 - veran-14b-v1-lora: Available (needs 4-bit quantization)
 - zelda-16b-v1: Benchmark (Vast) stopped
+
+Additional names and roles:
+- onox: aggressive optimization (from `docs/MODEL_NAMING.md`).
+- twinrova: MoE ensemble (from `docs/MODEL_NAMING.md`).
+- agahnim: patch merges, IPS/BPS workflows (`oracle-agahnim-patcher` in
+  `/Users/scawful/src/docs/NAMING_CONVENTIONS.md`).
+- majora: role not documented in current sources (Unknown / needs verification).
+- other ideas in `docs/MODEL_NAMING.md`: maple (fast helper), impa (security
+  review), zelda (scholarly analysis), essence (distilled/quantized models).
 
 Planned large model (from `docs/ZELDA_16B_TRAINING_PLAN.md`):
 - zelda-16b-v1 on DeepSeek-Coder-V2-Lite, dataset `zelda_16b_mix_v1`.
@@ -48,6 +58,8 @@ Current tracks (from `docs/STATUS.md` and `docs/CURRENT_STATE.md`):
 
 Local inference notes (from `docs/CURRENT_STATE.md`):
 - Mac Ollama has `scawful-echo:latest` (Gemma2 9B + LoRA).
+- Avatar MoE (local Ollama): `scawful-echo:latest`, `muse-v2:latest`,
+  `scribe:v2`.
 
 ## Data and Inventory
 
