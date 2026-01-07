@@ -80,6 +80,24 @@ provider = "ollama"
 model_id = "scribe:v2"
 tags = ["avatar"]
 
+[[models]]
+name = "gemini-3-pro-preview"
+provider = "studio"
+model_id = "gemini-3-pro-preview"
+tags = ["cloud"]
+
+[[models]]
+name = "gemini-3-flash-preview"
+provider = "vertex"
+model_id = "gemini-3-flash-preview"
+tags = ["cloud"]
+
+[[models]]
+name = "gemini-2.0-flash"
+provider = "studio"
+model_id = "gemini-2.0-flash"
+tags = ["cloud"]
+
 [[routers]]
 name = "oracle"
 description = "Keyword router for Oracle series models."
@@ -121,3 +139,17 @@ name = "avatar"
 description = "Avatar MoE (default to scawful-echo)."
 strategy = "keyword"
 default_model = "scawful-echo"
+
+[[routers]]
+name = "cloud"
+description = "Cloud Gemini models (studio/vertex)."
+strategy = "keyword"
+default_model = "gemini-3-flash-preview"
+
+[[routers.rules]]
+keywords = ["deep", "long", "analysis", "reason", "complex"]
+model = "gemini-3-pro-preview"
+
+[[routers.rules]]
+keywords = ["fast", "quick", "draft"]
+model = "gemini-3-flash-preview"
