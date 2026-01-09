@@ -1,0 +1,206 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+usage() {
+  cat <<'USAGE'
+Usage: afs-studio [options] [--] [args...]
+  --build            Force build.
+  --no-build         Do not build; fail if binary is missing.
+  --build-only       Build and exit.
+  --build-dir DIR    Override build directory.
+  --build-type TYPE  CMake build type (single-config).
+  --config NAME      Multi-config build name.
+  -h, --help         Show this help.
+USAGE
+}
+
+expand_path() {
+  local path="$1"
+  if [[ "$path" == "~"* ]]; then
+    echo "${path/#~/$HOME}"
+  else
+    echo "$path"
+  fi
+}
+
+is_studio_root() {
+  [[ -f "$1/CMakeLists.txt" && ( -d "$1/src" || -d "$1/apps" ) ]]
+}
+
+resolve_studio_root() {
+  local candidates=()
+  if [[ -n "${AFS_STUDIO_ROOT:-}" ]]; then
+    candidates+=("$(expand_path "$AFS_STUDIO_ROOT")")
+  fi
+  if [[ -n "${TRUNK_ROOT:-}" ]]; then
+    local trunk_root
+    trunk_root="$(expand_path "$TRUNK_ROOT")"
+    candidates+=("${trunk_root}/lab/afs_studio" "${trunk_root}/lab/afs_suite" "${trunk_root}/lab/afs")
+  fi
+  candidates+=("${AFS_ROOT}/../afs_studio" "${AFS_ROOT}/../afs_suite" "${AFS_ROOT}")
+
+  local candidate
+  for candidate in "${candidates[@]}"; do
+    if is_studio_root "$candidate"; then
+      (cd "$candidate" && pwd)
+      return 0
+    fi
+  done
+  return 1
+}
+
+default_build_dir() {
+  local root="$1"
+  if [[ "$(basename "$root")" == "studio" && "$(basename "$(dirname "$root")")" == "apps" ]]; then
+    local repo_root
+    repo_root="$(cd "$root/../.." && pwd)"
+    if [[ -d "$repo_root/src/afs" ]]; then
+      echo "$repo_root/build/studio"
+      return 0
+    fi
+  fi
+  echo "$root/build"
+}
+
+binary_name() {
+  case "${OSTYPE:-}" in
+    msys*|cygwin*|win32*) echo "afs-studio.exe" ;;
+    *) echo "afs-studio" ;;
+  esac
+}
+
+binary_path() {
+  local build_dir="$1"
+  local config="$2"
+  local name="$3"
+  local candidates=()
+  if [[ -n "$config" ]]; then
+    candidates+=("$build_dir/$config/$name")
+  fi
+  candidates+=("$build_dir/apps/studio/$name")
+  candidates+=("$build_dir/apps/studio/$name.app/Contents/MacOS/$name")
+  candidates+=("$build_dir/$name")
+
+  for candidate in "${candidates[@]}"; do
+    if [[ -f "$candidate" ]]; then
+      echo "$candidate"
+      return 0
+    fi
+  done
+  echo "$build_dir/$name"
+}
+
+require_arg() {
+  local flag="$1"
+  local value="${2:-}"
+  if [[ -z "$value" ]]; then
+    echo "missing value for $flag" >&2
+    exit 2
+  fi
+}
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+AFS_ROOT="$(expand_path "${AFS_ROOT:-$(cd "${SCRIPT_DIR}/../.." && pwd)}")"
+export AFS_ROOT
+
+build_dir_override=""
+build_type=""
+config=""
+force_build=0
+no_build=0
+build_only=0
+args=()
+
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --build)
+      force_build=1
+      ;;
+    --no-build)
+      no_build=1
+      ;;
+    --build-only)
+      build_only=1
+      force_build=1
+      ;;
+    --build-dir)
+      require_arg "$1" "${2:-}"
+      build_dir_override="$(expand_path "$2")"
+      shift
+      ;;
+    --build-type)
+      require_arg "$1" "${2:-}"
+      build_type="$2"
+      shift
+      ;;
+    --config)
+      require_arg "$1" "${2:-}"
+      config="$2"
+      shift
+      ;;
+    -h|--help)
+      usage
+      exit 0
+      ;;
+    --)
+      shift
+      args+=("$@")
+      break
+      ;;
+    *)
+      args+=("$1")
+      ;;
+  esac
+  shift
+done
+
+if [[ $no_build -eq 1 && $force_build -eq 1 ]]; then
+  echo "cannot combine --build and --no-build" >&2
+  exit 2
+fi
+
+studio_root="$(resolve_studio_root)" || {
+  echo "AFS studio source not found. Set AFS_STUDIO_ROOT or AFS_ROOT." >&2
+  exit 1
+}
+
+if [[ -n "$build_dir_override" ]]; then
+  build_dir="$build_dir_override"
+else
+  build_dir="$(default_build_dir "$studio_root")"
+fi
+
+binary="$(binary_path "$build_dir" "$config" "$(binary_name)")"
+
+if [[ $force_build -eq 1 || ( ! -f "$binary" && $no_build -eq 0 ) ]]; then
+  if ! command -v cmake >/dev/null 2>&1; then
+    echo "cmake not found in PATH" >&2
+    exit 1
+  fi
+  cmake_cmd=(cmake -S "$studio_root" -B "$build_dir")
+  if [[ -n "$build_type" ]]; then
+    cmake_cmd+=("-DCMAKE_BUILD_TYPE=$build_type")
+  fi
+  "${cmake_cmd[@]}"
+  build_cmd=(cmake --build "$build_dir" --target afs-studio)
+  if [[ -n "$config" ]]; then
+    build_cmd+=(--config "$config")
+  fi
+  "${build_cmd[@]}"
+fi
+
+if [[ $build_only -eq 1 ]]; then
+  exit 0
+fi
+
+binary="$(binary_path "$build_dir" "$config" "$(binary_name)")"
+if [[ ! -x "$binary" ]]; then
+  if [[ -f "$binary" ]]; then
+    echo "binary not executable: $binary" >&2
+  else
+    echo "binary not found: $binary" >&2
+  fi
+  exit 1
+fi
+
+exec "$binary" "${args[@]}"

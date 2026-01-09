@@ -1,0 +1,35 @@
+{
+  "farore": {
+    "model_id": "farore-v4:latest",
+    "tests": 5,
+    "passed": 1,
+    "avg_score": 0.19,
+    "details": [
+      {
+        "name": "detect_mode_mismatch",
+        "passed": false,
+        "score": 0.0
+      },
+      {
+        "name": "detect_missing_sep",
+        "passed": true,
+        "score": 0.75
+      },
+      {
+        "name": "detect_stack_corruption",
+        "passed": false,
+        "score": 0.0
+      },
+      {
+        "name": "detect_register_clobber",
+        "passed": false,
+        "score": 0.2
+      },
+      {
+        "name": "detect_dma_error",
+        "passed": false,
+        "score": 0.0
+      }
+    ]
+  }
+}
