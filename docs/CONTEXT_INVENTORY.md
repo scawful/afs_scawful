@@ -1,6 +1,6 @@
 # Context Inventory Summary
 
-Generated: 2026-01-07T17:25:56Z
+Generated: 2026-01-10T09:09:33Z
 Scope: /Users/scawful/src
 
 Commands (AFS CLI wrapper):
@@ -15,8 +15,8 @@ Notes:
 
 - total_projects: 10
 - invalid_projects: 2
-- total_mounts: 71
-- mount types: memory 15, knowledge 6, tools 1, scratchpad 25, history 8,
+- total_mounts: 76
+- mount types: memory 15, knowledge 8, tools 1, scratchpad 25, history 11,
   hivemind 16, global 0, items 0
 
 ## Buckets (by context path prefix)

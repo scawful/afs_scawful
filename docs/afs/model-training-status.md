@@ -424,11 +424,11 @@ When optimizing code, structure your response:
 - Checkpoint-1524 adapters are still usable and were deployed successfully
 
 **Deployment:**
-- Downloaded adapters: `~/src/lab/afs/models/adapters/majora-v2/` (40MB)
-- Merged model: `~/src/lab/afs/models/merged/majora-v2/` (15GB FP16)
-- GGUF: `~/src/lab/afs/models/gguf/majora-v2-q8_0.gguf` (8.1GB)
+- Downloaded adapters: `~/models/adapters/afs/majora-v2/` (40MB)
+- Merged model: `~/models/merged/majora-v2/` (15GB FP16)
+- GGUF: `~/models/gguf/majora-v2-q8_0.gguf` (8.1GB)
 - Ollama: `majora-v2:latest`
-- Modelfile: `~/src/lab/afs/scripts/model_files/Modelfile.majora-v2`
+- Modelfile: `~/src/lab/afs-scawful/scripts/afs/model_files/Modelfile.majora-v2`
 
 **Files:**
 - Adapters: `models/adapters/majora-v2/adapter_model.safetensors` (40MB)
@@ -500,7 +500,7 @@ Your expertise includes:
 - Merged model: `models/merged/veran-v4/` (15GB FP16)
 - GGUF: `models/gguf/veran-v4-q8_0.gguf` (8.1GB)
 - Ollama import: 2026-01-08
-- LM Studio: Available at `~/src/lab/afs/models/gguf/`
+- LM Studio: Available at `~/models/gguf/`
 
 **Files:**
 - Adapters: `models/adapters/veran-v4/` (40M)

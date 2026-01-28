@@ -1,0 +1,21 @@
+{
+  "version": 1,
+  "updated": "2026-01-18",
+  "description": "Central shell allowlist for agent harnesses.",
+  "shell": {
+    "allow": [
+      {
+        "command": "*",
+        "reason": "Allow general development commands for local agents (Antigravity/Gemini/Codex)."
+      },
+      {
+        "command": "rm -rf /Users/scawful/models/gguf/ollama/scawful-echo.gguf.bak",
+        "reason": "Cleanup baked GGUF backup after embedding chat template."
+      },
+      {
+        "command": "rm -rf /Users/scawful/models/scawful/echo-9b-v1-scawful-q4",
+        "reason": "Cleanup legacy LMStudio import directory."
+      }
+    ]
+  }
+}

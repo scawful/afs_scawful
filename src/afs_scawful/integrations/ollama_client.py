@@ -59,6 +59,8 @@ class Prompt:
 class OllamaClient:
     """Async client for Ollama API."""
 
+    supports_model_listing = True
+
     def __init__(
         self,
         base_url: str = "http://localhost:11434",
@@ -200,13 +202,19 @@ class OllamaClient:
         temperature: float = 0.7,
         top_p: float = 0.8,
         max_tokens: int = 512,
+        system: str = "",
+        thinking_tier: str | None = None,
+        options: dict[str, object] | None = None,
     ) -> ModelResponse:
         """Send a chat completion request."""
         start_time = time.perf_counter()
+        payload_messages = list(messages)
+        if system and not any(msg.get("role") == "system" for msg in payload_messages):
+            payload_messages = [{"role": "system", "content": system}] + payload_messages
 
         payload = {
             "model": model,
-            "messages": messages,
+            "messages": payload_messages,
             "stream": False,
             "options": {
                 "temperature": temperature,
@@ -214,6 +222,11 @@ class OllamaClient:
                 "num_predict": max_tokens,
             },
         }
+        if options:
+            for key, value in options.items():
+                if key == "headers":
+                    continue
+                payload["options"][key] = value
 
         try:
             async with aiohttp.ClientSession(timeout=self.timeout) as session:

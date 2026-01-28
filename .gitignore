@@ -33,3 +33,5 @@ infra/gcp/terraform.tfstate.d/
 infra/
 models/
 venv/
+venv_testing/
+data/

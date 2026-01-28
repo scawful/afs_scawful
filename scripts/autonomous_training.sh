@@ -38,7 +38,7 @@ convert_to_gguf() {
     local model_dir="$1"
     log "Converting $model_dir to GGUF..."
 
-    cd ~/src/lab/afs_scawful
+    cd ~/src/lab/afs-scawful
     python scripts/convert_to_gguf.py "$model_dir" --quant Q4_K_M 2>&1 | tee -a "$MAIN_LOG"
 }
 
@@ -103,7 +103,7 @@ main() {
 
     # Step 3: Generate more training data
     log "Phase 3: Generating CoT examples..."
-    cd ~/src/lab/afs_scawful
+    cd ~/src/lab/afs-scawful
     python scripts/generate_cot_examples.py --count 500 --output ~/.context/training/datasets/cot_examples.jsonl 2>&1 | tee -a "$MAIN_LOG"
 
     log "========================================="

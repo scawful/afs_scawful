@@ -16,9 +16,11 @@ except ImportError:  # pragma: no cover - py<3.11 fallback
 
 from .integrations.google_genai_client import GoogleAIStudioClient, VertexAIClient
 from .integrations.ollama_client import OllamaClient
+from .integrations.openai_client import OpenAIClient
+from .integrations.anthropic_client import AnthropicClient
 
 
-ProviderType = Literal["ollama", "studio", "vertex"]
+ProviderType = Literal["ollama", "studio", "vertex", "openai", "anthropic"]
 
 
 @dataclass
@@ -31,6 +33,8 @@ class ChatModel:
     role: str = ""
     description: str = ""
     tags: list[str] = field(default_factory=list)
+    thinking_tier: str = ""
+    options: dict[str, object] = field(default_factory=dict)
 
 
 @dataclass
@@ -117,6 +121,9 @@ def load_chat_registry(config_path: Path | None = None) -> ChatRegistry:
         model_id = model.get("model_id", name)
         if not name or not model_id:
             continue
+        options = model.get("options", {}) or {}
+        if not isinstance(options, dict):
+            options = {}
         registry.models[name] = ChatModel(
             name=name,
             provider=provider,
@@ -124,6 +131,8 @@ def load_chat_registry(config_path: Path | None = None) -> ChatRegistry:
             role=model.get("role", "") or "",
             description=model.get("description", "") or "",
             tags=list(model.get("tags", []) or []),
+            thinking_tier=model.get("thinking_tier", "") or "",
+            options=options,
         )
 
     for router in payload.get("routers", []):
@@ -156,6 +165,10 @@ def build_provider(provider: ProviderType, ollama_host: str | None = None):
         return GoogleAIStudioClient()
     if provider == "vertex":
         return VertexAIClient()
+    if provider == "openai":
+        return OpenAIClient()
+    if provider == "anthropic":
+        return AnthropicClient()
     raise ValueError(f"Unknown provider: {provider}")
 
 
@@ -163,6 +176,17 @@ def _load_system_message(system: str | None, system_path: Path | None) -> str:
     if system_path:
         return system_path.read_text(encoding="utf-8")
     return system or ""
+
+
+def _normalize_thinking_tier(value: str | None) -> str:
+    if not value:
+        return ""
+    normalized = value.strip().lower()
+    if normalized in {"none", "off", "false", "0"}:
+        return ""
+    if normalized in {"low", "medium", "high", "max"}:
+        return normalized
+    return ""
 
 
 def _format_prompt_help() -> str:
@@ -222,6 +246,7 @@ def run_chat(
     temperature: float,
     top_p: float,
     max_tokens: int,
+    thinking_tier: str | None,
     ollama_host: str | None = None,
     registry_path: Path | None = None,
     enable_tools: bool = False,
@@ -246,8 +271,8 @@ def run_chat(
     else:
         router_config = None
 
-    if system_text and resolved_provider != "ollama" and not router_config:
-        print("Warning: system prompt is only applied for Ollama providers.")
+    if system_text and not router_config:
+        print("System prompt enabled.")
 
     if not router_config and not model:
         print("Error: Provide --model or --router.")
@@ -359,6 +384,9 @@ def run_chat(
             provider_client = get_provider(target.provider)
             history = get_history(target.name, target.provider)
             history.append({"role": "user", "content": user_input})
+            resolved_thinking = _normalize_thinking_tier(thinking_tier) or _normalize_thinking_tier(
+                target.thinking_tier
+            )
 
             async def chat_once():
                 return await provider_client.chat(
@@ -367,6 +395,9 @@ def run_chat(
                     temperature=temperature,
                     top_p=top_p,
                     max_tokens=max_tokens,
+                    system=system_text,
+                    thinking_tier=resolved_thinking or None,
+                    options=target.options,
                 )
 
             response = asyncio.run(chat_once())

@@ -13,8 +13,11 @@
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
-AFS_ROOT="$(dirname "$SCRIPT_DIR")"
+AFS_ROOT="$(dirname "$(dirname "$SCRIPT_DIR")")"
 DOCKER_DIR="$AFS_ROOT/docker"
+if [[ ! -d "$DOCKER_DIR" ]]; then
+  DOCKER_DIR="${AFS_ROOT%/}/../afs/docker"
+fi
 STATE_DIR="${HOME}/.config/afs/services/state"
 CACHE_FILE="${HOME}/.cache/afs/chat_status.cache"
 SECRETS_ENV_FILE="${HOME}/.config/afs/openwebui.secrets.env"
@@ -424,6 +427,18 @@ check_port() {
   lsof -i ":$1" -sTCP:LISTEN >/dev/null 2>&1
 }
 
+require_docker() {
+  if ! command -v docker >/dev/null 2>&1; then
+    echo "  Error: docker not found. Install Docker Desktop." >&2
+    return 1
+  fi
+  if ! docker info >/dev/null 2>&1; then
+    echo "  Error: Docker daemon not running. Start Docker Desktop (open -a Docker) and retry." >&2
+    return 1
+  fi
+  return 0
+}
+
 # Get full status
 get_status() {
   local openwebui_status="stopped"
@@ -473,6 +488,7 @@ cmd_start() {
   case "$mode" in
     simple)
       echo "  Mode: Simple (OpenWebUI → Ollama directly)"
+      require_docker || return 1
       cd "$DOCKER_DIR"
       local compose_file="${AFS_CHAT_COMPOSE_FILE:-docker-compose.simple.yml}"
       if [[ ! -f "$compose_file" ]]; then
@@ -502,6 +518,7 @@ cmd_start() {
       ;;
     full)
       echo "  Mode: Full (OpenWebUI → Gateway → Ollama)"
+      require_docker || return 1
 
       # Start gateway first
       echo "  Starting Gateway..."

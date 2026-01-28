@@ -2,7 +2,7 @@
 #
 # Run: ollama create veran-v1 -f Modelfile.veran
 
-FROM /Users/scawful/src/lab/afs/models/veran-fused/veran-q4_k_m.gguf
+FROM /Users/scawful/models/gguf/ollama/veran-7b-v4-q8.gguf
 
 # Model parameters - balanced for analysis
 PARAMETER temperature 0.4

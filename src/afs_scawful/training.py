@@ -15,6 +15,7 @@ class TrainingSample:
     input: str
     output: str
     domain: str
+    thinking: str | None = None
     source: str = ""
     sample_id: str = ""
     timestamp: str = ""
@@ -34,6 +35,7 @@ class TrainingSample:
             "input": self.input,
             "output": self.output,
             "domain": self.domain,
+            "thinking": self.thinking,
             "source": self.source,
             "sample_id": self.sample_id,
             "timestamp": self.timestamp,
@@ -49,6 +51,9 @@ class TrainingSample:
         }
         if self.input:
             payload["input"] = self.input
+        if self.thinking:
+            payload["thinking"] = self.thinking
+            
         payload["_metadata"] = {
             "sample_id": self.sample_id,
             "domain": self.domain,
@@ -64,6 +69,7 @@ class TrainingSample:
             input=data.get("input", ""),
             output=data.get("output", ""),
             domain=data.get("domain", ""),
+            thinking=data.get("thinking"),
             source=data.get("source", ""),
             sample_id=data.get("sample_id", ""),
             timestamp=data.get("timestamp", ""),

@@ -20,6 +20,9 @@ ntfy_server = "https://ntfy.sh"
 # Enable/disable alert types
 alert_on_training_start = true
 alert_on_training_complete = true
+alert_on_training_failed = true
+alert_on_eval_complete = true
+alert_on_backup_complete = true
 alert_on_export_complete = true
 alert_on_budget_warning = true
 alert_on_idle_detection = true

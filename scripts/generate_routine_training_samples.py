@@ -2,7 +2,7 @@
 """
 Generate instruction-following training samples from the master_routines_library.json file.
 
-Input: ~/src/lab/afs_scawful/data/master_routines_library.json (8,252 assembly routines)
+Input: ~/src/lab/afs-scawful/data/master_routines_library.json (8,252 assembly routines)
 Output: ~/.context/training/datasets/routines_instruction_samples.jsonl
 
 This script generates training samples for fine-tuning LLMs on 65816 assembly code
@@ -17,7 +17,7 @@ from pathlib import Path
 from typing import Dict, List, Optional, Tuple
 
 # Paths
-INPUT_FILE = Path.home() / "src/lab/afs_scawful/data/master_routines_library.json"
+INPUT_FILE = Path.home() / "src/lab/afs-scawful/data/master_routines_library.json"
 OUTPUT_FILE = Path.home() / ".context/training/datasets/routines_instruction_samples.jsonl"
 
 

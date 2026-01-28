@@ -141,7 +141,7 @@ kill $(cat /workspace/logs/<model>.pid)
 
 After all models complete:
 
-1. **Download adapters**: `scp -r -P <PORT> root@ssh1.vast.ai:/workspace/adapters/<model> ~/src/lab/afs/models/lora/`
+1. **Download adapters**: `scp -r -P <PORT> root@ssh1.vast.ai:/workspace/adapters/<model> ~/models/adapters/afs/`
 2. **Convert to GGUF**: Use merge/convert scripts on Vast.ai instance
 3. **Import to Ollama**: `ollama create <model> -f Modelfile`
 4. **Run benchmarks**: `python3 evaluation/run_benchmarks.py --model <model> --suite all`

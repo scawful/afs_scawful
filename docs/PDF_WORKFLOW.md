@@ -4,7 +4,7 @@ Goal: keep research PDFs in a known place, catalog them, and open them fast.
 
 ## Defaults
 - Research root: `~/Documents/Research`
-- Catalog output: `~/src/context/index/research_catalog.json`
+- Catalog output: `~/.context/index/research_catalog.json`
 
 ## Commands
 ```sh
@@ -26,7 +26,7 @@ Example `research_paths.toml`:
 ```toml
 [paths]
 research_root = "~/Documents/Research"
-research_catalog = "~/src/context/index/research_catalog.json"
+research_catalog = "~/.context/index/research_catalog.json"
 ```
 
 Example `research_overrides.json`:
@@ -50,3 +50,11 @@ Example `research_overrides.json`:
 - `--open` uses the OS default PDF viewer (Preview on macOS).
 - For richer metadata extraction, install the optional dependency:
   `pip install -e '.[research]'`
+
+## OCR Ingestion (Training)
+
+If you want to ingest scanned PDFs/images for model training, use the OCR
+pipeline instead of the research catalog:
+
+- See `docs/OCR_INGESTION.md`
+- Script: `scripts/ingest_ocr.py`

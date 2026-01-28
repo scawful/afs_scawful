@@ -103,19 +103,19 @@ export MECHANICA_HOST="mechanica.local"  # Or IP
 ```bash
 # Download all adapters
 scp -r -P 14998 root@ssh1.vast.ai:/workspace/adapters/majora-v2 \
-  ~/src/lab/afs/models/lora/
+  ~/models/adapters/afs/
 
 scp -r -P 15234 root@ssh1.vast.ai:/workspace/adapters/veran-v4 \
-  ~/src/lab/afs/models/lora/
+  ~/models/adapters/afs/
 
 scp -r -P 16789 root@ssh1.vast.ai:/workspace/adapters/farore-v4 \
-  ~/src/lab/afs/models/lora/
+  ~/models/adapters/afs/
 
 scp -r -P 16789 root@ssh1.vast.ai:/workspace/adapters/agahnim-v2 \
-  ~/src/lab/afs/models/lora/
+  ~/models/adapters/afs/
 
 scp -r mechanica.local:/workspace/training/adapters/nayru-v8 \
-  ~/src/lab/afs/models/lora/
+  ~/models/adapters/afs/
 ```
 
 ### 9. Cleanup

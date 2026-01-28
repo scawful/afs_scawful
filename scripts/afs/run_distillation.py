@@ -6,7 +6,7 @@ Usage:
 
 Generates training data from multi-provider teacher ensemble with:
 - OpenAI (gpt-5.2)
-- Google (gemini-2.5-flash)
+- Google (gemini-3-flash-preview)
 - Anthropic (claude-opus-4.5)
 """
 

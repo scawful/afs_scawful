@@ -2,7 +2,7 @@
 #
 # Import with: ollama create majora-v2 -f Modelfile.majora-v2
 
-FROM /Users/scawful/src/lab/afs/models/gguf/majora-v2-q8_0.gguf
+FROM /Users/scawful/models/gguf/ollama/majora-7b-v2-q8.gguf
 
 TEMPLATE """{{ if .System }}<|im_start|>system
 {{ .System }}<|im_end|>

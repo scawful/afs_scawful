@@ -12,7 +12,7 @@ This is a macro plan to turn MECHANICA from gaming-first into a reliable remote 
 ## Current Snapshot (2026-01-01 audit)
 
 - OS: Windows 11 Pro build 26220.
-- LAN IP: 192.168.1.190.
+- LAN IP: <lan-ip> (prefer `mm-lan` alias).
 - Services: sshd + Tailscale running (Automatic).
 - WSL default: v2; Ubuntu distro is still v1 (needs conversion).
 - Training: FIM run active (GPU 99-100% during audit).
@@ -25,7 +25,7 @@ Legend: [remote]=safe over SSH, [manual]=needs local UI/admin, [blocked]=wait fo
 
 - [x] LAN SSH alias `mm-lan` in `~/.ssh/config` [remote]
 - [x] sshd + Tailscale services running [remote]
-- [ ] Confirm DHCP reservation for 192.168.1.190 [manual]
+- [ ] Confirm DHCP reservation for <lan-ip> [manual]
 - [ ] Verify Windows firewall inbound rule for OpenSSH on Private profile [manual/admin]
 - [ ] Optional WAN access (DDNS + port forward) [manual]
 
@@ -50,7 +50,7 @@ Legend: [remote]=safe over SSH, [manual]=needs local UI/admin, [blocked]=wait fo
 
 ### NERV + ~/src Universe + Halext
 
-- [ ] Add LAN IP fallback into NERV docs (optional) [remote]
+- [ ] Add LAN fallback note into NERV docs (optional) [remote]
 - [ ] Add `halext-nj` SSH config + test access from Windows or WSL [remote/manual]
 - [ ] Decide whether to mount `halext` via WSL sshfs or copy sync [manual]
 - [ ] Align secrets: keep Windows `.secrets` separate from repo [manual]
@@ -141,4 +141,5 @@ Recommended: WSL2 Ubuntu (24.04 or 22.04).
 ## Related Docs
 
 - `docs/WINDOWS_WORKFLOW.md` (daily usage)
-- `docs/NERV_INFRASTRUCTURE.md` (mesh overview)
+- `~/src/docs/NERV_INFRASTRUCTURE.md` (mesh overview)
+- `~/src/docs/SRC_UNIVERSE_NETWORK.md` (sync + source-of-truth)

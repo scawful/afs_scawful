@@ -138,9 +138,22 @@ def main() -> None:
     parser.add_argument("--save-steps", type=int, default=200)
     parser.add_argument("--eval-steps", type=int, default=200)
     parser.add_argument("--save-total-limit", type=int, default=2)
+    parser.add_argument(
+        "--save-only-model",
+        dest="save_only_model",
+        action="store_true",
+        help="Save model weights only (skip optimizer/scheduler state).",
+    )
+    parser.add_argument(
+        "--save-full-checkpoint",
+        dest="save_only_model",
+        action="store_false",
+        help="Save full checkpoints including optimizer/scheduler state.",
+    )
     parser.add_argument("--warmup-steps", type=int, default=20)
     parser.add_argument("--no-gradient-checkpointing", action="store_true")
     parser.add_argument("--no-eos", action="store_true")
+    parser.set_defaults(save_only_model=True)
     args = parser.parse_args()
 
     random.seed(args.seed)
@@ -199,8 +212,25 @@ def main() -> None:
     else:
         val_data = None
 
+    def extract_fields(sample: dict) -> tuple[str, str, str]:
+        prefix = sample.get("prefix") or sample.get("prompt") or sample.get("instruction") or ""
+        input_text = sample.get("input") or ""
+        if input_text:
+            prefix = f"{prefix}\n{input_text}" if prefix else str(input_text)
+
+        completion = (
+            sample.get("completion")
+            or sample.get("output")
+            or sample.get("response")
+            or sample.get("answer")
+            or ""
+        )
+        suffix = sample.get("suffix") or ""
+        return str(prefix), str(completion), str(suffix)
+
     def has_completion(sample: dict) -> bool:
-        return bool(str(sample.get("completion", "")).strip())
+        _, completion, _ = extract_fields(sample)
+        return bool(completion.strip())
 
     train_data = train_data.filter(has_completion)
     if val_data:
@@ -213,9 +243,7 @@ def main() -> None:
         return mode if mode in {"prefix", "fim"} else "prefix"
 
     def tokenize_sample(sample: dict) -> dict:
-        prefix = sample.get("prefix", "")
-        completion = sample.get("completion", "")
-        suffix = sample.get("suffix", "")
+        prefix, completion, suffix = extract_fields(sample)
         mode = resolve_mode(sample)
         add_eos = not args.no_eos
 
@@ -254,8 +282,14 @@ def main() -> None:
         report_to="none",
         gradient_checkpointing=not args.no_gradient_checkpointing,
         seed=args.seed,
+        remove_unused_columns=False,
     )
-    eval_arg = "eval_strategy" if "eval_strategy" in inspect.signature(TrainingArguments.__init__).parameters else "evaluation_strategy"
+    training_params = inspect.signature(TrainingArguments.__init__).parameters
+    eval_arg = "eval_strategy" if "eval_strategy" in training_params else "evaluation_strategy"
+    if args.save_only_model and "save_only_model" in training_params:
+        training_kwargs["save_only_model"] = True
+    if "save_safetensors" in training_params:
+        training_kwargs["save_safetensors"] = True
     training_kwargs[eval_arg] = eval_strategy
     training_args = TrainingArguments(**training_kwargs)
 
@@ -274,6 +308,8 @@ def main() -> None:
         args=training_args,
         data_collator=data_collator,
     )
+    if args.save_only_model and "save_only_model" not in training_params:
+        trainer._save_optimizer_and_scheduler = lambda *_, **__: None
 
     print("=" * 60, flush=True)
     print("STARTING TRAINING", flush=True)

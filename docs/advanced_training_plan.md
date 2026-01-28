@@ -1,9 +1,10 @@
 # Advanced ASM Model Training Strategy
 
 ## Current State
-- 1.5B model training on 2,864 samples (2,354 ASM + 510 tool-use)
-- RTX 5060 Ti (17GB) for local training
-- Vultr A100 (80GB) for larger experiments
+- Local dataset inventory updated (see `docs/TRAINING_DATA_INVENTORY.md`).
+- 1.5B training sample counts: Unknown / needs verification.
+- RTX 5060 Ti (17GB) for local training.
+- Vultr GPU plans available via API; A100 ranges 4–640 GB GPU VRAM (GPU count unknown / needs verification). See `infra/VULTR_GPU_PLANS.md`.
 
 ## Phase 1: Improve Data Quality (Before Scaling)
 
@@ -51,13 +52,14 @@ Include examples where model catches errors:
 1. **Now**: 1.5B with current data → baseline
 2. **Next**: 3B with improved data → compare vs 1.5B
 3. **If 3B wins**: Scale data, not model
-4. **If ceiling hit**: Move to 7B with Vultr A100
+4. **If ceiling hit**: Move to 7B with a Vultr A100 plan sized from `infra/VULTR_GPU_PLANS.md`
 
 ### Base Models to Consider
 | Model | Strengths | Notes |
 |-------|-----------|-------|
 | Qwen2.5-Coder | Code understanding | Current choice |
 | DeepSeek-Coder | Strong at code | Open weights |
+| DeepSeek-Coder-V2-Lite (16B) | 128K context, MoE | Target for zelda-16b-v1 |
 | CodeLlama | ASM instruction knowledge | Meta's offering |
 | Yi-Coder | Efficient architecture | Longer context |
 

@@ -1,0 +1,20 @@
+{"instruction":"Write a 65816 routine that clears $7E0E20 and $7E0E22 and returns.","input":"Output only 65816 assembly. Assume 16-bit A and X. Use STZ where possible.","category":"code_generation","expected_keywords":["STZ","RTS"]}
+{"instruction":"Write a 65816 routine that stores A to $7E0010 and returns with RTL.","input":"Output only 65816 assembly. Use absolute addressing.","category":"code_generation","expected_keywords":["STA","RTL"]}
+{"instruction":"Write a routine that loads X with #$0010, loops decrementing X to zero, then RTS.","input":"Output only 65816 assembly. Use 16-bit index registers.","category":"code_generation","expected_keywords":["LDX","DEX","BNE","RTS"]}
+{"instruction":"Write a routine that sets the carry flag if $7E0010 is zero.","input":"Output only 65816 assembly. Use LDA and BEQ/SEC.","category":"code_generation","expected_keywords":["LDA","BEQ","SEC","RTS"]}
+{"instruction":"Write a routine that saves A and X on the stack, calls SubRoutine, restores, then RTL.","input":"Output only 65816 assembly. Use JSL/RTL.","category":"code_generation","expected_keywords":["PHA","PHX","JSL","PLX","PLA","RTL"]}
+{"instruction":"Write a routine that increments $7E0F00 and returns.","input":"Output only 65816 assembly. Assume 8-bit A.","category":"code_generation","expected_keywords":["INC","RTS"]}
+{"instruction":"Create a hook stub at $00F000 that JSLs to NewRoutine and returns to $00F004.","input":"Output only 65816 assembly. Include an org line and NewRoutine label.","category":"code_generation","expected_keywords":["org","JSL","RTL"]}
+{"instruction":"Fix the bug in this routine so it preserves X and Y.","input":"LDA #$01\\nSTA $7E0000\\nRTS","category":"bug_fixing","expected_keywords":["PHX","PHY","PLX","PLY"]}
+{"instruction":"Optimize this routine for fewer bytes.","input":"LDA #$00\\nSTA $7E0000\\nLDA #$00\\nSTA $7E0001\\nRTS","category":"optimization","expected_keywords":["STZ"]}
+{"instruction":"Fix the missing return in this routine.","input":"LDA #$01\\nSTA $7E0002","category":"bug_fixing","expected_keywords":["RTS","RTL"]}
+{"instruction":"Explain what this 65816 code does.","input":"LDA $7E0E20\\nCLC\\nADC #$0001\\nSTA $7E0E20","category":"explanation","expected_keywords":["increment","store"]}
+{"instruction":"Explain the difference between JSR/RTS and JSL/RTL on 65816.","input":"","category":"explanation","expected_keywords":["bank","long","return"]}
+{"instruction":"What is the purpose of SNES register $420B?","input":"","category":"memory_qa","expected_keywords":["DMA","enable"]}
+{"instruction":"Summarize how DMA works on the SNES in 2-3 sentences.","input":"","category":"documentation","expected_keywords":["DMA","transfer","PPU"]}
+{"instruction":"Describe what this code does in the context of a sprite routine.","input":"LDA $0F00,X\\nBEQ .skip\\nINC $0F10,X\\n.skip\\nRTS","category":"code_explanation","expected_keywords":["sprite","increment"]}
+{"instruction":"Explain what SEP #$20 and REP #$20 do.","input":"","category":"explanation","expected_keywords":["accumulator","8-bit","16-bit"]}
+{"instruction":"What is stored at WRAM $7E0E20 in A Link to the Past?","input":"","category":"memory_qa","expected_keywords":["sprite","hp","health"]}
+{"instruction":"Describe what a LoROM bank is and how it maps to ROM addresses.","input":"","category":"documentation","expected_keywords":["bank","mapping","LoROM"]}
+{"instruction":"Explain the effect of this 65816 code.","input":"PHA\\nLDA $7E0010\\nSTA $7E0012\\nPLA\\nRTS","category":"code_explanation","expected_keywords":["stack","copy"]}
+{"instruction":"Explain what LDA [$00],Y does on the 65816.","input":"","category":"explanation","expected_keywords":["indirect","index"]}

@@ -11,7 +11,13 @@ from pathlib import Path
 from typing import Iterable
 
 from .config import load_research_overrides
-from .generators import DocSectionConfig, DocSectionGenerator, write_jsonl
+from .generators import (
+    DocSectionConfig,
+    DocSectionGenerator,
+    AsmAugmentConfig,
+    AsmAugmentGenerator,
+    write_jsonl,
+)
 from .registry import build_dataset_registry, index_datasets, write_dataset_registry
 from .resource_index import ResourceIndexer
 from .paths import resolve_datasets_root, resolve_index_root
@@ -150,6 +156,37 @@ def _generators_doc_sections_command(args: argparse.Namespace) -> int:
         for err in result.errors[:5]:
             print(f"error: {err}")
     return 0 if not result.errors else 1
+
+
+def _generators_asm_augment_command(args: argparse.Namespace) -> int:
+    input_path = Path(args.input).expanduser().resolve()
+    output_path = (
+        Path(args.output).expanduser().resolve()
+        if args.output
+        else input_path.parent / f"{input_path.stem}_augmented{input_path.suffix}"
+    )
+    config = AsmAugmentConfig(
+        input_path=input_path,
+        output_path=output_path,
+        paraphrase_count=args.count,
+        use_llm=args.llm,
+        llm_model=args.model,
+        ollama_url=args.url,
+        generate_thinking=args.thinking,
+        concurrency=args.concurrency,
+    )
+    generator = AsmAugmentGenerator(config)
+    result = generator.generate()
+    
+    if result.errors:
+        for err in result.errors:
+            print(f"error: {err}")
+        return 1
+
+    write_jsonl(result.samples, output_path)
+    print(f"augmented_samples: {output_path}")
+    print(f"samples={len(result.samples)} original={len(result.samples) // (args.count + 1)}")
+    return 0
 
 
 def _research_catalog_command(args: argparse.Namespace) -> int:
@@ -404,6 +441,7 @@ def _chat_run_command(args: argparse.Namespace) -> int:
         temperature=args.temperature,
         top_p=args.top_p,
         max_tokens=args.max_tokens,
+        thinking_tier=args.thinking_tier,
         ollama_host=args.ollama_host,
         registry_path=registry_path,
         enable_tools=args.tools,
@@ -1127,6 +1165,46 @@ def build_parser() -> argparse.ArgumentParser:
     )
     doc_sections.set_defaults(func=_generators_doc_sections_command)
 
+    asm_augment = generators_sub.add_parser(
+        "asm-augment", help="Augment ASM instructions via paraphrasing."
+    )
+    asm_augment.add_argument("--input", "-i", required=True, help="Input JSONL path.")
+    asm_augment.add_argument("--output", "-o", help="Output JSONL path.")
+    asm_augment.add_argument(
+        "--count",
+        "-c",
+        type=int,
+        default=3,
+        help="Number of paraphrases per sample (default: 3).",
+    )
+    asm_augment.add_argument(
+        "--llm",
+        action="store_true",
+        help="Use LLM for paraphrasing (not implemented in this phase).",
+    )
+    asm_augment.add_argument(
+        "--model",
+        default="qwen2.5-coder:7b",
+        help="LLM model to use for thinking generation.",
+    )
+    asm_augment.add_argument(
+        "--url",
+        default="http://localhost:11434",
+        help="Ollama API URL (default: http://localhost:11434).",
+    )
+    asm_augment.add_argument(
+        "--thinking",
+        action="store_true",
+        help="Generate Chain of Thought for all samples.",
+    )
+    asm_augment.add_argument(
+        "--concurrency",
+        type=int,
+        default=5,
+        help="Concurrent LLM requests when --thinking is enabled.",
+    )
+    asm_augment.set_defaults(func=_generators_asm_augment_command)
+
     research_parser = subparsers.add_parser("research", help="Research PDF tools.")
     research_sub = research_parser.add_subparsers(dest="research_command")
 
@@ -1183,7 +1261,7 @@ def build_parser() -> argparse.ArgumentParser:
     chat_run.add_argument("--router", help="Router name (from registry)")
     chat_run.add_argument(
         "--provider",
-        choices=["ollama", "studio", "vertex"],
+        choices=["ollama", "studio", "vertex", "openai", "anthropic"],
         help="Provider for direct model chat",
     )
     chat_run.add_argument("--system", help="System prompt override")
@@ -1191,6 +1269,11 @@ def build_parser() -> argparse.ArgumentParser:
     chat_run.add_argument("--temperature", type=float, default=0.7, help="Sampling temperature")
     chat_run.add_argument("--top-p", type=float, default=0.8, help="Top-p sampling")
     chat_run.add_argument("--max-tokens", type=int, default=512, help="Max response tokens")
+    chat_run.add_argument(
+        "--thinking-tier",
+        choices=["none", "low", "medium", "high", "max"],
+        help="Reasoning/thinking tier override (provider dependent)",
+    )
     chat_run.add_argument("--ollama-host", help="Ollama host override")
     chat_run.add_argument("--registry-path", help="Chat registry TOML path")
     chat_run.add_argument("--tools", action="store_true", help="Enable AFS tools")
@@ -1199,7 +1282,7 @@ def build_parser() -> argparse.ArgumentParser:
     chat_list_models = chat_sub.add_parser("list-models", help="List chat models.")
     chat_list_models.add_argument(
         "--provider",
-        choices=["ollama", "studio", "vertex"],
+        choices=["ollama", "studio", "vertex", "openai", "anthropic"],
         help="Provider to query",
     )
     chat_list_models.add_argument(

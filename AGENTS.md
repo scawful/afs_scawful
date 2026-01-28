@@ -21,7 +21,7 @@
 - Run `infra/secret_scan.sh` before sharing or committing changes.
 
 ## Infrastructure awareness
-- Use workspace docs: `docs/NERV_INFRASTRUCTURE.md`, `docs/WINDOWS_WORKFLOW.md`, `docs/WINDOWS_DEV_STRATEGY.md`.
+- Use workspace docs: `~/src/docs/NERV_INFRASTRUCTURE.md`, `~/src/docs/SRC_UNIVERSE_NETWORK.md`, `docs/WINDOWS_WORKFLOW.md`, `docs/WINDOWS_DEV_STRATEGY.md`.
 - Prefer SSH aliases (`medical-mechanica`, `mm-lan`, `halext-nj`) over raw IPs.
 - Windows src root is `D:\src`; Mac mounts live under `~/Mounts/`.
 

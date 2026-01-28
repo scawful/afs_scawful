@@ -46,6 +46,7 @@ class ValidationConfig:
 @dataclass
 class ModelConfig:
     """Configuration for model inference."""
+    provider: Literal["ollama", "studio", "vertex"] = "ollama"
     name: str = "nayru-7b-v1:latest"
     base_url: str = "http://localhost:11434"
     timeout_seconds: int = 60
@@ -53,6 +54,10 @@ class ModelConfig:
     top_p: float = 0.8
     max_tokens: int = 512
     system_prompt: str = ""
+    studio_api_key_env: str = "GEMINI_API_KEY"
+    vertex_project: str | None = None
+    vertex_location: str = "us-east1"
+    gcloud_path: str = "gcloud"
 
 
 @dataclass
@@ -110,6 +115,7 @@ class EvalConfig:
         """Convert configuration to dictionary."""
         return {
             "model": {
+                "provider": self.model.provider,
                 "name": self.model.name,
                 "base_url": self.model.base_url,
                 "timeout_seconds": self.model.timeout_seconds,
@@ -117,6 +123,10 @@ class EvalConfig:
                 "top_p": self.model.top_p,
                 "max_tokens": self.model.max_tokens,
                 "system_prompt": self.model.system_prompt,
+                "studio_api_key_env": self.model.studio_api_key_env,
+                "vertex_project": self.model.vertex_project,
+                "vertex_location": self.model.vertex_location,
+                "gcloud_path": self.model.gcloud_path,
             },
             "prompts": {
                 "categories": self.prompts.categories,

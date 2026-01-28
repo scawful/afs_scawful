@@ -13,6 +13,7 @@ Sources:
 - `docs/TRAINING_ROADMAP.md`
 - `docs/advanced_training_plan.md`
 - `/Users/scawful/src/docs/NAMING_CONVENTIONS.md`
+- `/Users/scawful/src/training/scribe-corpus/docs/router.md`
 
 ## Zelda / ASM (Oracle series)
 
@@ -35,7 +36,7 @@ Additional names and roles:
 - twinrova: MoE ensemble (from `docs/MODEL_NAMING.md`).
 - agahnim: patch merges, IPS/BPS workflows (`oracle-agahnim-patcher` in
   `/Users/scawful/src/docs/NAMING_CONVENTIONS.md`).
-- majora: role not documented in current sources (Unknown / needs verification).
+- majora: role defined in `docs/MODEL_NAMING.md` as Unknown / needs verification.
 - other ideas in `docs/MODEL_NAMING.md`: maple (fast helper), impa (security
   review), zelda (scholarly analysis), essence (distilled/quantized models).
 
@@ -60,6 +61,13 @@ Local inference notes (from `docs/CURRENT_STATE.md`):
 - Mac Ollama has `scawful-echo:latest` (Gemma2 9B + LoRA).
 - Avatar MoE (local Ollama): `scawful-echo:latest`, `muse-v2:latest`,
   `scribe:v2`.
+
+## Router / Utility
+
+New run (router classifier, chat-format seed dataset):
+- router-gemma2-2b-v1: queued on Windows GPU; dataset
+  `~/src/training/datasets/router-2026-01-07` (see
+  `~/src/training/scribe-corpus/docs/router.md`).
 
 ## Data and Inventory
 

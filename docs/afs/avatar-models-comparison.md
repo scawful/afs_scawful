@@ -136,14 +136,14 @@ You are Muse, narrating an absurdist interactive adventure.
    ```bash
    # Memory (priority 1)
    python3 llama.cpp/convert-hf-to-gguf.py \
-     ~/src/lab/afs/models/merged/memory-qwen25-1p5b-v1 \
-     --outfile ~/src/lab/afs/models/gguf/memory-qwen25-1p5b-v1-q8_0.gguf \
+     ~/models/merged/memory-qwen25-1p5b-v1 \
+     --outfile ~/models/gguf/memory-qwen25-1p5b-v1-q8_0.gguf \
      --outtype q8_0
    
    # Echo (priority 2)
    python3 llama.cpp/convert-hf-to-gguf.py \
-     ~/src/lab/afs/models/merged/echo-qwen25-1p5b-v1 \
-     --outfile ~/src/lab/afs/models/gguf/echo-qwen25-1p5b-v1-q8_0.gguf \
+     ~/models/merged/echo-qwen25-1p5b-v1 \
+     --outfile ~/models/gguf/echo-qwen25-1p5b-v1-q8_0.gguf \
      --outtype q8_0
    ```
 
@@ -160,7 +160,7 @@ You are Muse, narrating an absurdist interactive adventure.
 
 ## Storage Summary
 
-**Adapters:** `~/src/lab/afs/models/adapters/`
+**Adapters:** `~/models/adapters/afs/`
 - echo-qwen25-1p5b-v1: 74MB
 - echo-gemma2-2b-v3: 83MB
 - memory-qwen25-1p5b-v1: 74MB
@@ -170,7 +170,7 @@ You are Muse, narrating an absurdist interactive adventure.
 - muse-v3-safe: 120MB
 - muse-v3-uncensored: 120MB
 
-**Merged:** `~/src/lab/afs/models/merged/`
+**Merged:** `~/models/merged/`
 - echo-qwen25-1p5b-v1: ~3GB
 - memory-qwen25-1p5b-v1: ~3GB
 - muse-v3-safe: ~6GB

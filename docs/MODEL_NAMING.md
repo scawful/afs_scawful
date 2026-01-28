@@ -18,9 +18,12 @@ Models are named after characters from *The Legend of Zelda: Oracle of Ages/Seas
 |------|-----------|------------|
 | **Veran** | Sorceress of Shadows (Ages) | Complex analysis, large context |
 | **Onox** | General of Darkness (Seasons) | Aggressive optimization |
+| **Agahnim** | Dark wizard (ALTTP) | Patch merges, IPS/BPS workflows |
+| **Majora** | Mask of Chaos (MM) | Unknown / needs verification |
 | **Ralph** | Nayru's protector | Validation, error checking |
 | **Maple** | Witch's apprentice | Fast helper, small tasks |
 | **Impa** | Sage, Zelda's guardian | Security review, best practices |
+| **Zelda** | Princess of Hyrule | Scholarly analysis, deep code context |
 
 ### Ensemble/MoE Names
 
@@ -36,6 +39,23 @@ Models are named after characters from *The Legend of Zelda: Oracle of Ages/Seas
 
 ```
 {character}-{size}-v{version}[-{variant}]
+```
+
+## Runtime Aliases (Consolidation)
+
+Stable aliases are used at runtime so tooling can refer to a single name while
+the underlying model ID changes across versions. The alias registry lives in
+`config/chat_registry.toml`.
+
+Guideline:
+- Use short aliases (`din`, `nayru`, `farore`, `veran`) in tools and scripts.
+- Point each alias to the current versioned model ID (e.g., `din-7b-v1:latest`).
+- Keep old IDs as legacy references in docs, not in code paths.
+
+Example (registry entry):
+```
+name = "din"
+model_id = "din-7b-v1:latest"
 ```
 
 ### Examples
@@ -67,7 +87,7 @@ Models are named after characters from *The Legend of Zelda: Oracle of Ages/Seas
 
 | Oracle Name | Base | Purpose | Priority |
 |-------------|------|---------|----------|
-| `nayru-16b-v1` | DeepSeek-Coder-V2-Lite | 128K context, MoE | High |
+| `zelda-16b-v1` | DeepSeek-Coder-V2-Lite | 128K context, MoE | High |
 | `din-7b-v1` | Qwen2.5-Coder-7B | Optimization focus | Medium |
 | `linked-moe-v1` | DeepSeek-Coder-V2-Lite | Nayru + Din ensemble | Future |
 

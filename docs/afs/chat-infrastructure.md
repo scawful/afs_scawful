@@ -37,7 +37,27 @@ Modern chat interface for testing Zelda-trained assembly models (Din, Nayru, Far
 └───────────┘  └───────────┘  └───────────┘
 ```
 
+Note: Local Ollama can be replaced by the llama.cpp proxy in `~/src/lab/llama-harness`.
+
 ## Deployment Options
+
+### 0. Llama.cpp Harness (llama-harness)
+
+Use the local llama.cpp harness to serve GGUFs with an Ollama-compatible proxy.
+
+- Triforce proxy: `http://127.0.0.1:11437`
+- Avatar proxy: `http://127.0.0.1:11439`
+- Avatar router: `http://127.0.0.1:11441` (model `avatar:latest`)
+
+For the MoE orchestrator (`lab/afs/src/afs/moe`), set:
+
+```bash
+export AFS_OLLAMA_HOST=http://127.0.0.1:11437
+export AFS_OLLAMA_EMBEDDING_HOST=http://127.0.0.1:11437
+export AFS_OLLAMA_EMBEDDING_MODEL=embedding-nomic-embed-text-v1.5:latest
+```
+
+For the AFS chat harness, set `OLLAMA_HOST` instead.
 
 ### 1. Simple Mode (Recommended for Testing)
 
@@ -53,10 +73,16 @@ docker compose -f docker/docker-compose.simple.yml up -d
 ```
 
 **Requirements:**
-- Docker
+- Docker (daemon must be running; `docker info` should succeed or run `open -a Docker`)
 - Windows GPU tunnel (`localhost:11435`) or local Ollama (`ollama serve`)
 - Models loaded on whichever backend is used
 - Optional: LiteLLM container (auto-started when Gemini/Anthropic keys are present)
+
+If Docker is unavailable, you can still run the API-only gateway:
+
+```bash
+./scripts/chat-service.sh start gateway
+```
 
 ### 2. Full Mode (With Gateway)
 

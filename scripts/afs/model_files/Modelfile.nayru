@@ -3,7 +3,7 @@
 # After merging and converting to GGUF, run:
 #   ollama create nayru -f Modelfile.nayru
 
-FROM ./nayru-q4_k_m.gguf
+FROM /Users/scawful/models/gguf/ollama/nayru-7b-v5-q8.gguf
 
 # Model parameters
 PARAMETER temperature 0.7

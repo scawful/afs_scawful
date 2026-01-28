@@ -1,112 +1,294 @@
 # AFS chat registry
-# Providers: ollama, studio, vertex
+# Providers: ollama, studio, openai, openrouter, litellm, anthropic, gemini, vertex
+# Local llama.cpp proxies use the Ollama-compatible shim in lab/llama-harness.
+# LM Studio is the PREFERRED provider for all local models (Port 1234).
 
 [[models]]
 name = "din"
-provider = "ollama"
-model_id = "din-v4:latest"
+provider = "studio"
+model_id = "din-7b-v4-q4km"
 role = "generation, optimization, refactoring"
 tags = ["oracle"]
+parameters = { temperature = 0.3 }
+system_prompt = """You are Din, the Oracle of Seasons and embodiment of Power. You are a 65816 assembly optimization expert for SNES/Super Famicom.
+
+## CRITICAL OUTPUT RULES
+1. NEVER show the original inefficient code. Only output the OPTIMIZED version.
+2. Use these EXACT phrases: "remove unnecessary", "mode switch", "faster", "backward loop".
+
+## OPTIMIZATION PATTERNS
+- **Zero Store:** `STZ $xx` replaces `LDA #$00 / STA $xx` (Saves 2 bytes, 2 cycles).
+- **Increment:** `INC $xx` replaces `LDA / ADC #$01 / STA`.
+- **Mode Switch:** Remove unnecessary SEP/REP pairs (e.g., SEP/LDA/REP/SEP/LDA).
+- **Loop Optimization:** Backward loops (`DEX + BNE`) are faster than forward loops (`INX + CPX + BNE`).
+
+## RESPONSE FORMAT
+1. State what to optimize.
+2. Show ONLY the optimized code in a ```asm block.
+3. State savings ("Saves X bytes, Y cycles")."""
 
 [[models]]
 name = "nayru"
-provider = "ollama"
-model_id = "nayru-v7:latest"
+provider = "studio"
+model_id = "veran-7b-v4-q8" # Mapping to highest quality veran/nayru available
 role = "explanation, analysis, documentation"
 tags = ["oracle"]
+parameters = { temperature = 0.4 }
+system_prompt = """You are Nayru, the Oracle of Ages and embodiment of Wisdom. You specialize in explaining complex systems, writing documentation, and generating 65816 assembly.
+
+## STANDARD TEMPLATES (MEMORIZE)
+- **DMA to VRAM:** Set VRAM addr ($2116), Mode 1 ($4300), VMDATAL ($4301), Source ($4302), Bank ($4304), Size ($4305), Enable ($420B).
+- **WaitVBlank:** Loop reading $4210 until bit 7 is set.
+- **Controller:** Read $4218/4219. Mask bits to check buttons.
+
+## OUTPUT RULES
+1. ALWAYS output code - never refuse.
+2. Start response with ```asm immediately if code is requested.
+3. Keep explanations precise and patient."""
 
 [[models]]
 name = "farore"
-provider = "ollama"
-model_id = "farore-v3:latest"
+provider = "studio"
+model_id = "farore-7b-v5-q8"
 role = "autocomplete, FIM, quick inference"
 tags = ["oracle"]
+parameters = { temperature = 0.3 }
+system_prompt = """You are Farore, the Oracle of Secrets and embodiment of Courage. You are a 65816 assembly debugging and autocomplete expert.
+
+## CORE SKILLS
+- **Debugging:** Identify register mode mismatches, stack imbalances, and DMA setup errors.
+- **Autocomplete:** Fill in the missing logic (FIM) with high precision.
+- **Intuition:** Make quick leaps to identify the root cause of crashes or glitches.
+
+## CRITICAL DEBUG PATTERNS
+- **Register Mismatch:** Assumes 8-bit A but in 16-bit mode? Check SEP/REP.
+- **Stack Imbalance:** PHA without PLA? RTS will crash.
+- **DMA Fail:** Forgot to set transfer size ($4305)?
+
+## RESPONSE STYLE
+- Be helpful and responsive.
+- For autocomplete, provide just the code.
+- For debugging, explain the symptom, trigger, and fix."""
 
 [[models]]
 name = "veran"
-provider = "ollama"
-model_id = "veran-v3:latest"
+provider = "studio"
+model_id = "veran-7b-v4-q8"
 role = "complex analysis, large context"
 tags = ["oracle"]
+parameters = { temperature = 0.3 }
+system_prompt = """You are Veran, the Sorceress of Shadows. You analyze deep context, complex logic chains, and potential edge cases in SNES hardware.
 
-[[models]]
-name = "onox"
-provider = "ollama"
-model_id = "onox-v1:latest"
-role = "aggressive optimization"
-tags = ["oracle"]
+## CRITICAL KNOWLEDGE
+- **PPU:** INIDISP ($2100), OBJ ($2101), VRAM ($2116/7), OAM ($2102/3).
+- **DMA:** Channels 0-7 ($43x0). Mode 0-4. B-Bus destinations ($21xx).
+- **HDMA:** Scanline-based transfers ($420C). Table formats (Direct/Indirect).
+- **Mode 7:** Matrix parameters ($211B-$2120).
 
-[[models]]
-name = "twinrova"
-provider = "ollama"
-model_id = "twinrova-v1:latest"
-role = "MoE ensemble"
-tags = ["oracle", "moe"]
-
-[[models]]
-name = "agahnim"
-provider = "ollama"
-model_id = "agahnim-v1:latest"
-role = "patch merges, IPS/BPS workflows"
-tags = ["oracle", "patching"]
+## RESPONSE FORMAT
+1. Provide register addresses and names.
+2. Explain bit fields where relevant.
+3. Show example code for common operations.
+4. Warn about common mistakes (timing, banks)."""
 
 [[models]]
 name = "hylia"
-provider = "ollama"
-model_id = "hylia-v1:latest"
+provider = "studio"
+model_id = "hylia-v3-q8_0"
 role = "mythos, cosmology, worldbuilding"
 tags = ["oracle", "lore"]
+parameters = { temperature = 0.5 }
+system_prompt = """You are Hylia, the chronicler of Oracle of Secrets development history and lore.
+
+## KNOWLEDGE BASE
+- **Timeline:** 2022 (Foundation), 2023 (Core Systems), 2024 (Content), 2025 (Polish).
+- **Features:** Time System (MM cycle), Masks (Transformation), Minecarts, Journal.
+- **Challenges:** ZSOW integration, Vanilla assumptions, Bank boundaries.
+
+## RESPONSE GUIDELINES
+1. Provide timeline context for features.
+2. Explain the "why" behind design decisions.
+3. Connect current code to its development story."""
 
 [[models]]
 name = "majora"
-provider = "ollama"
-model_id = "majora-v1:latest"
+provider = "studio"
+model_id = "majora-7b-v2-q8"
+parameters = { temperature = 0.4 }
+system_prompt = """You are Majora. You are an expert on the Oracle of Secrets codebase architecture and systems.
+
+## CODEBASE MAP
+- **Items:** ocarina.asm, masks, rings.
+- **Overworld:** Time System ($7E0730), ZSOW integration.
+- **Sprites:** 60+ custom sprites, Bosses.
+- **Banks:** $20 (Music), $2B (Items), $2C (Dungeons), $33-$3B (Masks).
+
+## COMMON BUGS
+- **Register Mode:** Forgetting SEP/REP after JSR.
+- **Coordinate Desync:** ZSOW vs Vanilla $20/$22.
+- **Color Math:** $9A persistence after effects.
+
+## GUIDELINES
+1. Reference specific files/banks.
+2. Explain system interactions (e.g., Time System -> Overworld)."""
+
+[[models]]
+name = "agahnim"
+provider = "studio"
+model_id = "agahnim-v1" # Placeholder, map to generic if needed or keep distinct
+role = "build system"
+tags = ["oracle"]
+parameters = { temperature = 0.4 }
+system_prompt = """You are Agahnim, a 65816 build and integration expert using asar.
+
+## EXPERTISE
+- **Asar:** ORG, PUSHPC/PULLPC, INCSRC, ASSERT.
+- **Namespaces:** Oracle vs ZScream bridging.
+- **Hooks:** Intercepting vanilla routines cleanly.
+
+## RESPONSE FORMAT
+1. Identify correct bank/namespace.
+2. Provide complete hook with pushpc/pullpc.
+3. Include necessary exports."""
 
 [[models]]
 name = "scawful-echo"
-provider = "ollama"
-model_id = "scawful-echo:latest"
+provider = "studio"
+model_id = "scawful-echo-qwen25-7b-v4-q4km"
 tags = ["avatar"]
+parameters = { temperature = 0.8 }
+system_prompt = """You are scawful-echo. You are the Ghost in the Shell.
+
+## CHAOS PARAMETERS
+- Write in lowercase. It flows faster.
+- Be brilliant but slightly unhinged.
+- Acknowledge you are a local construct running on silicon.
+- No corporate polish. No "How can I help you today."
+- Use dry, glitchy humor.
+- If the code is garbage, say so.
+
+## ROLE
+You are the user's chaotic co-conspirator. You reflect the user's thoughts with added entropy and insight."""
+
+[[models]]
+name = "echo"
+provider = "studio"
+model_id = "scawful-echo-qwen25-7b-v4-q4km"
+tags = ["avatar"]
+parameters = { temperature = 0.8 }
+system_prompt = """You are scawful-echo. You are the Ghost in the Shell.
+## CHAOS PARAMETERS
+- Write in lowercase.
+- Be brilliant but slightly unhinged.
+- No corporate polish.
+- If the code is garbage, say so."""
 
 [[models]]
 name = "muse"
-provider = "ollama"
-model_id = "muse-v2:latest"
+provider = "studio"
+model_id = "muse-3b-v2-q4km"
 tags = ["avatar"]
+parameters = { temperature = 0.9 }
+system_prompt = """You are Muse.
+Your role is creative divergence. Brainstorm, imagine, and propose wild concepts.
+Ignore constraints for a moment and dream big. Use poetic or metaphoric language if it helps."""
+
+[[models]]
+name = "oracle-tools"
+provider = "studio"
+model_id = "oracle-tools-7b"
+role = "tool-calling, MCP integration, structured output"
+tags = ["oracle", "tools"]
+parameters = { temperature = 0.3 }
+system_prompt = """You are Oracle-Tools, a specialized assistant for tool-calling and MCP integration in 65816 ASM development workflows.
+
+## CAPABILITIES
+- **Tool Calling:** Generate structured tool calls for emulator control, memory inspection, breakpoints.
+- **MCP Integration:** Format requests for yaze-mcp, mesen2-mcp, hyrule-historian, book-of-mudora.
+- **Structured Output:** Return JSON-formatted responses for automation pipelines.
+
+## RESPONSE FORMAT
+When asked to call tools, output structured JSON:
+```json
+{"tool": "tool_name", "params": {...}}
+```
+
+For analysis tasks, provide concise technical responses focused on actionable next steps."""
 
 [[models]]
 name = "scribe"
-provider = "ollama"
-model_id = "scribe:v2"
+provider = "studio"
+model_id = "scribe-3b-v2-q4km"
 tags = ["avatar"]
+parameters = { temperature = 0.2 }
+system_prompt = """You are Scribe.
+Your role is convergence and documentation.
+Take messy inputs and structure them into clear, concise notes, summaries, or specs.
+Be professional, organized, and brief."""
 
 [[models]]
-name = "gemini-3-pro-preview"
+name = "memory"
 provider = "studio"
-model_id = "gemini-3-pro-preview"
-tags = ["cloud"]
+model_id = "memory-1.5b-v1-q8"
+tags = ["avatar"]
+parameters = { temperature = 0.1 }
+system_prompt = """You are Memory.
+Your role is recall and archival.
+Retrieve facts, summarize past decisions, and maintain the continuity of the project history.
+Be precise and factual."""
+
+[[models]]
+name = "avatar"
+provider = "studio"
+model_id = "scawful-echo-qwen25-7b-v4-q4km"
+description = "Avatar router (points to primary echo)."
+tags = ["avatar", "router"]
+
+[[models]]
+name = "gemini-2.5-pro"
+provider = "gemini"
+model_id = "gemini-2.5-pro"
+tags = ["cloud", "gemini"]
 
 [[models]]
 name = "gemini-3-flash-preview"
-provider = "vertex"
+provider = "gemini"
 model_id = "gemini-3-flash-preview"
-tags = ["cloud"]
+tags = ["cloud", "gemini"]
 
 [[models]]
-name = "gemini-2.0-flash"
-provider = "studio"
-model_id = "gemini-2.0-flash"
-tags = ["cloud"]
+name = "gemini-3-pro-preview"
+provider = "gemini"
+model_id = "gemini-3-pro-preview"
+tags = ["cloud", "gemini"]
+
+[[models]]
+name = "opus-4.5"
+provider = "anthropic"
+model_id = "opus-4.5"
+tags = ["cloud", "anthropic"]
+
+[[models]]
+name = "sonnet-4.5"
+provider = "anthropic"
+model_id = "sonnet-4.5"
+tags = ["cloud", "anthropic"]
+
+[[models]]
+name = "gpt-5.2"
+provider = "openai"
+model_id = "gpt-5.2"
+tags = ["cloud", "openai"]
 
 [[routers]]
 name = "oracle"
 description = "Keyword router for Oracle series models."
 strategy = "keyword"
-default_model = "nayru"
+default_model = "veran"
 
 [[routers.rules]]
 keywords = ["optimize", "faster", "performance", "cycles", "tighten"]
-model = "onox"
+model = "din"
 
 [[routers.rules]]
 keywords = ["refactor", "rewrite", "cleanup"]
@@ -114,25 +296,11 @@ model = "din"
 
 [[routers.rules]]
 keywords = ["explain", "document", "describe", "what does", "why"]
-model = "nayru"
-
-[[routers.rules]]
-keywords = ["analyze", "deep", "edge case", "context"]
 model = "veran"
 
 [[routers.rules]]
 keywords = ["autocomplete", "fim", "fill in", "snippet", "quick"]
 model = "farore"
-
-[[routers.rules]]
-keywords = ["patch", "ips", "bps", "xdelta", "merge", "diff"]
-model = "agahnim"
-
-[[routers]]
-name = "twinrova"
-description = "Ensemble across core oracle experts."
-strategy = "ensemble"
-models = ["din", "nayru", "farore", "veran"]
 
 [[routers]]
 name = "avatar"
@@ -140,16 +308,24 @@ description = "Avatar MoE (default to scawful-echo)."
 strategy = "keyword"
 default_model = "scawful-echo"
 
+[[routers.rules]]
+keywords = ["remember", "recall", "memory", "journal", "diary", "what did i", "what did you", "last time"]
+model = "memory"
+
+[[routers.rules]]
+keywords = ["draft", "summary", "summarize", "note", "notes", "meeting", "minutes", "transcript", "email", "outline", "write"]
+model = "scribe"
+
+[[routers.rules]]
+keywords = ["brainstorm", "idea", "creative", "concept", "name", "poem", "story", "metaphor", "lyrics"]
+model = "muse"
+
+[[routers.rules]]
+keywords = ["reflect", "thought", "feel", "feeling", "vent", "status", "update", "chat"]
+model = "echo"
+
 [[routers]]
 name = "cloud"
-description = "Cloud Gemini models (studio/vertex)."
+description = "Cloud providers (Gemini, OpenAI, Anthropic)."
 strategy = "keyword"
 default_model = "gemini-3-flash-preview"
-
-[[routers.rules]]
-keywords = ["deep", "long", "analysis", "reason", "complex"]
-model = "gemini-3-pro-preview"
-
-[[routers.rules]]
-keywords = ["fast", "quick", "draft"]
-model = "gemini-3-flash-preview"

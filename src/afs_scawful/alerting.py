@@ -54,6 +54,9 @@ class AlertConfig:
     # Event toggles
     alert_on_training_start: bool = True
     alert_on_training_complete: bool = True
+    alert_on_training_failed: bool = True
+    alert_on_eval_complete: bool = True
+    alert_on_backup_complete: bool = True
     alert_on_export_complete: bool = True
     alert_on_budget_warning: bool = True
     alert_on_idle_detection: bool = True
@@ -72,6 +75,9 @@ class AlertConfig:
             ntfy_server=alerts.get("ntfy_server", "https://ntfy.sh"),
             alert_on_training_start=alerts.get("alert_on_training_start", True),
             alert_on_training_complete=alerts.get("alert_on_training_complete", True),
+            alert_on_training_failed=alerts.get("alert_on_training_failed", True),
+            alert_on_eval_complete=alerts.get("alert_on_eval_complete", True),
+            alert_on_backup_complete=alerts.get("alert_on_backup_complete", True),
             alert_on_export_complete=alerts.get("alert_on_export_complete", True),
             alert_on_budget_warning=alerts.get("alert_on_budget_warning", True),
             alert_on_idle_detection=alerts.get("alert_on_idle_detection", True),
@@ -203,6 +209,8 @@ def alert_training_started(
 ) -> None:
     """Send alert when training starts."""
     dispatcher = dispatcher or AlertDispatcher()
+    if not dispatcher.config.alert_on_training_start:
+        return
     alert = Alert(
         level=AlertLevel.INFO,
         title="Training Started",
@@ -222,6 +230,8 @@ def alert_training_complete(
 ) -> None:
     """Send alert when training completes."""
     dispatcher = dispatcher or AlertDispatcher()
+    if not dispatcher.config.alert_on_training_complete:
+        return
     alert = Alert(
         level=AlertLevel.INFO,
         title="Training Complete",
@@ -241,6 +251,8 @@ def alert_export_complete(
 ) -> None:
     """Send alert when export completes."""
     dispatcher = dispatcher or AlertDispatcher()
+    if not dispatcher.config.alert_on_export_complete:
+        return
     alert = Alert(
         level=AlertLevel.INFO,
         title="Export Complete",
@@ -260,6 +272,8 @@ def alert_budget_warning(
     """Send budget warning alert."""
     dispatcher = dispatcher or AlertDispatcher()
     percent = (current_cost / threshold) * 100
+    if not dispatcher.config.alert_on_budget_warning:
+        return
     alert = Alert(
         level=level,
         title="Budget Alert",
@@ -278,6 +292,8 @@ def alert_idle_detected(
 ) -> None:
     """Send idle detection alert."""
     dispatcher = dispatcher or AlertDispatcher()
+    if not dispatcher.config.alert_on_idle_detection:
+        return
     alert = Alert(
         level=AlertLevel.WARNING,
         title="GPU Idle",
@@ -305,19 +321,142 @@ def alert_shutdown_blocked(
     dispatcher.send(alert)
 
 
+def alert_training_failed(
+    model: str,
+    reason: str,
+    instance: Optional[str] = None,
+    dispatcher: Optional[AlertDispatcher] = None,
+) -> None:
+    """Send alert when training fails."""
+    dispatcher = dispatcher or AlertDispatcher()
+    if not dispatcher.config.alert_on_training_failed:
+        return
+    alert = Alert(
+        level=AlertLevel.CRITICAL,
+        title="Training Failed",
+        message=f"Training failed for {model}: {reason}",
+        instance=instance,
+        tags=["training", "failed", "warning"],
+    )
+    dispatcher.send(alert)
+
+
+def alert_eval_complete(
+    model: str,
+    output_path: str,
+    instance: Optional[str] = None,
+    dispatcher: Optional[AlertDispatcher] = None,
+) -> None:
+    """Send alert when evaluation completes."""
+    dispatcher = dispatcher or AlertDispatcher()
+    if not dispatcher.config.alert_on_eval_complete:
+        return
+    alert = Alert(
+        level=AlertLevel.INFO,
+        title="Eval Complete",
+        message=f"Eval completed for {model}: {output_path}",
+        instance=instance,
+        tags=["eval", "complete"],
+    )
+    dispatcher.send(alert)
+
+
+def alert_backup_complete(
+    model: str,
+    destination: str,
+    instance: Optional[str] = None,
+    dispatcher: Optional[AlertDispatcher] = None,
+) -> None:
+    """Send alert when backup completes."""
+    dispatcher = dispatcher or AlertDispatcher()
+    if not dispatcher.config.alert_on_backup_complete:
+        return
+    alert = Alert(
+        level=AlertLevel.INFO,
+        title="Backup Complete",
+        message=f"Backup finished for {model}: {destination}",
+        instance=instance,
+        tags=["backup", "complete"],
+    )
+    dispatcher.send(alert)
+
+
 # CLI interface
 if __name__ == "__main__":
+    import argparse
     import sys
 
-    if len(sys.argv) < 2:
+    def _should_suppress(config: AlertConfig, event: str | None) -> bool:
+        if not event:
+            return False
+        mapping = {
+            "training-start": "alert_on_training_start",
+            "training-complete": "alert_on_training_complete",
+            "training-failed": "alert_on_training_failed",
+            "eval-complete": "alert_on_eval_complete",
+            "backup-complete": "alert_on_backup_complete",
+            "export-complete": "alert_on_export_complete",
+            "budget-warning": "alert_on_budget_warning",
+            "idle-detected": "alert_on_idle_detection",
+            "disk-warning": "alert_on_disk_warning",
+        }
+        toggle = mapping.get(event)
+        return bool(toggle and not getattr(config, toggle, True))
+
+    parser = argparse.ArgumentParser(prog="python -m afs_scawful.alerting")
+    subparsers = parser.add_subparsers(dest="command")
+
+    test_parser = subparsers.add_parser("test", help="Send a test alert.")
+
+    send_parser = subparsers.add_parser("send", help="Send a custom alert.")
+    send_parser.add_argument("--message", "-m", help="Alert message.")
+    send_parser.add_argument("--title", "-t", default="AFS Alert", help="Alert title.")
+    send_parser.add_argument(
+        "--level",
+        choices=[level.value for level in AlertLevel],
+        default=AlertLevel.INFO.value,
+        help="Alert level.",
+    )
+    send_parser.add_argument(
+        "--tags",
+        help="Comma-separated tags (e.g. training,complete).",
+    )
+    send_parser.add_argument("--instance", help="Instance label or ID.")
+    send_parser.add_argument("--cost", type=float, help="Cost value.")
+    send_parser.add_argument(
+        "--event",
+        choices=[
+            "training-start",
+            "training-complete",
+            "training-failed",
+            "eval-complete",
+            "backup-complete",
+            "export-complete",
+            "budget-warning",
+            "idle-detected",
+            "disk-warning",
+        ],
+        help="Alert event type (respects alert toggles).",
+    )
+    send_parser.add_argument(
+        "legacy_message",
+        nargs="?",
+        help="Legacy positional message (use --message).",
+    )
+    send_parser.add_argument(
+        "legacy_level",
+        nargs="?",
+        help="Legacy positional level (use --level).",
+    )
+
+    args = parser.parse_args()
+    if not args.command:
         print("Usage: python -m afs_scawful.alerting <test|send> [message]")
         sys.exit(1)
 
-    command = sys.argv[1]
-
     dispatcher = AlertDispatcher()
 
-    if command == "test":
+    if args.command == "test":
         alert = Alert(
             level=AlertLevel.INFO,
             title="Test Alert",
@@ -328,26 +467,35 @@ if __name__ == "__main__":
             print("Test alert sent successfully!")
         else:
             print("Failed to send test alert.")
+        sys.exit(0)
 
-    elif command == "send":
-        if len(sys.argv) < 3:
-            print("Usage: python -m afs_scawful.alerting send <message> [level]")
+    if args.command == "send":
+        message = args.message or args.legacy_message
+        if not message:
+            print("Usage: python -m afs_scawful.alerting send --message \"...\"")
             sys.exit(1)
-
-        message = sys.argv[2]
-        level_str = sys.argv[3] if len(sys.argv) > 3 else "info"
-        level = AlertLevel(level_str.lower())
-
+        level_str = args.level
+        if args.legacy_level:
+            level_str = args.legacy_level
+        if _should_suppress(dispatcher.config, args.event):
+            print("Alert suppressed by config.")
+            sys.exit(0)
+        tags = []
+        if args.tags:
+            tags = [tag.strip() for tag in args.tags.split(",") if tag.strip()]
         alert = Alert(
-            level=level,
-            title="AFS Alert",
+            level=AlertLevel(level_str),
+            title=args.title,
             message=message,
+            instance=args.instance,
+            cost=args.cost,
+            tags=tags,
         )
         if dispatcher.send(alert):
             print("Alert sent!")
-        else:
-            print("Failed to send alert.")
-
-    else:
-        print(f"Unknown command: {command}")
+            sys.exit(0)
+        print("Failed to send alert.")
         sys.exit(1)
+
+    print(f"Unknown command: {args.command}")
+    sys.exit(1)

@@ -3,7 +3,7 @@
 # After merging and converting to GGUF, run:
 #   ollama create farore-v1 -f Modelfile.farore
 
-FROM /Users/scawful/src/lab/afs/models/farore-fused/farore-q4_k_m.gguf
+FROM /Users/scawful/models/gguf/ollama/farore-7b-v5-q8.gguf
 
 # Model parameters - lower temperature for more deterministic debugging
 PARAMETER temperature 0.4

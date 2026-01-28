@@ -2,7 +2,7 @@
 #
 # Import with: ollama create echo-v1 -f Modelfile.echo-qwen25-1p5b-v1
 
-FROM /Users/scawful/src/lab/afs/models/gguf/echo-qwen25-1p5b-v1-q8_0.gguf
+FROM /Users/scawful/models/gguf/ollama/echo-1.5b-v1-q8.gguf
 
 TEMPLATE """{{ if .System }}<|im_start|>system
 {{ .System }}<|im_end|>

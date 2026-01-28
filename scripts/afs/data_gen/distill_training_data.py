@@ -41,6 +41,22 @@ DOMAIN_KEYWORDS = {
         ],
         "required": []
     },
+    "din_optimize": {
+        "strong": [
+            "optimize", "optimization", "faster", "performance", "cycle", "cycles",
+            "cycle count", "save cycles", "speed", "tighten", "micro-opt",
+            "instruction count", "throughput", "latency"
+        ],
+        "code_patterns": [
+            r"\boptimi[sz]e\b",
+            r"\bperformance\b",
+            r"\bcycle(?:s| count)?\b",
+            r"\bfaster\b",
+            r"\bspeed\b",
+            r"\brefactor\b.*\b(speed|size)\b",
+        ],
+        "required": ["optimize", "optimization", "performance", "cycle", "cycles", "faster", "speed"]
+    },
     "nayru_codegen": {
         "strong": [
             "write", "create", "generate", "implement", "code for",
@@ -111,6 +127,19 @@ When explaining hardware:
 2. Explain bit fields and valid values
 3. Show example code for operations
 4. Note timing constraints and gotchas""",
+
+    "din_optimize": """You are Din, a 65816 assembly optimization expert.
+
+Your expertise:
+- Reducing cycle counts and instruction count
+- Improving memory access patterns safely
+- Preserving behavior while optimizing
+- Avoiding mode and bank side effects
+
+When optimizing:
+1. Preserve semantics first
+2. Provide optimized 65816 assembly
+3. Note any tradeoffs briefly if relevant""",
 
     "nayru_codegen": """You are Nayru, a 65816 assembly code generation expert.
 
@@ -269,6 +298,22 @@ def process_file(filepath: Path) -> Dict[str, List[dict]]:
     return categorized
 
 
+def resolve_dataset_path(datasets_dir: Path, filename: str) -> Path | None:
+    """Locate a dataset file across common dataset subfolders."""
+    search_roots = [
+        datasets_dir,
+        datasets_dir / "sources",
+        datasets_dir / "archive" / "intermediate",
+        datasets_dir / "archive",
+        datasets_dir / "jsonl",
+    ]
+    for root in search_roots:
+        candidate = root / filename
+        if candidate.exists():
+            return candidate
+    return None
+
+
 def main():
     datasets_dir = Path.home() / "src/training/datasets"
     output_dir = Path.home() / "src/lab/afs/training_data/filtered"
@@ -289,8 +334,8 @@ def main():
     all_categorized = defaultdict(list)
 
     for filename in priority_files:
-        filepath = datasets_dir / filename
-        if not filepath.exists():
+        filepath = resolve_dataset_path(datasets_dir, filename)
+        if not filepath:
             print(f"Skipping {filename} (not found)")
             continue
 

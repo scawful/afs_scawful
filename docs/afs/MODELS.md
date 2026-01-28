@@ -2,10 +2,18 @@
 
 Fine-tuned models for 65816 assembly tasks, named after Oracle of Ages/Seasons characters.
 
+## Runtime Alias Registry
+
+Use stable aliases in tools (`din`, `nayru`, `farore`, `veran`). The alias
+mapping is defined in `config/chat_registry.toml` so the underlying model IDs
+can be swapped without changing scripts.
+
 ## Remote Deployment (MECHANICA via Tunnel)
 
-Models are hosted on MECHANICA (Windows GPU). The Mac uses an SSH tunnel for access;
-do not install or cache Ollama models locally on macOS.
+Models are hosted on MECHANICA (Windows GPU). The Mac uses an SSH tunnel for remote access;
+local macOS can also host a curated GGUF/MLX working set under `~/models` for LM Studio or
+the llama.cpp harness (`~/src/lab/llama-harness`). Keep large archives and long-lived
+checkpoints on Windows.
 
 | Model | Version | Size | Purpose |
 |-------|---------|------|---------|
@@ -26,13 +34,39 @@ ollama run farore-v5 "Debug this routine that crashes: ..."
 ollama run majora-v2 "Count cycles in this routine: ..."
 ```
 
+## Local Llama.cpp Harness (Preferred on macOS)
+
+Use the llama.cpp harness to run the Triforce and Avatar MoE without Ollama.
+
+```bash
+cd ~/src/lab/llama-harness
+python3 scripts/ollama_proxy.py          # triforce proxy on 11437
+python3 scripts/ollama_proxy.py --profile avatar  # avatar proxy on 11439
+python3 scripts/avatar_router.py         # avatar router on 11441 (model avatar:latest)
+```
+
+For the AFS MoE orchestrator:
+
+```bash
+export AFS_OLLAMA_HOST=http://127.0.0.1:11437
+export AFS_OLLAMA_EMBEDDING_HOST=http://127.0.0.1:11437
+export AFS_OLLAMA_EMBEDDING_MODEL=embedding-nomic-embed-text-v1.5:latest
+```
+
+For the AFS chat harness:
+
+```bash
+export OLLAMA_HOST=http://127.0.0.1:11441
+afs chat run --model avatar
+```
+
 ## Windows Archive (MECHANICA)
 
 Full version history available on Windows storage (D: drive):
 
 **Mount:** `~/Mounts/mm-d/` (use `mounts mm`; prefer `scp` for transfers)
 
-**Path:** `~/Mounts/mm-d/Ollama/models/`
+**Path:** `~/Mounts/mm-d/models/ollama/`
 
 ### Available Versions
 
@@ -54,40 +88,46 @@ Full version history available on Windows storage (D: drive):
 
 ## Local Project Assets
 
-This repo keeps adapters, Modelfiles, and training data only (no GGUFs or Ollama blobs on Mac).
+This repo keeps training data and Modelfiles; local artifacts live under `~/models`.
 
 ```
 ~/src/lab/afs/models/
-├── din-lora-adapters-v2/
-├── veran-lora-adapters/
+├── din-lora-data/
+├── veran-lora-data/
 ├── nayru/
 └── *.Modelfile
+
+~/models/
+├── gguf/
+├── mlx/
+└── adapters/afs/
 ```
 
-**Note:** Ollama blobs and GGUF binaries live on MECHANICA (`D:\`).
+**Note:** Full archives and checkpoints live on MECHANICA (`D:\models\...`); Mac keeps a curated working set.
 
 ## Deployment Scripts
 
 Modelfiles for creating Ollama models from GGUF:
 
 ```
-~/src/lab/afs/scripts/
-├── Modelfile.din              # din-v2 deployment config
-└── Modelfile.veran            # veran-v1 deployment config
+~/src/lab/afs-scawful/scripts/afs/
+├── Modelfile.din              # din deployment config
+└── Modelfile.veran            # veran deployment config
 ```
 
 ### Deploy from GGUF
 
 ```bash
-cd ~/src/lab/afs/scripts
+cd ~/src/lab/afs-scawful/scripts/afs
 ollama create din-v2 -f Modelfile.din
 ollama create veran-v1 -f Modelfile.veran
 ```
 
 ## Accessing Remote Models
 
-To inspect manifests or logs, browse `~/Mounts/mm-d/Ollama/models/` or use `scp`
-to copy small metadata. Avoid copying blobs to macOS; keep `~/.ollama` empty.
+To inspect manifests or logs, browse `~/Mounts/mm-d/models/ollama/` or use `scp`
+to copy small metadata. Avoid copying the full archive to macOS; keep a curated
+working set under `~/models`.
 
 ## Training Source
 
@@ -103,7 +143,17 @@ All models fine-tuned using MLX LoRA on Qwen2.5 base:
 
 ## Alternative Model Serving Backends
 
-While Ollama is the primary serving mechanism, AFS is compatible with any OpenAI-compatible API.
+AFS is compatible with any OpenAI-compatible API. On macOS, prefer the llama.cpp harness
+or LM Studio when possible.
+
+### 0. Llama-harness (llama.cpp proxy)
+
+Use the Ollama-compatible proxy from `~/src/lab/llama-harness` and point AFS to it:
+
+```bash
+export AFS_OLLAMA_HOST=http://127.0.0.1:11437
+export OLLAMA_HOST=http://127.0.0.1:11437
+```
 
 ### 1. LM Studio
 LM Studio is a GUI-based local model server.

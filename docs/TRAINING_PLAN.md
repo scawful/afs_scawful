@@ -10,7 +10,7 @@ Research-only. See `../afs/docs/RESEARCH_SOURCES.md` for citations.
 
 ## Phase 0 — Inventory + Research Catalog (now)
 - Use `afs_scawful research catalog` to index `~/Documents/Research`.
-- Keep the catalog JSON in `~/src/context/index/research_catalog.json`.
+- Keep the catalog JSON in `~/.context/index/research_catalog.json`.
 - Verify metadata/abstract excerpts before quoting. [R1]
 
 ## Phase 1 — Dataset QA (near-term)

@@ -3,7 +3,7 @@
 #
 # Run: ollama create din-v2 -f Modelfile.din
 
-FROM /Users/scawful/src/lab/afs/models/din-fused/din-q4_k_m.gguf
+FROM /Users/scawful/models/gguf/ollama/din-7b-v4-q4km.gguf
 
 # Model parameters - balanced for code generation
 PARAMETER temperature 0.5

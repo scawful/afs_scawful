@@ -12,6 +12,7 @@ from pathlib import Path
 from typing import Any
 
 from ..integrations.ollama_client import ModelResponse, OllamaClient, Prompt
+from ..integrations.google_genai_client import GoogleAIStudioClient, VertexAIClient
 from ..training import TrainingSample
 from ..validators import AsmValidator, ValidationResult
 from ..validators.asar_validator_v2 import AsarValidatorV2
@@ -302,11 +303,29 @@ class EvalPipeline:
 
     def __init__(self, config: EvalConfig | None = None):
         self.config = config or EvalConfig()
-        self.client = OllamaClient(
-            base_url=self.config.model.base_url,
-            timeout=self.config.model.timeout_seconds,
-        )
+        self.client = self._build_client()
         self._init_validators()
+
+    def _build_client(self):
+        provider = self.config.model.provider
+        if provider == "ollama":
+            return OllamaClient(
+                base_url=self.config.model.base_url,
+                timeout=self.config.model.timeout_seconds,
+            )
+        if provider == "studio":
+            return GoogleAIStudioClient(
+                api_key_env=self.config.model.studio_api_key_env,
+                timeout=self.config.model.timeout_seconds,
+            )
+        if provider == "vertex":
+            return VertexAIClient(
+                project=self.config.model.vertex_project,
+                location=self.config.model.vertex_location,
+                gcloud_path=self.config.model.gcloud_path,
+                timeout=self.config.model.timeout_seconds,
+            )
+        raise ValueError(f"Unknown model provider: {provider}")
 
     def _init_validators(self) -> None:
         """Initialize validators based on config."""
@@ -408,13 +427,15 @@ class EvalPipeline:
         """Evaluate a batch of prompts."""
         start_time = datetime.now()
 
-        # Check model availability
-        if not await self.client.model_exists(self.config.model.name):
+        # Check model availability when listing is supported
+        supports_listing = getattr(self.client, "supports_model_listing", False)
+        if supports_listing:
             available = await self.client.list_models()
-            raise RuntimeError(
-                f"Model '{self.config.model.name}' not found. "
-                f"Available: {', '.join(available) or 'none'}"
-            )
+            if available and not await self.client.model_exists(self.config.model.name):
+                raise RuntimeError(
+                    f"Model '{self.config.model.name}' not found. "
+                    f"Available: {', '.join(available) or 'none'}"
+                )
 
         semaphore = asyncio.Semaphore(self.config.concurrency)
         completed = 0
