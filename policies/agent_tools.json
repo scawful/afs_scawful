@@ -1,20 +1,104 @@
 {
   "version": 1,
-  "updated": "2026-01-18",
+  "updated": "2026-02-08",
   "description": "Central shell allowlist for agent harnesses.",
   "shell": {
     "allow": [
       {
-        "command": "*",
-        "reason": "Allow general development commands for local agents (Antigravity/Gemini/Codex)."
+        "command": "pwd",
+        "reason": "Basic shell navigation and debugging."
       },
       {
-        "command": "rm -rf /Users/scawful/models/gguf/ollama/scawful-echo.gguf.bak",
-        "reason": "Cleanup baked GGUF backup after embedding chat template."
+        "command": "ls",
+        "reason": "Basic filesystem inspection."
       },
       {
-        "command": "rm -rf /Users/scawful/models/scawful/echo-9b-v1-scawful-q4",
-        "reason": "Cleanup legacy LMStudio import directory."
+        "command": "ls *",
+        "reason": "Basic filesystem inspection."
+      },
+      {
+        "command": "cat *",
+        "reason": "Read files."
+      },
+      {
+        "command": "head *",
+        "reason": "Read files (limited output)."
+      },
+      {
+        "command": "tail *",
+        "reason": "Read files (limited output)."
+      },
+      {
+        "command": "rg *",
+        "reason": "Fast code search."
+      },
+      {
+        "command": "grep *",
+        "reason": "Text search/filtering."
+      },
+      {
+        "command": "which *",
+        "reason": "Locate tools on PATH."
+      },
+      {
+        "command": "sed *",
+        "reason": "Text viewing/transforms."
+      },
+      {
+        "command": "mkdir *",
+        "reason": "Create directories."
+      },
+      {
+        "command": "git status*",
+        "reason": "Inspect repo status."
+      },
+      {
+        "command": "git diff*",
+        "reason": "Inspect diffs."
+      },
+      {
+        "command": "git log*",
+        "reason": "Inspect history."
+      },
+      {
+        "command": "git show*",
+        "reason": "Inspect specific commits/objects."
+      },
+      {
+        "command": "git branch*",
+        "reason": "Inspect branches."
+      },
+      {
+        "command": "git add*",
+        "reason": "Stage changes."
+      },
+      {
+        "command": "git commit*",
+        "reason": "Create commits."
+      },
+      {
+        "command": "cmake --list-presets*",
+        "reason": "Discover available CMake presets."
+      },
+      {
+        "command": "cmake --preset *",
+        "reason": "Configure builds using presets."
+      },
+      {
+        "command": "cmake --build *",
+        "reason": "Build via CMake."
+      },
+      {
+        "command": "ctest *",
+        "reason": "Run tests via CTest."
+      },
+      {
+        "command": "python3 /Users/scawful/src/lab/afs-scawful/scripts/agent_delete.py *",
+        "reason": "Trash-first deletion helper (use instead of rm -rf)."
+      },
+      {
+        "command": "python3 /Users/scawful/src/lab/afs-scawful/scripts/policy_sync.py *",
+        "reason": "Sync tool policy exports and wire harness config."
       }
     ]
   }
