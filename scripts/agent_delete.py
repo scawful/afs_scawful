@@ -57,6 +57,25 @@ def resolve_path(path: str) -> Path:
     return Path(path).expanduser().absolute()
 
 
+def refuse_trash_target(path: Path) -> str | None:
+    """Return a human-readable refusal reason for unsafe trash targets."""
+    # Avoid catastrophic moves (e.g. moving $HOME into the trash).
+    if path == Path("/"):
+        return "refusing to trash the filesystem root"
+    home = Path.home().expanduser().absolute()
+    if path == home:
+        return "refusing to trash $HOME"
+
+    # Avoid trashing the trash itself (or the manifest).
+    trash_root = TRASH_ROOT.expanduser().absolute()
+    if path == trash_root:
+        return "refusing to trash the trash root"
+    if path == MANIFEST.expanduser().absolute():
+        return "refusing to trash the trash manifest"
+
+    return None
+
+
 def is_within_trash(path: Path) -> bool:
     try:
         path.relative_to(TRASH_ROOT.resolve())
@@ -128,6 +147,9 @@ def trash_paths(paths: list[str], reason: str | None, dry_run: bool) -> None:
         if not path.exists() and not path.is_symlink():
             print(f"missing: {path}")
             continue
+        refusal = refuse_trash_target(path)
+        if refusal:
+            raise SystemExit(f"{refusal}: {path}")
         token = secrets.token_hex(3)
         stamp = now_stamp()
         dest_name = f"{stamp}_{token}_{safe_name(path.name)}"

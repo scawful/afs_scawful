@@ -26,6 +26,7 @@ Deletion approvals (streamlined):
 ```
 python3 /Users/scawful/src/lab/afs-scawful/scripts/agent_delete.py trash <paths> --reason "cleanup"
 ```
+- Safety guardrails: `agent_delete.py trash` refuses dangerous targets like `/` and `$HOME`.
 - Approve purges for a short window (default 30 minutes):
 ```
 python3 /Users/scawful/src/lab/afs-scawful/scripts/agent_delete.py approve --ttl 30 --note "cleanup window"
