@@ -97,6 +97,10 @@
         "reason": "Trash-first deletion helper (use instead of rm -rf)."
       },
       {
+        "command": "agent-delete *",
+        "reason": "Alias for agent_delete.py (trash-first deletion helper)."
+      },
+      {
         "command": "python3 /Users/scawful/src/lab/afs-scawful/scripts/policy_sync.py *",
         "reason": "Sync tool policy exports and wire harness config."
       }
