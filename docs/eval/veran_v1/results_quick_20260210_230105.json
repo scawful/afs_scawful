@@ -1,0 +1,247 @@
+{
+  "model_name": "Qwen/Qwen2.5-Coder-7B-Instruct",
+  "adapter_path": "D:\\models\\checkpoints\\veran_v1_peft_20260210_224921\\lora_adapters",
+  "eval_file": "D:\\afs_training\\evals\\veran_v1\\veran_v1_eval_quick_keywords.jsonl",
+  "summary": {
+    "total_cases": 12,
+    "reference_cases": 0,
+    "keyword_cases": 12,
+    "reference_exact_match_rate": 0.0,
+    "reference_contains_rate": 0.0,
+    "reference_avg_token_f1": 0.0,
+    "keyword_full_match_rate": 0.0,
+    "keyword_avg_recall": 0.2708333333333333
+  },
+  "results": [
+    {
+      "id": "kw_001",
+      "kind": "keywords",
+      "instruction": "What is SNES register $2100 used for?",
+      "response": "Register $2100 (MCtrl) in the SNES is the Map/Tileset Control Register. It allows access to different tilesets and attributes within the world map. Specifically:\n- Bit 0: Access to the 'mini' (compressed) tileset.\n- Bits 1-3: Selects the current attributes table (0=Normal, 1-7=Secret areas).\n- Bit 4: Not used.\n- Bit 5: Access to the 'normal' (uncompressed) tileset.\n- Bit 6: Unknown.\n- Bit 7: Access to the water collision layer.",
+      "keywords": [
+        "INIDISP",
+        "brightness",
+        "display",
+        "blank"
+      ],
+      "keywords_found": [],
+      "keywords_missing": [
+        "INIDISP",
+        "brightness",
+        "display",
+        "blank"
+      ],
+      "keyword_recall": 0.0
+    },
+    {
+      "id": "kw_002",
+      "kind": "keywords",
+      "instruction": "Explain what writing #$01 to $420B does on SNES.",
+      "response": "Writing the value `#$01` (which represents the flag `MakuTreeQuest` being set) to address `$420B` in the SRAM triggers the Maku Tree quest introduction logic. Specifically, it marks the initial meeting with the Maku Tree sprite in the Goron Mines area as seen, thereby allowing the game to proceed to recognize that the player has not yet met the tree before and should be rewarded with the Golden Sword during the opening sequence.",
+      "keywords": [
+        "DMA",
+        "channel",
+        "transfer"
+      ],
+      "keywords_found": [],
+      "keywords_missing": [
+        "DMA",
+        "channel",
+        "transfer"
+      ],
+      "keyword_recall": 0.0
+    },
+    {
+      "id": "kw_003",
+      "kind": "keywords",
+      "instruction": "Why use REP #$20 before loading/storing 16-bit values?",
+      "response": "In 65816 assembly, the `REP #$20` instruction disables the carry flag (C). This is used before loading or storing 16-bit values into the Status Register (SR) because the SR has a unique property: you can only write the upper byte of SR at address `$2004`, and the lower byte at `$2005`. Writing directly to the 16-bit value `$20042005` would not work as expected. By disabling the carry, the CPU ensures that only the lower byte is written when using the `LDA #$20 / STA $2004` sequence, effectively writing `$20` to the SR.",
+      "keywords": [
+        "16-bit",
+        "accumulator",
+        "mode"
+      ],
+      "keywords_found": [
+        "16-bit"
+      ],
+      "keywords_missing": [
+        "accumulator",
+        "mode"
+      ],
+      "keyword_recall": 0.3333333333333333
+    },
+    {
+      "id": "kw_004",
+      "kind": "keywords",
+      "instruction": "Explain this code: LDA #$80 ; STA $2100",
+      "response": "This code sets the background scroll X position to 128 (the middle of the screen). `LDA #$80` loads the value $80 (128 in decimal) into the Accumulator. `STA $2100` then stores this value at the PPU address $2100, which is the control register for the background scroll X position.",
+      "keywords": [
+        "force",
+        "blank",
+        "display"
+      ],
+      "keywords_found": [],
+      "keywords_missing": [
+        "force",
+        "blank",
+        "display"
+      ],
+      "keyword_recall": 0.0
+    },
+    {
+      "id": "kw_005",
+      "kind": "keywords",
+      "instruction": "What does MVN do on 65816?",
+      "response": "MVN is a 65816 assembly instruction that stands for 'Move Not'. It performs a bitwise NOT operation (flips all the bits) on the value at the specified memory address and writes the result to the destination address. This operation is useful for various logic tasks where inverting bit patterns is required.",
+      "keywords": [
+        "block",
+        "move",
+        "bank"
+      ],
+      "keywords_found": [
+        "move"
+      ],
+      "keywords_missing": [
+        "block",
+        "bank"
+      ],
+      "keyword_recall": 0.3333333333333333
+    },
+    {
+      "id": "kw_006",
+      "kind": "keywords",
+      "instruction": "Explain how a jump table works with ASL/TAX and indirect jump.",
+      "response": "The jump table at `0x7EF3D6` is designed to redirect the Overworld state machine based on the current month (Pineapple Tree sprite selection). The logic uses `ASL` and `TAX` to calculate the offset:\n- `ASL M` left-shifts the month value by 1 bit (`M << 1`). This operation is equivalent to multiplying `M` by 2.\n- `TAX` transfers the result to the X register. Since each month's handler is 2 bytes (one `JMP` instruction), this sets up the correct offset.\nThe `LDA $7EF3D6 : PHA : LDA $7EF3D9 : TAX` sequence initializes the table access. The first `LDA` loads the low byte of the table address. `PHA` stores it on the stack. The",
+      "keywords": [
+        "jump table",
+        "index",
+        "indirect"
+      ],
+      "keywords_found": [
+        "jump table"
+      ],
+      "keywords_missing": [
+        "index",
+        "indirect"
+      ],
+      "keyword_recall": 0.3333333333333333
+    },
+    {
+      "id": "kw_007",
+      "kind": "keywords",
+      "instruction": "What is the difference between DMA and HDMA?",
+      "response": "DMA (Direct Memory Access) and HDMA (High-Speed Direct Memory Access) serve similar purposes but operate at different speeds and have distinct use cases.\n- **DMA** is the standard transfer method. It can access both VRAM and RAM. However, it has a lower priority and speed compared to HDMA.\n- **HDMA** is specifically designed for high-speed transfers. It is crucial for real-time audio and certain graphics operations that require fast data movement. Notably, it can only access VRAM, not RAM.\nThe choice between DMA and HDMA depends on the nature of the transfer: use HDMA for time-sensitive VRAM operations like tileset loading or sprite tables, and DMA for more general-purpose RAM-to-RAM or VRAM-to-RAM transfers.",
+      "keywords": [
+        "scanline",
+        "vblank",
+        "HDMA",
+        "DMA"
+      ],
+      "keywords_found": [
+        "HDMA",
+        "DMA"
+      ],
+      "keywords_missing": [
+        "scanline",
+        "vblank"
+      ],
+      "keyword_recall": 0.5
+    },
+    {
+      "id": "kw_008",
+      "kind": "keywords",
+      "instruction": "Explain what $4210 is used for in SNES code.",
+      "response": "$4210 is the address of the SPC700 'Status' register. It allows the SNES CPU to query and set various flags within the SPC700, such as the interrupt enable bit or the current ROM bank being accessed by the SPC700.",
+      "keywords": [
+        "NMI",
+        "vblank",
+        "flag"
+      ],
+      "keywords_found": [
+        "flag"
+      ],
+      "keywords_missing": [
+        "NMI",
+        "vblank"
+      ],
+      "keyword_recall": 0.3333333333333333
+    },
+    {
+      "id": "kw_009",
+      "kind": "keywords",
+      "instruction": "Where does ALTTP store Link position in WRAM (high-level answer)?",
+      "response": "ALTTP uses `0x3C00` as the base address for Link's current grid location (`w`) and scroll offset (`b2`).",
+      "keywords": [
+        "WRAM",
+        "$7E",
+        "position"
+      ],
+      "keywords_found": [],
+      "keywords_missing": [
+        "WRAM",
+        "$7E",
+        "position"
+      ],
+      "keyword_recall": 0.0
+    },
+    {
+      "id": "kw_010",
+      "kind": "keywords",
+      "instruction": "Explain why preserving DBR/PBR can matter across subroutine boundaries.",
+      "response": "In 65816 assembly for SNES, the `DBR` (Direct Bank Register) and `PBR` (Program Bank Register) determine which VRAM bank (`DB`) or which CPU memory bank (`PB`) the subsequent `LDA`, `STA`, `JMP` etc. instructions will operate on by default. When calling a subroutine that could potentially modify these registers (e.g., `REP #$20` to clear the direct page pointer before setting `DBR`/`PBR`), it's crucial to preserve their state if they were set up specifically for the calling routine. This prevents 'upward leakage' where lower-level logic inadvertently uses the wrong bank, leading to read/write errors or visual glitches. By using `PHD`/`PLD` and `PHK`/`PLK` around the subroutine call, you ensure",
+      "keywords": [
+        "bank",
+        "DBR",
+        "PBR",
+        "context"
+      ],
+      "keywords_found": [
+        "bank",
+        "DBR",
+        "PBR"
+      ],
+      "keywords_missing": [
+        "context"
+      ],
+      "keyword_recall": 0.75
+    },
+    {
+      "id": "kw_011",
+      "kind": "keywords",
+      "instruction": "Explain this code pattern: PHB : PHK : PLB ... PLB",
+      "response": "This is the 'Select RAM Bank' idiom. It uses PHB (Push Direct Page) and PHK / PLB (Push / Pull Program Counter Bank) to switch to the caller's bank. For example, if Maku Tree (MakuTree.asm) calls `SelectRAMBank $00 : LDA $7EF3D6 : PLB`, it will temporarily use the `$00` bank (the vanilla Overworld map table bank) while reading Link's world location from the per-player SRAM area. The `PLB` at the end returns to using the bank that the caller expected to use.",
+      "keywords": [
+        "bank",
+        "preserve",
+        "restore"
+      ],
+      "keywords_found": [
+        "bank"
+      ],
+      "keywords_missing": [
+        "preserve",
+        "restore"
+      ],
+      "keyword_recall": 0.3333333333333333
+    },
+    {
+      "id": "kw_012",
+      "kind": "keywords",
+      "instruction": "What is VMAIN ($2115) used for?",
+      "response": "VMAIN is the Main Vertical Scroll Handler. It takes input from VRAM scroll tables and renders the final vertical scroll positions for the user in LZ.",
+      "keywords": [
+        "VRAM",
+        "increment",
+        "address"
+      ],
+      "keywords_found": [
+        "VRAM"
+      ],
+      "keywords_missing": [
+        "increment",
+        "address"
+      ],
+      "keyword_recall": 0.3333333333333333
+    }
+  ]
+}

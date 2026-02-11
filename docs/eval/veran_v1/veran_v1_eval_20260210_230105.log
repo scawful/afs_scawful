@@ -1,0 +1,94 @@
+Waiting for adapter at D:\models\checkpoints\veran_v1_peft_20260210_224921\lora_adapters 
+Waiting for adapter at D:\models\checkpoints\veran_v1_peft_20260210_224921\lora_adapters 
+Waiting for adapter at D:\models\checkpoints\veran_v1_peft_20260210_224921\lora_adapters 
+Waiting for adapter at D:\models\checkpoints\veran_v1_peft_20260210_224921\lora_adapters 
+Waiting for adapter at D:\models\checkpoints\veran_v1_peft_20260210_224921\lora_adapters 
+Waiting for adapter at D:\models\checkpoints\veran_v1_peft_20260210_224921\lora_adapters 
+Waiting for adapter at D:\models\checkpoints\veran_v1_peft_20260210_224921\lora_adapters 
+Waiting for adapter at D:\models\checkpoints\veran_v1_peft_20260210_224921\lora_adapters 
+Waiting for adapter at D:\models\checkpoints\veran_v1_peft_20260210_224921\lora_adapters 
+Waiting for adapter at D:\models\checkpoints\veran_v1_peft_20260210_224921\lora_adapters 
+Waiting for adapter at D:\models\checkpoints\veran_v1_peft_20260210_224921\lora_adapters 
+Waiting for adapter at D:\models\checkpoints\veran_v1_peft_20260210_224921\lora_adapters 
+Waiting for adapter at D:\models\checkpoints\veran_v1_peft_20260210_224921\lora_adapters 
+Waiting for adapter at D:\models\checkpoints\veran_v1_peft_20260210_224921\lora_adapters 
+Waiting for adapter at D:\models\checkpoints\veran_v1_peft_20260210_224921\lora_adapters 
+Waiting for adapter at D:\models\checkpoints\veran_v1_peft_20260210_224921\lora_adapters 
+Waiting for adapter at D:\models\checkpoints\veran_v1_peft_20260210_224921\lora_adapters 
+Waiting for adapter at D:\models\checkpoints\veran_v1_peft_20260210_224921\lora_adapters 
+Waiting for adapter at D:\models\checkpoints\veran_v1_peft_20260210_224921\lora_adapters 
+Waiting for adapter at D:\models\checkpoints\veran_v1_peft_20260210_224921\lora_adapters 
+Waiting for adapter at D:\models\checkpoints\veran_v1_peft_20260210_224921\lora_adapters 
+Loading tokenizer/model: Qwen/Qwen2.5-Coder-7B-Instruct
+Loaded 12 eval cases from D:\afs_training\evals\veran_v1\veran_v1_eval_quick_keywords.jsonl
+[1/12] kw_001 (keywords)
+[2/12] kw_002 (keywords)
+[3/12] kw_003 (keywords)
+[4/12] kw_004 (keywords)
+[5/12] kw_005 (keywords)
+[6/12] kw_006 (keywords)
+[7/12] kw_007 (keywords)
+[8/12] kw_008 (keywords)
+[9/12] kw_009 (keywords)
+[10/12] kw_010 (keywords)
+[11/12] kw_011 (keywords)
+[12/12] kw_012 (keywords)
+Saved report: D:\afs_training\evals\veran_v1\results_quick_20260210_230105.json
+{
+  "total_cases": 12,
+  "reference_cases": 0,
+  "keyword_cases": 12,
+  "reference_exact_match_rate": 0.0,
+  "reference_contains_rate": 0.0,
+  "reference_avg_token_f1": 0.0,
+  "keyword_full_match_rate": 0.0,
+  "keyword_avg_recall": 0.2708333333333333
+}
+Loading tokenizer/model: Qwen/Qwen2.5-Coder-7B-Instruct
+Loaded 34 eval cases from D:\afs_training\evals\veran_v1\veran_v1_eval_holdout.jsonl
+[1/34] holdout_001 (reference)
+[2/34] holdout_002 (reference)
+[3/34] holdout_003 (reference)
+[4/34] holdout_004 (reference)
+[5/34] holdout_005 (reference)
+[6/34] holdout_006 (reference)
+[7/34] holdout_007 (reference)
+[8/34] holdout_008 (reference)
+[9/34] holdout_009 (reference)
+[10/34] holdout_010 (reference)
+[11/34] holdout_011 (reference)
+[12/34] holdout_012 (reference)
+[13/34] holdout_013 (reference)
+[14/34] holdout_014 (reference)
+[15/34] holdout_015 (reference)
+[16/34] holdout_016 (reference)
+[17/34] holdout_017 (reference)
+[18/34] holdout_018 (reference)
+[19/34] holdout_019 (reference)
+[20/34] holdout_020 (reference)
+[21/34] holdout_021 (reference)
+[22/34] holdout_022 (reference)
+[23/34] holdout_023 (reference)
+[24/34] holdout_024 (reference)
+[25/34] holdout_025 (reference)
+[26/34] holdout_026 (reference)
+[27/34] holdout_027 (reference)
+[28/34] holdout_028 (reference)
+[29/34] holdout_029 (reference)
+[30/34] holdout_030 (reference)
+[31/34] holdout_031 (reference)
+[32/34] holdout_032 (reference)
+[33/34] holdout_033 (reference)
+[34/34] holdout_034 (reference)
+Saved report: D:\afs_training\evals\veran_v1\results_holdout_20260210_230105.json
+{
+  "total_cases": 34,
+  "reference_cases": 34,
+  "keyword_cases": 0,
+  "reference_exact_match_rate": 0.058823529411764705,
+  "reference_contains_rate": 0.058823529411764705,
+  "reference_avg_token_f1": 0.778993335649123,
+  "keyword_full_match_rate": 0.0,
+  "keyword_avg_recall": 0.0
+}
+Eval complete 

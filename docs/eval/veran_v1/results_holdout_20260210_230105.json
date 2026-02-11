@@ -1,0 +1,357 @@
+{
+  "model_name": "Qwen/Qwen2.5-Coder-7B-Instruct",
+  "adapter_path": "D:\\models\\checkpoints\\veran_v1_peft_20260210_224921\\lora_adapters",
+  "eval_file": "D:\\afs_training\\evals\\veran_v1\\veran_v1_eval_holdout.jsonl",
+  "summary": {
+    "total_cases": 34,
+    "reference_cases": 34,
+    "keyword_cases": 0,
+    "reference_exact_match_rate": 0.058823529411764705,
+    "reference_contains_rate": 0.058823529411764705,
+    "reference_avg_token_f1": 0.778993335649123,
+    "keyword_full_match_rate": 0.0,
+    "keyword_avg_recall": 0.0
+  },
+  "results": [
+    {
+      "id": "holdout_001",
+      "kind": "reference",
+      "instruction": "Identify the properties and location of Room ID 0x1A.",
+      "response": "Room 0x1A is 'Big Chest' located in Goron Mines. It is classified as a normal room. Technical specs: Palette 6, Blockset 5, Spriteset 29. Logic tags: 3, 0.",
+      "expected": "Room 0x1A is 'Big Chest' located in Mushroom Grotto. It is classified as a normal room. Technical specs: Palette 15, Blockset 7, Spriteset 43. Logic tags: 0, 0.",
+      "exact_match": false,
+      "contains_match": false,
+      "token_f1": 0.7857142857142857
+    },
+    {
+      "id": "holdout_002",
+      "kind": "reference",
+      "instruction": "Where is the Bow located in the Overworld?",
+      "response": "The Bow (ID 0x0C) is found in Area 0x4B (Forest Crossroads) at tile coordinates (13,25).",
+      "expected": "The Bow (ID 0x0C) is found in Area 0x0B (Kalyxo Castle) at tile coordinates (33,8).",
+      "exact_match": false,
+      "contains_match": false,
+      "token_f1": 0.7333333333333333
+    },
+    {
+      "id": "holdout_003",
+      "kind": "reference",
+      "instruction": "Where is the Golden Sword located in the Overworld?",
+      "response": "The Golden Sword (ID 0x04) is found in Area 0x18 (Lupo Mountain) at tile coordinates (23,56).",
+      "expected": "The Golden Sword (ID 0x04) is found in Area 0x10 (Mushroom Grotto) at tile coordinates (5,17).",
+      "exact_match": false,
+      "contains_match": false,
+      "token_f1": 0.75
+    },
+    {
+      "id": "holdout_004",
+      "kind": "reference",
+      "instruction": "Where is the Golden Sword located in the Overworld?",
+      "response": "The Golden Sword (ID 0x04) is found in Area 0x18 (Lupo Mountain) at tile coordinates (23,56).",
+      "expected": "The Golden Sword (ID 0x04) is found in Area 0x4B (Lupo Mountain) at tile coordinates (42,56).",
+      "exact_match": false,
+      "contains_match": false,
+      "token_f1": 0.875
+    },
+    {
+      "id": "holdout_005",
+      "kind": "reference",
+      "instruction": "What is the purpose of the `REP #$20` and `SEP #$20` instructions before calling `SelectReactionMessage`?",
+      "response": "In SNES assembly, these instructions toggle the register widths. `REP #$20` sets the Accumulator (A) to 16-bit mode. This is used here to load the 16-bit address of the `MakuTreeReactionTable` into the Direct Page pointer `$00` in a single `LDA.w #label : STA $00` operation. After setting up the pointer, `SEP #$20` returns the Accumulator to 8-bit mode before setting the bank byte (`MakuTreeReactionTable>>16`) into `$02`, completing the 24-bit pointer required by the subroutine.",
+      "expected": "In 65816 assembly, these instructions toggle the register widths. `REP #$20` sets the Accumulator (A) to 16-bit mode. This is used here to load the 16-bit address of the `MakuTreeReactionTable` into the Direct Page pointer `$00` in a single `LDA.w #label : STA $00` operation. `SEP #$20` then returns the Accumulator to 8-bit mode before setting the bank byte (`MakuTreeReactionTable>>16`) into `$02`, completing the 24-bit pointer required by the subroutine.",
+      "exact_match": false,
+      "contains_match": false,
+      "token_f1": 0.9444444444444445
+    },
+    {
+      "id": "holdout_006",
+      "kind": "reference",
+      "instruction": "Identify the properties and location of Room ID 0x56.",
+      "response": "Room 0x56 is 'Big Chest' located in Goron Mines. It is classified as a normal room. Technical specs: Palette 13, Blockset 4, Spriteset 29. Logic tags: 0, 0.",
+      "expected": "Room 0x56 is 'Key Pot / Trap' located in Kalyxo Castle. It is classified as a entrance room. Technical specs: Palette 12, Blockset 2, Spriteset 33. Logic tags: 0, 0.",
+      "exact_match": false,
+      "contains_match": false,
+      "token_f1": 0.7017543859649122
+    },
+    {
+      "id": "holdout_007",
+      "kind": "reference",
+      "instruction": "Where is the Boomerang located in the Overworld?",
+      "response": "The Boomerang (ID 0x0D) is found in Area 0x4B (Loom Beach) at tile coordinates (19,23).",
+      "expected": "The Boomerang (ID 0x0D) is found in Area 0x1E (Zora Sanctuary) at tile coordinates (3,48).",
+      "exact_match": false,
+      "contains_match": false,
+      "token_f1": 0.7333333333333333
+    },
+    {
+      "id": "holdout_008",
+      "kind": "reference",
+      "instruction": "Which room in Zora Temple uses Spriteset 33?",
+      "response": "Room 0x8E (Big Chest) in Zora Temple is configured to use Spriteset 33.",
+      "expected": "Room 0x66 (Hidden Chest / Hidden Door) in Zora Temple is configured to use Spriteset 33.",
+      "exact_match": false,
+      "contains_match": false,
+      "token_f1": 0.7857142857142856
+    },
+    {
+      "id": "holdout_009",
+      "kind": "reference",
+      "instruction": "Identify the properties and location of Room ID 0x92.",
+      "response": "Room 0x92 is 'Big Chest' located in Goron Mines. It is classified as a normal room. Technical specs: Palette 15, Blockset 7, Spriteset 34. Logic tags: 0, 0.",
+      "expected": "Room 0x92 is 'Dark Bomb Wall / Switches' located in Goron Mines. It is classified as a normal room. Technical specs: Palette 5, Blockset 1, Spriteset 10. Logic tags: 0, 0.",
+      "exact_match": false,
+      "contains_match": false,
+      "token_f1": 0.793103448275862
+    },
+    {
+      "id": "holdout_010",
+      "kind": "reference",
+      "instruction": "Analyze Overworld Area 0x1E in LW.",
+      "response": "Area 0x1E corresponds to 'Lava Lands' in the LW world. Notable features include: Volcanic region, 0x57 has final boss hole. It uses GFX ID 0x28 and Sprite Set ??.",
+      "expected": "Area 0x1E corresponds to 'Zora Sanctuary' in the LW world. Notable features include: D4 (Zora Temple). It uses GFX ID 0x25 and Sprite Set 0x0E.",
+      "exact_match": false,
+      "contains_match": false,
+      "token_f1": 0.6666666666666666
+    },
+    {
+      "id": "holdout_011",
+      "kind": "reference",
+      "instruction": "Identify the properties and location of Room ID 0x6D.",
+      "response": "Room 0x6D is 'Big Chest' located in Goron Mines. It is classified as a normal room. Technical specs: Palette 15, Blockset 7, Spriteset 29. Logic tags: 3, 0.",
+      "expected": "Room 0x6D is 'Gauntlet 4/5' located in Fortress of Secrets. It is classified as a normal room. Technical specs: Palette 3, Blockset 14, Spriteset 35. Logic tags: 5, 0.",
+      "exact_match": false,
+      "contains_match": false,
+      "token_f1": 0.736842105263158
+    },
+    {
+      "id": "holdout_012",
+      "kind": "reference",
+      "instruction": "Identify the properties and location of Room ID 0x0A.",
+      "response": "Room 0x0A is 'Big Chest' located in Goron Mines. It is classified as a normal room. Technical specs: Palette 6, Blockset 5, Spriteset 19. Logic tags: 23, 0.",
+      "expected": "Room 0x0A is 'Stalfos Trap' located in Mushroom Grotto. It is classified as a normal room. Technical specs: Palette 15, Blockset 7, Spriteset 19. Logic tags: 3, 0.",
+      "exact_match": false,
+      "contains_match": false,
+      "token_f1": 0.75
+    },
+    {
+      "id": "holdout_013",
+      "kind": "reference",
+      "instruction": "Where is the Fire Shield located in the Overworld?",
+      "response": "The Fire Shield (ID 0x06) is found in Area 0x4B (Loom Beach) at tile coordinates (19,23).",
+      "expected": "The Fire Shield (ID 0x06) is found in Area 0x07 (Snow Mountain Peak) at tile coordinates (8,23).",
+      "exact_match": false,
+      "contains_match": false,
+      "token_f1": 0.7272727272727272
+    },
+    {
+      "id": "holdout_014",
+      "kind": "reference",
+      "instruction": "Which room in Fortress of Secrets uses Spriteset 36?",
+      "response": "Room 0x8E (Big Chest) in Fortress of Secrets is configured to use Spriteset 36.",
+      "expected": "Room 0x3D (Torch 2) in Fortress of Secrets is configured to use Spriteset 36.",
+      "exact_match": false,
+      "contains_match": false,
+      "token_f1": 0.7857142857142857
+    },
+    {
+      "id": "holdout_015",
+      "kind": "reference",
+      "instruction": "Analyze the flag write `LDA.l $7EF3D6 : ORA.b #$02 : STA.l $7EF3D6` in the Maku Tree logic.",
+      "response": "This operation performs a bitwise OR on the SRAM address $7EF3D6. Specifically, it sets Bit 1 (value 0x02), which corresponds to the 'Hall of Secrets' (OOSPROG bit 1) progression flag. This ensures that the Hall of Secrets is accessible once the player has reached or interacted with the Maku Tree, marking a key narrative milestone.",
+      "expected": "This operation performs a bitwise OR on the SRAM address $7EF3D6. Specifically, it sets Bit 1 (value 0x02), which corresponds to the 'Hall of Secrets' (OOSPROG bit 1) progression flag. This ensures that the Hall of Secrets is accessible once the player has reached or interacted with the Maku Tree, marking a key narrative milestone.",
+      "exact_match": true,
+      "contains_match": true,
+      "token_f1": 1.0
+    },
+    {
+      "id": "holdout_016",
+      "kind": "reference",
+      "instruction": "Which room in Dragon Ship uses Spriteset 30?",
+      "response": "Room 0x8E (Final Hall) in Dragon Ship is configured to use Spriteset 30.",
+      "expected": "Room 0xC7 (Torch Puzzle) in Dragon Ship is configured to use Spriteset 30.",
+      "exact_match": false,
+      "contains_match": false,
+      "token_f1": 0.7692307692307693
+    },
+    {
+      "id": "holdout_017",
+      "kind": "reference",
+      "instruction": "Which room in Tail Palace uses Spriteset 19?",
+      "response": "Room 0x8E (Big Chest) in Tail Palace is configured to use Spriteset 19.",
+      "expected": "Room 0x3F (Map Chest) in Tail Palace is configured to use Spriteset 19.",
+      "exact_match": false,
+      "contains_match": false,
+      "token_f1": 0.8461538461538461
+    },
+    {
+      "id": "holdout_018",
+      "kind": "reference",
+      "instruction": "Identify the properties and location of Room ID 0x0C.",
+      "response": "Room 0x0C is 'Big Chest' located in Goron Mines. It is classified as a normal room. Technical specs: Palette 6, Blockset 5, Spriteset 19. Logic tags: 23, 0.",
+      "expected": "Room 0x0C is 'Entrance' located in Fortress of Secrets. It is classified as a entrance room. Technical specs: Palette 3, Blockset 14, Spriteset 19. Logic tags: 0, 0.",
+      "exact_match": false,
+      "contains_match": false,
+      "token_f1": 0.7142857142857143
+    },
+    {
+      "id": "holdout_019",
+      "kind": "reference",
+      "instruction": "Which room in Dragon Ship uses Spriteset 37?",
+      "response": "Room 0x8E (Final Hall) in Dragon Ship is configured to use Spriteset 37.",
+      "expected": "Room 0xB4 (Pre-Trinexx) in Dragon Ship is configured to use Spriteset 37.",
+      "exact_match": false,
+      "contains_match": false,
+      "token_f1": 0.8
+    },
+    {
+      "id": "holdout_020",
+      "kind": "reference",
+      "instruction": "Which room in Kalyxo Castle uses Spriteset 9?",
+      "response": "Room 0x5E (Big Chest) in Kalyxo Castle is configured to use Spriteset 9.",
+      "expected": "Room 0x29 (Mothula (Boss)) in Kalyxo Castle is configured to use Spriteset 9.",
+      "exact_match": false,
+      "contains_match": false,
+      "token_f1": 0.7692307692307693
+    },
+    {
+      "id": "holdout_021",
+      "kind": "reference",
+      "instruction": "Where is the Hammer located in the Overworld?",
+      "response": "The Hammer (ID 0x0A) is found in Area 0x18 (Loom Beach) at tile coordinates (23,5).",
+      "expected": "The Hammer (ID 0x0A) is found in Area 0x69 (Forest of Dreams) at tile coordinates (13,4).",
+      "exact_match": false,
+      "contains_match": false,
+      "token_f1": 0.7096774193548386
+    },
+    {
+      "id": "holdout_022",
+      "kind": "reference",
+      "instruction": "Identify the properties and location of Room ID 0xD2.",
+      "response": "Room 0xD2 is 'Big Chest' located in Goron Mines. It is classified as a normal room. Technical specs: Palette 15, Blockset 7, Spriteset 36. Logic tags: 0, 0.",
+      "expected": "Room 0xD2 is 'Wizzrobes' located in Goron Mines. It is classified as a normal room. Technical specs: Palette 25, Blockset 6, Spriteset 29. Logic tags: 0, 0.",
+      "exact_match": false,
+      "contains_match": false,
+      "token_f1": 0.8363636363636364
+    },
+    {
+      "id": "holdout_023",
+      "kind": "reference",
+      "instruction": "Which room in Mushroom Grotto uses Spriteset 8?",
+      "response": "Room 0x5E (Big Chest) in Mushroom Grotto is configured to use Spriteset 8.",
+      "expected": "Room 0x0B (Turtle) in Mushroom Grotto is configured to use Spriteset 8.",
+      "exact_match": false,
+      "contains_match": false,
+      "token_f1": 0.8
+    },
+    {
+      "id": "holdout_024",
+      "kind": "reference",
+      "instruction": "Explain the message selection logic in `MakuTreeReactionTable`.",
+      "response": "The `MakuTreeReactionTable` is a threshold-based reaction table. It consists of 3-byte entries: 1 byte for the crystal count threshold and 2 bytes for the message ID (`db threshold : dw message_id`). The logic (`SelectReactionMessage`) walks the table in descending order. The first entry where `crystal_count >= threshold` is selected. For example, if Link has 4 crystals, it skips the 7 and 5 thresholds and matches the 3 threshold, returning message 0x01C6 (Mid-game sense of threat).",
+      "expected": "The `MakuTreeReactionTable` is a threshold-based reaction table. It consists of 3-byte entries: 1 byte for the crystal count threshold and 2 bytes for the message ID (`db threshold : dw message_id`). The logic (`SelectReactionMessage`) walks the table in descending order. The first entry where `crystal_count >= threshold` is selected. For example, if Link has 4 crystals, it skips the 7 and 5 thresholds and matches the 3 threshold, returning message 0x01C6 (Mid-game sense of threat).",
+      "exact_match": true,
+      "contains_match": true,
+      "token_f1": 1.0
+    },
+    {
+      "id": "holdout_025",
+      "kind": "reference",
+      "instruction": "Where is the Golden Sword located in the Overworld?",
+      "response": "The Golden Sword (ID 0x04) is found in Area 0x18 (Lupo Mountain) at tile coordinates (23,56).",
+      "expected": "The Golden Sword (ID 0x04) is found in Area 0x40 (Temporal Pyramid) at tile coordinates (14,47).",
+      "exact_match": false,
+      "contains_match": false,
+      "token_f1": 0.75
+    },
+    {
+      "id": "holdout_026",
+      "kind": "reference",
+      "instruction": "Identify the properties and location of Room ID 0x7D.",
+      "response": "Room 0x7D is 'Big Chest' located in Goron Mines. It is classified as a normal room. Technical specs: Palette 15, Blockset 4, Spriteset 36. Logic tags: 23, 0.",
+      "expected": "Room 0x7D is 'Winder / Warp Maze' located in Fortress of Secrets. It is classified as a normal room. Technical specs: Palette 3, Blockset 14, Spriteset 19. Logic tags: 4, 60.",
+      "exact_match": false,
+      "contains_match": false,
+      "token_f1": 0.689655172413793
+    },
+    {
+      "id": "holdout_027",
+      "kind": "reference",
+      "instruction": "Where is the Golden Sword located in the Overworld?",
+      "response": "The Golden Sword (ID 0x04) is found in Area 0x18 (Lupo Mountain) at tile coordinates (23,56).",
+      "expected": "The Golden Sword (ID 0x04) is found in Area 0x18 (Toadstool Woods) at tile coordinates (12,23).",
+      "exact_match": false,
+      "contains_match": false,
+      "token_f1": 0.8125
+    },
+    {
+      "id": "holdout_028",
+      "kind": "reference",
+      "instruction": "Where is the Bow located in the Overworld?",
+      "response": "The Bow (ID 0x0C) is found in Area 0x4B (Forest Crossroads) at tile coordinates (13,25).",
+      "expected": "The Bow (ID 0x0C) is found in Area 0x1D (Fairy Fountain South) at tile coordinates (6,25).",
+      "exact_match": false,
+      "contains_match": false,
+      "token_f1": 0.7096774193548386
+    },
+    {
+      "id": "holdout_029",
+      "kind": "reference",
+      "instruction": "Where is the Master Sword located in the Overworld?",
+      "response": "The Master Sword (ID 0x04) is found in Area 0x18 (Forest Crossroads) at tile coordinates (23,5).",
+      "expected": "The Master Sword (ID 0x02) is found in Area 0x4B (Lupo Mountain) at tile coordinates (45,56).",
+      "exact_match": false,
+      "contains_match": false,
+      "token_f1": 0.6875
+    },
+    {
+      "id": "holdout_030",
+      "kind": "reference",
+      "instruction": "Analyze Overworld Area 0x59 in DW.",
+      "response": "Area 0x59 corresponds to 'Lava Lands' in the DW world. Notable features include: Volcanic region, 0x57 has final boss hole. It uses GFX ID 0x3D and Sprite Set ??.",
+      "expected": "Area 0x59 corresponds to 'Forest of Dreams' in the DW world. Notable features include: Intro area, connects to S3 later. It uses GFX ID 0x43 and Sprite Set 0x16.",
+      "exact_match": false,
+      "contains_match": false,
+      "token_f1": 0.6206896551724138
+    },
+    {
+      "id": "holdout_031",
+      "kind": "reference",
+      "instruction": "Identify the properties and location of Room ID 0x34.",
+      "response": "Room 0x34 is 'Big Chest' located in Goron Mines. It is classified as a normal room. Technical specs: Palette 15, Blockset 7, Spriteset 29. Logic tags: 0, 0.",
+      "expected": "Room 0x34 is 'Push Block / Pre-Big Key' located in Zora Temple. It is classified as a normal room. Technical specs: Palette 9, Blockset 1, Spriteset 17. Logic tags: 0, 0.",
+      "exact_match": false,
+      "contains_match": false,
+      "token_f1": 0.7241379310344827
+    },
+    {
+      "id": "holdout_032",
+      "kind": "reference",
+      "instruction": "Which room in Goron Mines uses Spriteset 29?",
+      "response": "Room 0x8E (Big Hub) in Goron Mines is configured to use Spriteset 29.",
+      "expected": "Room 0xD2 (Wizzrobes) in Goron Mines is configured to use Spriteset 29.",
+      "exact_match": false,
+      "contains_match": false,
+      "token_f1": 0.8
+    },
+    {
+      "id": "holdout_033",
+      "kind": "reference",
+      "instruction": "What is the purpose of the `REP #$20` and `SEP #$20` instructions before calling `SelectReactionMessage`?",
+      "response": "In SNES assembly, these instructions toggle the register widths. `REP #$20` sets the Accumulator (A) to 16-bit mode. This is used here to load the 16-bit address of the `MakuTreeReactionTable` into the Direct Page pointer `$00` in a single `LDA.w #label : STA $00` operation. After setting up the pointer, `SEP #$20` returns the Accumulator to 8-bit mode before setting the bank byte (`MakuTreeReactionTable>>16`) into `$02`, completing the 24-bit pointer required by the subroutine.",
+      "expected": "In 65816 assembly, these instructions toggle the register widths. `REP #$20` sets the Accumulator (A) to 16-bit mode. This is used here to load the 16-bit address of the `MakuTreeReactionTable` into the Direct Page pointer `$00` in a single `LDA.w #label : STA $00` operation. `SEP #$20` then returns the Accumulator to 8-bit mode before setting the bank byte (`MakuTreeReactionTable>>16`) into `$02`, completing the 24-bit pointer required by the subroutine.",
+      "exact_match": false,
+      "contains_match": false,
+      "token_f1": 0.9444444444444445
+    },
+    {
+      "id": "holdout_034",
+      "kind": "reference",
+      "instruction": "Where is the Hookshot located in the Overworld?",
+      "response": "The Hookshot (ID 0x0B) is found in Area 0x48 (Forest Crossroads) at tile coordinates (19,23).",
+      "expected": "The Hookshot (ID 0x0B) is found in Area 0x1E (Zora Sanctuary) at tile coordinates (27,61).",
+      "exact_match": false,
+      "contains_match": false,
+      "token_f1": 0.7333333333333333
+    }
+  ]
+}

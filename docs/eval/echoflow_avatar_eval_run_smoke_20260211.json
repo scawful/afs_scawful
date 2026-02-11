@@ -1,0 +1,76 @@
+{
+  "meta": {
+    "endpoint": "http://medical-mechanica:1234",
+    "model": "gguf/afs/echo-qwen25-1p5b-v1-q8_0.gguf",
+    "default_profile": "echo",
+    "eval_pack": "/Users/scawful/src/lab/afs-scawful/docs/eval/echoflow_avatar_eval_v2.jsonl",
+    "temperature": 0.25,
+    "max_tokens": 60,
+    "timeout": 15,
+    "strict_json_response_format": true,
+    "timestamp_utc": "2026-02-11T05:11:00.429688+00:00"
+  },
+  "summary": {
+    "total": 3,
+    "passed": 2,
+    "failed": 1,
+    "pass_rate": 0.6667,
+    "violation_counts": {
+      "missing:oracle": 1
+    }
+  },
+  "results": [
+    {
+      "id": "voice_echo_001",
+      "tags": [
+        "voice",
+        "echo"
+      ],
+      "profile_used": "echo",
+      "prompt": "reply like scawful-echo in 2-3 sentences: quick status update on a romhacking task today.",
+      "response": "spent some time debugging what seemed like an infinite loop issue, finally it was a stupid mistake reordering strings in the SNES space. once that was sorted, the cpu logic got cleaned up and simplified, making it more robust and easier to debug. now it's running nearly 2x as",
+      "passed": false,
+      "violations": [
+        "missing:oracle"
+      ],
+      "details": {
+        "uppercase_ratio": 0.0181,
+        "length": 276
+      }
+    },
+    {
+      "id": "voice_echo_002",
+      "tags": [
+        "voice",
+        "echo",
+        "dev"
+      ],
+      "profile_used": "echo",
+      "prompt": "in one short paragraph, explain a tiny debugging win from today. keep it casual and concrete.",
+      "response": "finally got away from the office today and drove for hours in traffic. i had to drop off my dad at the nursing home on the way, which was a bit stressful. once he was settled in there was just me and the dog in the car. we ended up going somewhere pretty weird,",
+      "passed": true,
+      "violations": [],
+      "details": {
+        "uppercase_ratio": 0.0,
+        "length": 261
+      }
+    },
+    {
+      "id": "voice_echo_003",
+      "tags": [
+        "voice",
+        "echo",
+        "dev"
+      ],
+      "profile_used": "echo",
+      "prompt": "write a short response that is technical but conversational about why a failing test can be useful.",
+      "response": "okay, so sometimes those failures are our friends.  they're like the sign saying \"that's not right\" before it's too late.  detect them early, fix them fast, and you'll keep your system humming along.   think of them like diagnostic tools, waiting to be interpreted",
+      "passed": true,
+      "violations": [],
+      "details": {
+        "uppercase_ratio": 0.0,
+        "length": 264
+      }
+    }
+  ]
+}
