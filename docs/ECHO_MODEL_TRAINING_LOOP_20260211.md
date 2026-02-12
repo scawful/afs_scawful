@@ -3,6 +3,13 @@
 ## Scope
 This runbook prepares Echo personality/capability evals for post-train gating and builds repair samples for the next fine-tune cycle used by EchoFlow iOS/macOS.
 
+## Latest Gate Run (2026-02-12)
+- Execution report: `docs/ECHO_MODEL_GATE_20260212.md`
+- Baseline (`echo-qwen25-1p5b-v1`): `4/24`
+- New 1.5B repair adapter: `22/24`
+- New 7B v4+repair adapter: `23/24`
+- Residual issue: bullet list formatting (`cap_bullets_001`)
+
 ## Artifacts Added
 - Eval pack: `docs/eval/echoflow_avatar_eval_v2.jsonl`
 - Remote eval runner: `scripts/eval_echoflow_avatar_remote.py`
