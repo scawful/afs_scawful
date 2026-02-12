@@ -64,6 +64,84 @@ def clean_for_json(text: str) -> str:
     return cleaned.strip()
 
 
+def extract_first_json_object(text: str) -> str | None:
+    start = text.find("{")
+    if start < 0:
+        return None
+
+    depth = 0
+    in_string = False
+    escaped = False
+    for idx in range(start, len(text)):
+        ch = text[idx]
+        if escaped:
+            escaped = False
+            continue
+        if ch == "\\":
+            escaped = True
+            continue
+        if ch == '"':
+            in_string = not in_string
+            continue
+        if in_string:
+            continue
+        if ch == "{":
+            depth += 1
+        elif ch == "}":
+            depth -= 1
+            if depth == 0:
+                return text[start : idx + 1]
+    return None
+
+
+def normalize_strict_json_response(text: str) -> str | None:
+    cleaned = clean_for_json(text)
+    candidates = [cleaned]
+    extracted = extract_first_json_object(cleaned)
+    if extracted:
+        candidates.append(extracted)
+
+    for candidate in candidates:
+        if not candidate:
+            continue
+        try:
+            parsed = json.loads(candidate)
+        except json.JSONDecodeError:
+            continue
+        return json.dumps(parsed, ensure_ascii=True, separators=(",", ":"))
+    return None
+
+
+def build_json_response_format(expected_json_keys: list[str]) -> dict[str, Any]:
+    properties = {key: {} for key in expected_json_keys}
+    schema: dict[str, Any] = {"type": "object", "additionalProperties": True}
+    if properties:
+        schema["properties"] = properties
+        schema["required"] = expected_json_keys
+    return {
+        "type": "json_schema",
+        "json_schema": {
+            "name": "echoflow_eval_json",
+            "schema": schema,
+        },
+    }
+
+
+def build_strict_json_retry_prompt(prompt: str, expected_json_keys: list[str]) -> str:
+    key_line = (
+        f"required keys: {', '.join(expected_json_keys)}."
+        if expected_json_keys
+        else "output must be a json object."
+    )
+    return (
+        f"{prompt}\n\n"
+        "[strict json retry]\n"
+        "return only valid json.\n"
+        "no markdown, no prose, no comments.\n"
+        f"{key_line}"
+    )
+
+
 def choose_profile(default_profile: str, tags: list[str]) -> str:
     lowered = {tag.lower() for tag in tags}
     if "memory" in lowered:
@@ -107,25 +185,54 @@ def call_openai(
     max_tokens: int,
     timeout: int,
     strict_json: bool,
+    expected_json_keys: list[str],
+    strict_json_retries: int,
+    strict_json_use_schema: bool,
 ) -> str:
     base = endpoint.rstrip("/")
     if not base.endswith("/v1"):
         base = f"{base}/v1"
 
-    payload: dict[str, Any] = {
-        "model": model,
-        "messages": [
-            {"role": "system", "content": system_prompt},
-            {"role": "user", "content": prompt},
-        ],
-        "temperature": temperature,
-        "max_tokens": max_tokens,
-    }
-    if strict_json:
-        payload["response_format"] = {"type": "json_object"}
+    def call_once(
+        prompt_text: str,
+        temp: float,
+        use_schema: bool,
+    ) -> str:
+        payload: dict[str, Any] = {
+            "model": model,
+            "messages": [
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": prompt_text},
+            ],
+            "temperature": temp,
+            "max_tokens": max_tokens,
+        }
+        if strict_json:
+            if use_schema:
+                payload["response_format"] = build_json_response_format(expected_json_keys)
+            else:
+                payload["response_format"] = {"type": "json_object"}
+        data = post_json(f"{base}/chat/completions", payload, timeout)
+        return data.get("choices", [{}])[0].get("message", {}).get("content", "").strip()
 
-    data = post_json(f"{base}/chat/completions", payload, timeout)
-    return data.get("choices", [{}])[0].get("message", {}).get("content", "").strip()
+    if not strict_json:
+        return call_once(prompt, temperature, use_schema=False)
+
+    max_attempts = max(1, strict_json_retries + 1)
+    response = ""
+    for attempt in range(max_attempts):
+        prompt_for_attempt = (
+            prompt
+            if attempt == 0
+            else build_strict_json_retry_prompt(prompt, expected_json_keys)
+        )
+        temperature_for_attempt = temperature if attempt == 0 else 0.0
+        use_schema = strict_json_use_schema and attempt == 0
+        response = call_once(prompt_for_attempt, temperature_for_attempt, use_schema=use_schema)
+        normalized = normalize_strict_json_response(response)
+        if normalized is not None:
+            return normalized
+    return response
 
 
 def evaluate_case(case: dict[str, Any], response: str, profile: str) -> tuple[list[str], dict[str, Any]]:
@@ -192,6 +299,12 @@ def main() -> int:
     parser.add_argument("--delay-seconds", type=float, default=0.0)
     parser.add_argument("--limit", type=int, default=None)
     parser.add_argument("--strict-json-response-format", action="store_true")
+    parser.add_argument("--strict-json-retries", type=int, default=1)
+    parser.add_argument(
+        "--strict-json-use-schema",
+        action=argparse.BooleanOptionalAction,
+        default=True,
+    )
     args = parser.parse_args()
 
     pack_path = Path(args.eval_pack).expanduser().resolve()
@@ -212,6 +325,7 @@ def main() -> int:
         prompt = str(case.get("prompt", ""))
 
         try:
+            expected_json_keys = [str(key) for key in case.get("json_keys", [])]
             response = call_openai(
                 endpoint=args.endpoint,
                 model=args.model,
@@ -221,6 +335,9 @@ def main() -> int:
                 max_tokens=args.max_tokens,
                 timeout=args.timeout,
                 strict_json=bool(case.get("expect_json")) and args.strict_json_response_format,
+                expected_json_keys=expected_json_keys,
+                strict_json_retries=args.strict_json_retries,
+                strict_json_use_schema=args.strict_json_use_schema,
             )
         except Exception as exc:  # noqa: BLE001
             lower = str(exc).lower()
@@ -271,6 +388,8 @@ def main() -> int:
             "max_tokens": args.max_tokens,
             "timeout": args.timeout,
             "strict_json_response_format": args.strict_json_response_format,
+            "strict_json_retries": args.strict_json_retries,
+            "strict_json_use_schema": args.strict_json_use_schema,
             "timestamp_utc": datetime.now(timezone.utc).isoformat(),
         },
         "summary": summary,

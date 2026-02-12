@@ -79,3 +79,13 @@ Gemini's earlier orchestration work was mostly directionally correct, but runtim
 3. Merge repair samples into the chat-format corpus under `~/src/training/datasets/scribe-corpus/`.
 4. Re-run eval gate and only promote defaults after pass-rate target is met.
 5. If Windows host is unavailable, switch endpoint/workflow using `docs/VAST_SETUP.md`.
+
+## Addendum (2026-02-12)
+- Next steps above were completed for Echo promotion:
+  - 7B microfix adapter promoted as primary.
+  - 1.5B repair retained as fallback.
+  - strict-output hardening added to `scripts/eval_echoflow_avatar_remote.py`.
+- New served eval outcomes on `medical-mechanica`:
+  - `docs/eval/echoflow_avatar_eval_run_7b_v4plusrepair_microfix_f16_20260212_strictfix.json`: **22/24** (91.67%)
+  - `docs/eval/echoflow_avatar_eval_run_1p5b_repair_f16_20260212_strictfix.json`: **21/24** (87.50%)
+- `invalid_json` failures were eliminated in the strict-output-hardened served runs.

@@ -9,6 +9,10 @@ This runbook prepares Echo personality/capability evals for post-train gating an
 - New 1.5B repair adapter: `22/24`
 - New 7B v4+repair adapter: `23/24`
 - Residual issue: bullet list formatting (`cap_bullets_001`)
+- Promotion continuation: `docs/ECHO_MODEL_PROMOTION_20260212.md`
+- Served 7B microfix (LM Studio OpenAI endpoint, pre-hardening): `19/24`
+- Served 7B microfix (strict-output hardened runner): `22/24`
+- Served 1.5B fallback (strict-output hardened runner): `21/24`
 
 ## Artifacts Added
 - Eval pack: `docs/eval/echoflow_avatar_eval_v2.jsonl`
@@ -23,6 +27,8 @@ python3 scripts/eval_echoflow_avatar_remote.py \
   --model gguf/afs/echo-qwen25-1p5b-v1-q8_0.gguf \
   --eval-pack docs/eval/echoflow_avatar_eval_v2.jsonl \
   --strict-json-response-format \
+  --strict-json-retries 1 \
+  --strict-json-use-schema \
   --timeout 25 \
   --max-tokens 160 \
   --out docs/eval/echoflow_avatar_eval_run_medical_$(date +%Y%m%d_%H%M%S).json
@@ -65,8 +71,8 @@ Validated against current provider docs before this update:
 - Ollama structured outputs: `format` can be a JSON schema object for stricter output constraints. (`https://ollama.com/blog/structured-outputs`)
 
 Recommendation for next app pass:
-1. keep current JSON-object enforcement for compatibility.
-2. add per-feature schema payloads for classify/tool routes to reduce contract drift.
+1. keep strict-json retry + normalization enabled in eval and app clients.
+2. keep schema-first, json-object fallback behavior for LM Studio compatibility.
 
 ## Cleanup Expectations
 - Keep eval outputs in `docs/eval/` with timestamped names.

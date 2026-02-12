@@ -48,3 +48,10 @@ Gate threshold (`>=0.80`) is met by both new adapters.
 1. Promote the 7B morning adapter line as the EchoFlow default candidate (best score: `23/24`).
 2. Run one micro-repair pass targeting bullet-list formatting (`cap_bullets_001`) before final freeze.
 3. Keep 1.5B repair as lightweight fallback profile.
+
+## Addendum (2026-02-12 strict-output hardening)
+- `scripts/eval_echoflow_avatar_remote.py` now applies schema-first strict JSON requests, JSON normalization, and one strict retry.
+- Served eval reruns:
+  - `docs/eval/echoflow_avatar_eval_run_7b_v4plusrepair_microfix_f16_20260212_strictfix.json`: `22/24` (91.67%)
+  - `docs/eval/echoflow_avatar_eval_run_1p5b_repair_f16_20260212_strictfix.json`: `21/24` (87.50%)
+- Result: `invalid_json` failures are removed from served gate runs.
