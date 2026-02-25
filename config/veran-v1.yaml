@@ -1,0 +1,71 @@
+base_model: Qwen/Qwen2.5-Coder-14B-Instruct
+model_type: AutoModelForCausalLM
+tokenizer_type: AutoTokenizer
+
+load_in_8bit: false
+load_in_4bit: true
+strict: false
+
+datasets:
+  - path: afs/training_data/veran_v1_synthetic.jsonl
+    type: chat
+    chat_template: qwen_25
+  - path: afs/training_data/veran_v1_gold.jsonl
+    type: chat
+    chat_template: qwen_25
+    repeat: 20  # Oversample gold data to prioritize real code logic
+
+
+dataset_prepared_path: last_run_prepared
+val_set_size: 0.05
+output_dir: ./veran-v1-lora
+
+adapter: lora
+lora_model_dir:
+lora_r: 128
+lora_alpha: 256
+lora_dropout: 0.05
+lora_target_modules:
+  - q_proj
+  - k_proj
+  - v_proj
+  - o_proj
+  - gate_proj
+  - up_proj
+  - down_proj
+
+sequence_length: 2048
+sample_packing: true
+pad_to_sequence_len: true
+
+gradient_accumulation_steps: 4
+micro_batch_size: 2
+num_epochs: 3
+optimizer: paged_adamw_32bit
+lr_scheduler: cosine
+learning_rate: 1e-4
+
+train_on_inputs: false
+group_by_length: false
+bf16: true
+fp16: false
+tf32: false
+
+gradient_checkpointing: true
+early_stopping_patience:
+resume_from_checkpoint:
+local_rank:
+logging_steps: 1
+xformers_attention:
+flash_attention: true
+
+warmup_steps: 10
+eval_steps: 20
+save_steps: 50
+debug:
+deepspeed:
+weight_decay: 0.0
+fsdp:
+fsdp_config:
+special_tokens:
+  pad_token: "<|endoftext|>"

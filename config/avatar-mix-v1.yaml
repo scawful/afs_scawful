@@ -1,0 +1,33 @@
+# Avatar-Mix v1: Composite Personality Adapter
+# Status: Finalized for training run
+
+base_model: Qwen/Qwen2.5-7B-Instruct
+backbone: QLoRA (4-bit)
+
+personalities:
+  - Archivist (Recall): Decision rationale from afs-scawful docs and git logs.
+  - Muse (Ideation): Lateral technical thinking distilled from Gemini 3.1 Pro.
+  - Weaver (Architecture): Cross-project analogies across 15+ repositories.
+  - Ockham (Anti-Slop): Heavy punishment for corporate/enterprise bloat.
+  - Sentinel (Audit): Cognitive drift detection between code and docs.
+
+hyperparameters:
+  lora_r: 64
+  lora_alpha: 128
+  lora_dropout: 0.05
+  learning_rate: 1e-4
+  num_epochs: 5
+  batch_size: 2
+  gradient_accumulation_steps: 8
+  max_length: 2048
+  optimizer: paged_adamw_8bit
+
+data:
+  merged_set: afs-scawful/data/training_data/avatar_mix_v1.jsonl
+  sample_count: 83
+  format: ChatML (Dynamic System Prompts)
+
+goals:
+  - Reduce token slop in agent interactions.
+  - Enable high-precision recall of project history.
+  - Provide a single "H-MoE" style adapter for all non-Zelda tasks.
