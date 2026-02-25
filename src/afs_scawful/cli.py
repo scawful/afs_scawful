@@ -914,6 +914,89 @@ def _eval_batch_command(args: argparse.Namespace) -> int:
         return 1
 
 
+def _extract_semantic_score(eval_result) -> float | None:
+    """Extract semantic score from AsarValidatorV2 details, if present."""
+    details = eval_result.validation.details
+    if not isinstance(details, dict):
+        return None
+    asar = details.get("AsarValidatorV2")
+    if not isinstance(asar, dict):
+        return None
+    asar_details = asar.get("details")
+    if not isinstance(asar_details, dict):
+        return None
+    semantic = asar_details.get("semantic")
+    if not isinstance(semantic, dict):
+        return None
+    score = semantic.get("score")
+    if isinstance(score, (int, float)):
+        return float(score)
+    return None
+
+
+def _eval_asar_command(args: argparse.Namespace) -> int:
+    """Run ASAR-focused eval with forced AsarValidatorV2 + semantic analysis."""
+    config = EvalConfig()
+    if args.config:
+        config = EvalConfig.from_yaml(Path(args.config).expanduser().resolve())
+    _apply_model_overrides(config, args)
+
+    # Force ASAR v2 + semantic analysis for this command.
+    config.validation.use_asar_v2 = True
+    config.validation.use_semantic = True
+    config.validation.use_asm = not args.skip_asm
+
+    pipeline = EvalPipeline(config)
+
+    prompts_path = Path(args.prompts).expanduser().resolve()
+    if not prompts_path.exists():
+        print(f"Error: Prompt pack not found: {prompts_path}")
+        return 1
+
+    async def run():
+        report = await pipeline.eval_file(prompts_path)
+        semantic_scores = [s for s in (_extract_semantic_score(r) for r in report.results) if s is not None]
+        semantic_avg = sum(semantic_scores) / len(semantic_scores) if semantic_scores else 0.0
+
+        print(f"\n{'='*70}")
+        print(f"ASAR Eval: {report.model_name}")
+        print(f"{'='*70}")
+        print(f"Prompt pack: {prompts_path}")
+        print(f"Total: {report.total}")
+        print(f"Passed: {report.passed} ({report.pass_rate:.1%})")
+        print(f"Failed: {report.failed}")
+        print(f"Avg validator score: {report.avg_score:.3f}")
+        print(f"Avg semantic score: {semantic_avg:.3f}")
+        print(f"Avg latency: {report.avg_latency_ms:.0f}ms")
+        print(f"Duration: {report.duration_seconds:.1f}s")
+
+        print("\nPer-category:")
+        for category, stats in sorted(report.category_stats().items()):
+            print(
+                f"  {category:18s} "
+                f"pass={stats['passed']:>3}/{stats['total']:<3} "
+                f"rate={stats['pass_rate']:.1%} "
+                f"score={stats['avg_score']:.3f}"
+            )
+
+        if args.report:
+            report_path = Path(args.report).expanduser().resolve()
+            report_path.parent.mkdir(parents=True, exist_ok=True)
+            if args.format == "json":
+                report_path.write_text(report.to_json(), encoding="utf-8")
+            else:
+                report_path.write_text(report.to_markdown(), encoding="utf-8")
+            print(f"\nReport saved: {report_path}")
+
+        return 0 if report.pass_rate >= args.min_pass_rate else 1
+
+    try:
+        return asyncio.run(run())
+    except Exception as e:
+        print(f"Error: {e}")
+        return 1
+
+
 def _eval_live_command(args: argparse.Namespace) -> int:
     """Interactive evaluation REPL."""
     config = EvalConfig()
@@ -1529,6 +1612,46 @@ def build_parser() -> argparse.ArgumentParser:
     eval_batch.add_argument("--vertex-location", help="Vertex AI location")
     eval_batch.add_argument("--gcloud-path", help="Path to gcloud binary")
     eval_batch.set_defaults(func=_eval_batch_command)
+
+    # afs eval asar --prompts docs/eval/asar_eval_v1.jsonl
+    eval_asar = eval_sub.add_parser(
+        "asar",
+        help="Run ASAR-focused eval (forces AsarValidatorV2 + semantic analysis).",
+    )
+    eval_asar.add_argument(
+        "--prompts",
+        "-p",
+        default=str(
+            (Path(__file__).resolve().parents[2] / "docs" / "eval" / "asar_eval_v1.jsonl")
+        ),
+        help="ASAR eval prompt pack JSONL (default: docs/eval/asar_eval_v1.jsonl).",
+    )
+    eval_asar.add_argument("--report", "-r", help="Output report path.")
+    eval_asar.add_argument("--format", "-f", choices=["markdown", "json"], default="markdown")
+    eval_asar.add_argument("--model", "-m", help="Model name override.")
+    eval_asar.add_argument("--config", "-c", help="YAML config file.")
+    eval_asar.add_argument(
+        "--provider",
+        choices=["ollama", "studio", "vertex"],
+        help="Model provider",
+    )
+    eval_asar.add_argument("--base-url", help="Ollama base URL override")
+    eval_asar.add_argument("--studio-key-env", help="Env var for AI Studio API key")
+    eval_asar.add_argument("--vertex-project", help="Vertex AI project id")
+    eval_asar.add_argument("--vertex-location", help="Vertex AI location")
+    eval_asar.add_argument("--gcloud-path", help="Path to gcloud binary")
+    eval_asar.add_argument(
+        "--skip-asm",
+        action="store_true",
+        help="Skip AsmValidator while still forcing AsarValidatorV2.",
+    )
+    eval_asar.add_argument(
+        "--min-pass-rate",
+        type=float,
+        default=0.6,
+        help="Minimum pass rate required for exit code 0 (default: 0.6).",
+    )
+    eval_asar.set_defaults(func=_eval_asar_command)
 
     # afs eval live
     eval_live = eval_sub.add_parser("live", help="Interactive evaluation REPL.")
