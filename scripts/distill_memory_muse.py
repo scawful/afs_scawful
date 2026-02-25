@@ -341,6 +341,14 @@ async def _run(args):
             if (i + 1) % 10 == 0:
                 print(f"  Progress: {i+1}/{len(pending)}, {total_written} samples written")
 
+    if pending and total_written == 0:
+        print(
+            "[error] Distillation completed with zero new samples. "
+            "Check teacher credentials and provider SDK dependencies.",
+            file=sys.stderr,
+        )
+        sys.exit(1)
+
     print(f"\nDone. Wrote {total_written} new samples to {output_path}")
 
 
