@@ -159,6 +159,16 @@ def create_splits(
     return train_samples, val_samples, test_samples
 
 
+def cap_samples(samples: list[dict], max_samples: int) -> list[dict]:
+    """Deterministically cap sample count for bounded training sets."""
+    if max_samples <= 0 or len(samples) <= max_samples:
+        return samples
+    rng = random.Random(SEED)
+    selected = samples[:]
+    rng.shuffle(selected)
+    return selected[:max_samples]
+
+
 def write_jsonl(samples: list[dict], path: Path):
     """Write samples to JSONL file."""
     with open(path, "w") as f:
@@ -192,6 +202,13 @@ def main():
         help="Validation split ratio (default: 0.1).",
     )
     parser.add_argument(
+        "--max-samples", type=int, default=0,
+        help=(
+            "Optional cap after filtering. "
+            "0 means keep all samples (default: 0)."
+        ),
+    )
+    parser.add_argument(
         "--no-filter", action="store_true",
         help="Skip category filtering.",
     )
@@ -221,6 +238,11 @@ def main():
         print(f"After filtering for {args.target}: {len(filtered)} samples")
     else:
         filtered = all_samples
+
+    # Optional cap for bounded datasets (e.g., 400-600 sample LoRA runs).
+    filtered = cap_samples(filtered, args.max_samples)
+    if args.max_samples > 0:
+        print(f"After max-samples cap: {len(filtered)} samples")
 
     # Convert to MLX chat format
     mlx_samples = [to_mlx_chat(s, system_prompt) for s in filtered]
