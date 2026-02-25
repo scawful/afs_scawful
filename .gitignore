@@ -2,6 +2,11 @@ __pycache__/
 *.pyc
 .pytest_cache/
 .DS_Store
+.env
+logs/
+.context/
+*.egg-info/
+src/*.egg-info/
 
 # Secrets / credentials
 .secrets
