@@ -32,8 +32,14 @@ Research-only. See `../afs/docs/RESEARCH_SOURCES.md` for citations.
 - Add human+agent evaluation metrics to avoid overfitting to synthetic tasks. [R7]
 - Include tone-variant prompts as a controlled ablation (optional). [R6]
 
-## Phase 5 — Efficiency References (later)
-- Use MoE efficiency papers only when scaling becomes a bottleneck. [R5]
+## Phase 5 — Agentic Evolution (2026)
+- **Hierarchical MoE (H-MoE):** Implement shared backbone (Qwen 14B) with hot-swappable LoRA adapters for Din, Nayru, and Veran.
+- **Synthetic Data Evolution (SDE):** Use Gemini 2.0 Pro to generate high-quality reasoning traces and distillation datasets.
+- **Agentic Evaluation (AgE):** Standardize evaluations in sandboxed Mesen2 environments.
+
+## Phase 6 — Vision-Augmented Ingestion
+- **Multimodal Research:** Use Gemini Vision to ingest tables, diagrams, and memory maps from research PDFs.
+- **Visual Bug Dataset:** Convert emulator screenshots into structured debugging training pairs for Farore.
 
 ## Unknown / needs verification
 - Which tasks best reflect AFS workflows (agentic filesystem vs orchestration).

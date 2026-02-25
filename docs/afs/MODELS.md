@@ -4,6 +4,9 @@ Fine-tuned models for 65816 assembly tasks, named after Oracle of Ages/Seasons c
 
 ## Runtime Alias Registry
 
+**Canonical local LM Studio keys:** `/Users/scawful/src/docs/MODEL_CATALOG.md` (updated 2026-01-30).
+Use the `modelKey` values from `lms ls --json` when calling LM Studio.
+
 Use stable aliases in tools (`din`, `nayru`, `farore`, `veran`). The alias
 mapping is defined in `config/chat_registry.toml` so the underlying model IDs
 can be swapped without changing scripts.

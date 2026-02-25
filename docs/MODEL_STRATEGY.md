@@ -42,6 +42,18 @@ pipeline from text-only LoRA training. Keep these as a future track.
   - GGUF for Ollama / llama.cpp
   - MLX for Mac
 
+## Hardware-Specific Optimization (2026)
+
+**Local Mac (M5, 32GB RAM):**
+- **Inference:** Ideal for Qwen 2.5 Coder 14B (Q5_K_M) or 32B (Q3_K_S) using MLX.
+- **Training:** Light LoRA fine-tuning on 7B/14B models using `mlx-lm`. 32GB allows for decent batch sizes with 4-bit quantization.
+- **Role:** Primary development and real-time "Nayru" (Generation) assistant.
+
+**Windows PC (RTX 5060 Ti, 16GB VRAM):**
+- **Inference:** Excellent for 7B/9B models at FP16 or 14B at Q4_K_M.
+- **Training:** Dedicated for "Din" (Optimization) training using QLoRA. 16GB VRAM is the sweet spot for 7B full-rank LoRA (r=128).
+- **Role:** Dedicated training node and "Farore" (Debugging) engine via Mesen2 integration.
+
 ## Selection Checklist
 
 - Does the base model fit the target GPU with LoRA?
