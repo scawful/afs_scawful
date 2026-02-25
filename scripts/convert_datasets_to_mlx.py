@@ -24,6 +24,7 @@ from __future__ import annotations
 import argparse
 import json
 import random
+import re
 from pathlib import Path
 
 SEED = 42
@@ -53,7 +54,6 @@ TARGET_CATEGORIES = {
         "include": [
             "hook_writing", "hook_patch", "scaffold_completion",
             "register_ops", "dma_transfer", "simple_routine",
-            "opcode_qa",  # subset: addressing modes / opcodes
         ],
         "exclude_patterns": [
             "explain", "describe", "what does", "what is", "why",
@@ -69,6 +69,78 @@ TARGET_CATEGORIES = {
         "exclude_patterns": [],
     },
 }
+
+_ASM_OPCODE_RE = re.compile(
+    r"\b(?:ADC|AND|ASL|BCC|BCS|BEQ|BIT|BMI|BNE|BPL|BRA|BRK|BVC|BVS|CLC|CLD|CLI|"
+    r"CLV|CMP|COP|CPX|CPY|DEC|DEX|DEY|EOR|INC|INX|INY|JML|JMP|JSL|JSR|LDA|LDX|LDY|"
+    r"LSR|MVN|MVP|NOP|ORA|PEA|PEI|PER|PHA|PHB|PHD|PHK|PHP|PHX|PHY|PLA|PLB|PLD|PLP|"
+    r"PLX|PLY|REP|ROL|ROR|RTI|RTL|RTS|SBC|SEC|SED|SEI|SEP|STA|STP|STX|STY|STZ|TAX|"
+    r"TAY|TCD|TCS|TDC|TRB|TSB|TSC|TSX|TXA|TXS|TXY|TYA|TYX|WAI|XBA|XCE)\b",
+)
+_ASM_DIRECTIVES = ("org ", "pushpc", "pullpc", "namespace ", "db ", "dw ", "dl ", "incbin ")
+_PROSE_MARKERS = (
+    "because", "therefore", "typically", "purpose", "explain", "description",
+    "overview", "analysis", "first", "second", "finally", "example usage",
+)
+_MAX_OUTPUT_WORDS_BY_TARGET = {
+    # Keep samples comfortably below the default 2048-token train context.
+    "agahnim": 1200,
+}
+
+
+def _strip_code_fence(text: str) -> str:
+    """Return fenced asm content when present, otherwise original text."""
+    marker = "```"
+    if marker not in text:
+        return text
+    parts = text.split(marker)
+    if len(parts) < 3:
+        return text
+    # Prefer first fenced block body (handles ```asm ...``` and ``` ...```).
+    body = parts[1]
+    if "\n" in body:
+        first_line, rest = body.split("\n", 1)
+        if first_line.strip().lower() in {"asm", "65816", "snesasm"}:
+            return rest
+    return body
+
+
+def _looks_like_assembly_output(text: str) -> bool:
+    """Heuristic to keep code-like samples for build-specialist training."""
+    if not text.strip():
+        return False
+
+    content = _strip_code_fence(text)
+    lowered = content.lower()
+    lines = [line.strip() for line in content.splitlines() if line.strip()]
+    if not lines:
+        return False
+
+    opcode_hits = sum(1 for line in lines if _ASM_OPCODE_RE.search(line))
+    directive_hits = sum(1 for line in lines if any(token in line.lower() for token in _ASM_DIRECTIVES))
+    label_hits = sum(1 for line in lines if line.endswith(":"))
+    comment_hits = sum(1 for line in lines if line.startswith(";") or "; " in line)
+    prose_hits = sum(lowered.count(marker) for marker in _PROSE_MARKERS)
+
+    structure_score = opcode_hits + directive_hits + (label_hits > 0) + (comment_hits > 0)
+    if structure_score < 2:
+        return False
+
+    # Reject clearly prose-heavy answers with minimal code signal.
+    if prose_hits >= 6 and opcode_hits < 3 and directive_hits < 2:
+        return False
+
+    return True
+
+
+def _is_output_too_long(target: str, text: str) -> bool:
+    """Approximate length guardrail to reduce train-time truncation."""
+    limit = _MAX_OUTPUT_WORDS_BY_TARGET.get(target, 0)
+    if limit <= 0:
+        return False
+    # Word count is a stable, tokenizer-agnostic approximation.
+    word_count = len(re.findall(r"\S+", text))
+    return word_count > limit
 
 
 def load_jsonl(path: Path) -> list[dict]:
@@ -133,7 +205,15 @@ def filter_for_target(
                 if pattern in instruction:
                     skip = True
                     break
-            if skip:
+        if skip:
+            continue
+
+        # Target-specific quality guardrails.
+        if target == "agahnim":
+            output = sample.get("output", "")
+            if not _looks_like_assembly_output(output):
+                continue
+            if _is_output_too_long(target, output):
                 continue
 
         filtered.append(sample)
