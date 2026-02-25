@@ -1,0 +1,10 @@
+{
+  "eval_pack": "/Users/scawful/src/lab/afs-scawful/docs/eval/echoflow_avatar_eval_v2.jsonl",
+  "eval_report": "/Users/scawful/src/lab/afs-scawful/docs/eval/echoflow_avatar_eval_run_full_20260211_morning.json",
+  "total_samples": 19,
+  "train_samples": 17,
+  "valid_samples": 2,
+  "failed_case_count": 19,
+  "seed": 42,
+  "train_ratio": 0.9
+}

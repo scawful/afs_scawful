@@ -1,0 +1,12 @@
+{
+  "created": "2026-02-11",
+  "base_train": 444,
+  "base_valid": 49,
+  "repair_train": 17,
+  "repair_valid": 2,
+  "blend_train": 580,
+  "blend_valid": 57,
+  "oversample_train": 8,
+  "oversample_valid": 4,
+  "source_eval_report": "/Users/scawful/src/lab/afs-scawful/docs/eval/echoflow_avatar_eval_run_full_20260211_morning.json"
+}
