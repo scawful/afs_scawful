@@ -28,7 +28,15 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Optional
 import sys as _sys; _sys.path.insert(0, str(Path(__file__).parent))
-from models import GEMINI_FLASH, ANTHROPIC_SONNET, ANTHROPIC_OPUS, OPENAI_CODEX, use
+from models import (
+    GEMINI_FLASH,
+    ANTHROPIC_SONNET,
+    ANTHROPIC_OPUS,
+    OPENAI_CODEX,
+    missing_teacher_env,
+    teacher_choices,
+    use,
+)
 
 try:
     from dotenv import load_dotenv
@@ -50,7 +58,6 @@ if _gkey and os.environ.get("GEMINI_API_KEY") and os.environ.get("GOOGLE_API_KEY
     os.environ.pop("GEMINI_API_KEY", None)
 GOOGLE_API_KEY = _gkey
 ANTHROPIC_API_KEY = os.environ.get("ANTHROPIC_API_KEY")
-OPENAI_API_KEY = os.environ.get("OPENAI_API_KEY")
 
 # Self-briefing: loaded lazily for persona context enrichment
 _SELF_BRIEFING: str | None = None
@@ -465,6 +472,19 @@ SIBYL_PROMPTS = [
     "I have a deadline tomorrow on the halext-org API changes but I also found a fun bug in yaze I want to chase. I'm going to chase the bug, aren't I.",
     "I want to build the Sibyl training dataset but I also need to fix a bug in the antislop script. 30 minutes available. Go.",
     "Just woke up. Can't start. Everything feels heavy. Three things on the list are technically important. Help.",
+    "I need to write documentation but I've been putting it off for 3 weeks. It's the afs-scawful training strategy doc. I know what I want to say. I just haven't written it. What do I do right now?",
+    "I've been debugging the same EchoFlow CloudKit sync issue for 2 days. When do I stop and accept the workaround?",
+    "Three projects need attention: oracle-of-secrets has an unfinished label in bank 0x04, yaze has a failing PPU test, and echoflow's widget broke after the last Xcode update. I have 3 hours. Plan it.",
+    "I'm in the middle of a LoRA training run on Vast.ai. It's going to take 4 hours. What's the best use of my time while I wait?",
+    "I added 18 things to my EchoFlow inbox this week and processed exactly 0 of them. The inbox is now useless. How do I fix the system without spending all day on the system?",
+    "I have a good idea for a new project but I'm already juggling 6. I keep getting distracted by it. Do I start it, kill it, or park it?",
+    "The AFS training pipeline is broken in a new way every time I run it. I've fixed 5 bugs this week. Is this normal or is something fundamentally wrong?",
+    "I want to ship something this week. Not a feature — something complete and usable. What's the smallest thing in my backlog that qualifies?",
+    "I've been in planning mode for 2 weeks without shipping. How do I break the loop?",
+    "My daily EchoFlow review shows: 8 entries created, 0 completed. This is day 4 of the same pattern. What does this mean and what do I change?",
+    "I want to spend an hour on learning — either reading about transformer architecture or going deeper into SNES hardware. Low stakes. What's the call?",
+    "I keep starting new afs-scawful scripts without finishing the ones in progress. weaver_index, antislop, persona — all half-done. How do I close open loops?",
+    "The EchoFlow widget is not updating on time. It's a known bug. I've deprioritized it 3 times. How do I decide if this is actually important or if I'm just annoyed?",
 ]
 
 LANCER_PROMPTS = [
@@ -503,6 +523,16 @@ MORPHEUS_PROMPTS = [
     "I have the Veran model (trained on oracle-of-secrets ASM analysis). What are 5 unexpected ways to use a model that understands SNES assembly?",
     "I'm building persona models for my own use. What's a moonshot product built on top of these that I could actually ship?",
     "I have the weaver_index.py that knows all 43 projects under ~/src. What could I build if I gave it a proper UI and inference backend?",
+    "I have the oracle-of-secrets decompilation — 77k lines of labeled 65816 ASM and a working emulator (yaze). What would it look like to build a playable modded game from scratch using this stack?",
+    "I have logprune.py that scores and extracts Claude conversations. What's the moonshot: turning this into a personal analytics system that tracks how I think over time?",
+    "I have echoflow tracking ADHD tasks and barista showing menu bar status. What if they knew about each other — what's the wildest integration?",
+    "I'm training a personal AI stack (AFS). What's the 5-year moonshot for where this goes if I keep compounding on it?",
+    "I have yaze (SNES emulator), oracle-of-secrets (decomp), and z3dk (dev kit). What's a wild creative product I could ship to retro gaming fans using all three?",
+    "I have the commit_diff_dataset — 2,616 coding pairs from 40+ personal repos. What's a moonshot model only I could build because of this unique data?",
+    "I have halext-org with a full personal productivity API. What's a moonshot integration with EchoFlow that creates a genuine closed-loop self-improvement system?",
+    "I have Sibyl (ADHD planner), Lancer (unstuck), Morpheus (ideas), Anamnesis (memory). What's a moonshot product that combines all four into something shippable?",
+    "I have barista as a Lua/C menu bar with the halext-org API behind it. What's a 10x version of this that becomes indispensable?",
+    "I have the afs-scawful weaver index that maps relationships across 43 projects. What's the moonshot if I added a proper graph database and query interface?",
 ]
 
 ANAMNESIS_PROMPTS_TEMPLATE = [
@@ -530,6 +560,30 @@ ANAMNESIS_PROMPTS_TEMPLATE = [
     "What makes the Claude conversation logs 'unique data nobody else has'?",
     "What is the purpose of the Lancer model and what's its target inference speed?",
     "What is Sibyl's role and how does it differ from generic productivity tools?",
+    # More decision recall
+    "Why did I choose FastAPI over Flask for the halext-org backend?",
+    "Why does org-halext-sync exist as a separate tool instead of calling the halext-org API directly from Emacs?",
+    "Why does the EchoFlow widget use App Group shared storage instead of reading from CloudKit directly?",
+    "Why does logprune.py use a scoring system instead of just extracting all sessions?",
+    "Why did I build persona models (Sibyl, Lancer, Morpheus, Anamnesis) separately instead of one general model?",
+    "Why is the oracle-of-secrets decompilation done with assembly labels rather than decompiling to C?",
+    "Why did I build the commit_diff_dataset from personal repos instead of using public GitHub data?",
+    "Why does the weaver_index cross-project indexer run as a CLI script rather than a daemon?",
+    "Why does Ockham use anti-slop training (bloated→clean) rather than clean→refactored pairs?",
+    "Why does EchoFlow use three tabs (Capture→Flow→Reflect) as the main structure?",
+    "Why is the yaze training corpus limited to src/app/emu and src/core, not the full codebase?",
+    "Why is the Din model specifically focused on 65816 assembly rather than general code?",
+    # More strategy questions
+    "What's the current deployment plan for the AFS persona models?",
+    "What is the Weaver model designed to know and why is cross-project indexing valuable for it?",
+    "What distinguishes Anamnesis from a general knowledge retrieval or RAG system?",
+    "Why is QLoRA used instead of full fine-tuning for the AFS persona models?",
+    "What is the role of Avatar-Mix and how does it relate to the individual persona models?",
+    "What is the 'distill' step in weaver_index.py and why does it specifically use Gemini Flash?",
+    "What problem does the halext-org streak system solve for ADHD productivity?",
+    "How does the EchoFlow recommendation service rank and surface tasks?",
+    "What is the philosophy behind building personal local models instead of relying on API-only tools?",
+    "What makes the Claude conversation logs a uniquely valuable training source for AFS?",
 ]
 
 
@@ -859,14 +913,13 @@ def cmd_generate(args):
     output_path = Path(args.output) if args.output else PERSONAS[persona]["output_file"]
     output_path.parent.mkdir(parents=True, exist_ok=True)
 
-    if args.teacher == "gemini" and not GOOGLE_API_KEY:
-        print("[error] No GOOGLE_API_KEY (or GEMINI_API_KEY). Set it in .env or export GOOGLE_API_KEY=...", file=sys.stderr)
-        sys.exit(1)
-    if args.teacher in {"claude", "claude_opus"} and not ANTHROPIC_API_KEY:
-        print("[error] No ANTHROPIC_API_KEY. Set it in .env or export ANTHROPIC_API_KEY=...", file=sys.stderr)
-        sys.exit(1)
-    if args.teacher in {"openai", "codex"} and not OPENAI_API_KEY:
-        print("[error] No OPENAI_API_KEY. Set it in .env or export OPENAI_API_KEY=...", file=sys.stderr)
+    missing, vars_needed = missing_teacher_env(args.teacher)
+    if missing:
+        print(
+            f"[error] Missing API key for teacher '{args.teacher}'. "
+            f"Set one of: {', '.join(vars_needed)}",
+            file=sys.stderr,
+        )
         sys.exit(1)
 
     generators = {
@@ -918,7 +971,7 @@ def main():
     p_gen = sub.add_parser("generate", help="Generate training pairs via teacher model")
     p_gen.add_argument("--persona", required=True, choices=list(PERSONAS),
                        help="Which persona to generate for")
-    p_gen.add_argument("--teacher", choices=["gemini", "claude", "claude_opus", "openai", "codex"], default="gemini")
+    p_gen.add_argument("--teacher", choices=teacher_choices(), default="gemini")
     p_gen.add_argument("--limit", type=int, metavar="N")
     p_gen.add_argument("--output", "-o", metavar="FILE")
 

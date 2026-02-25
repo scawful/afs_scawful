@@ -8,6 +8,7 @@ Usage:
     from models import GEMINI_PRO, GEMINI_FLASH, ANTHROPIC_DEFAULT
 """
 
+import os
 import re
 
 # ── Current models ────────────────────────────────────────────────────────────
@@ -20,6 +21,39 @@ OPENAI_CODEX   = "codex-5.3"               # Code generation / synthesis
 ANTHROPIC_SONNET  = "claude-sonnet-4-6"
 ANTHROPIC_OPUS    = "claude-opus-4-6"
 ANTHROPIC_DEFAULT = ANTHROPIC_SONNET        # Alias
+
+# ── Teacher alias registry (single source of truth) ─────────────────────────
+# Add new cloud teachers here, then scripts can consume aliases automatically.
+TEACHER_ALIASES: dict[str, dict[str, object]] = {
+    "gemini": {
+        "model": GEMINI_FLASH,
+        "env": ("GOOGLE_API_KEY", "GEMINI_API_KEY"),
+    },
+    "gemini_flash": {
+        "model": GEMINI_FLASH,
+        "env": ("GOOGLE_API_KEY", "GEMINI_API_KEY"),
+    },
+    "gemini_pro": {
+        "model": GEMINI_PRO,
+        "env": ("GOOGLE_API_KEY", "GEMINI_API_KEY"),
+    },
+    "claude": {
+        "model": ANTHROPIC_SONNET,
+        "env": ("ANTHROPIC_API_KEY",),
+    },
+    "claude_opus": {
+        "model": ANTHROPIC_OPUS,
+        "env": ("ANTHROPIC_API_KEY",),
+    },
+    "openai": {
+        "model": OPENAI_CODEX,
+        "env": ("OPENAI_API_KEY",),
+    },
+    "codex": {
+        "model": OPENAI_CODEX,
+        "env": ("OPENAI_API_KEY",),
+    },
+}
 
 # ── Enforcement ───────────────────────────────────────────────────────────────
 
@@ -64,3 +98,31 @@ def use(model: str) -> str:
             f"  Use GEMINI_PRO or GEMINI_FLASH from scripts/models.py\n"
         )
     return model
+
+
+def teacher_choices(*, include_internal: bool = False) -> list[str]:
+    """Return valid teacher aliases for argparse.
+
+    include_internal=True includes aliases like gemini_pro/gemini_flash.
+    """
+    keys = list(TEACHER_ALIASES.keys())
+    if include_internal:
+        return sorted(keys)
+    return sorted(k for k in keys if not k.startswith("gemini_"))
+
+
+def resolve_teacher_model(teacher: str) -> str:
+    """Resolve a teacher alias to concrete model id and enforce deprecations."""
+    if teacher not in TEACHER_ALIASES:
+        raise ValueError(f"Unknown teacher alias: {teacher}")
+    model = str(TEACHER_ALIASES[teacher]["model"])
+    return use(model)
+
+
+def missing_teacher_env(teacher: str) -> tuple[bool, tuple[str, ...]]:
+    """Return (missing, candidate_env_vars) for a teacher alias."""
+    if teacher not in TEACHER_ALIASES:
+        raise ValueError(f"Unknown teacher alias: {teacher}")
+    env_vars = tuple(str(v) for v in TEACHER_ALIASES[teacher]["env"])
+    has_any = any(bool(os.environ.get(var)) for var in env_vars)
+    return (not has_any), env_vars

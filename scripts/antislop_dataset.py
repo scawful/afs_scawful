@@ -25,7 +25,15 @@ import re
 from pathlib import Path
 from dataclasses import dataclass
 sys.path.insert(0, str(Path(__file__).parent))
-from models import GEMINI_PRO, ANTHROPIC_SONNET, ANTHROPIC_OPUS, OPENAI_CODEX, use
+from models import (
+    GEMINI_PRO,
+    ANTHROPIC_SONNET,
+    ANTHROPIC_OPUS,
+    OPENAI_CODEX,
+    missing_teacher_env,
+    teacher_choices,
+    use,
+)
 from typing import Optional
 
 try:
@@ -314,6 +322,14 @@ async def _run_generate(args):
     max_files = args.max_files
     out_path = Path(args.output) if args.output else DEFAULT_OUTPUT
     out_path.parent.mkdir(parents=True, exist_ok=True)
+    missing, vars_needed = missing_teacher_env(teacher)
+    if missing:
+        print(
+            f"[error] Missing API key for teacher '{teacher}'. "
+            f"Set one of: {', '.join(vars_needed)}",
+            file=sys.stderr,
+        )
+        sys.exit(1)
 
     # Load existing content hashes to avoid duplicates
     existing_hashes: set[str] = set()
@@ -415,7 +431,7 @@ def main():
     p_gen = sub.add_parser("generate", help="Generate sloppy/clean pairs")
     p_gen.add_argument("--source", default="barista",
                        help="Comma-separated source keys")
-    p_gen.add_argument("--teacher", choices=["gemini", "claude", "claude_opus", "openai", "codex"], default="gemini")
+    p_gen.add_argument("--teacher", choices=teacher_choices(), default="gemini")
     p_gen.add_argument("--max-files", type=int, default=20)
     p_gen.add_argument("--output", "-o", metavar="FILE")
 

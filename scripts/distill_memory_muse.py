@@ -7,6 +7,8 @@ Fallback:       Claude Sonnet (if Gemini quota exhausted)
 
 Usage:
   distill_memory_muse.py run [--prompts FILE] [--limit N] [--output FILE]
+                             [--primary-teacher ALIAS] [--variation-teacher ALIAS]
+                             [--no-variations]
   distill_memory_muse.py stats [--input FILE]
   distill_memory_muse.py resume [--output FILE]   # Continue from where we left off
 """
@@ -18,6 +20,18 @@ import asyncio
 import json
 import os
 import sys
+from pathlib import Path as _Path
+sys.path.insert(0, str(_Path(__file__).parent))
+from models import (
+    GEMINI_PRO,
+    GEMINI_FLASH,
+    ANTHROPIC_SONNET,
+    ANTHROPIC_OPUS,
+    OPENAI_CODEX,
+    missing_teacher_env,
+    teacher_choices,
+    use,
+)
 import uuid
 from dataclasses import dataclass, asdict
 from datetime import datetime, timezone
@@ -94,7 +108,7 @@ def load_done_ids(output_path: Path) -> set[str]:
 
 # ─── Provider clients ──────────────────────────────────────────────────────────
 
-async def query_gemini(prompt_text: str, model: str = "gemini-2.5-pro",
+async def query_gemini(prompt_text: str, model: str = GEMINI_PRO,
                        temperature: float = 0.7) -> tuple[str, str | None]:
     if not GOOGLE_API_KEY:
         return "", "GOOGLE_API_KEY not set — add it to .env or export it"
@@ -102,10 +116,10 @@ async def query_gemini(prompt_text: str, model: str = "gemini-2.5-pro",
         from google import genai
         from google.genai import types as gtypes
         client = genai.Client(api_key=GOOGLE_API_KEY)
-        # gemini-2.5-pro is a thinking model — needs larger token budget
-        max_tokens = 8192 if "2.5" in model else 2048
+        # gemini-3.x are thinking models — needs larger token budget
+        max_tokens = 8192 if model.startswith("gemini-3") or "2.5" in model else 2048
         resp = client.models.generate_content(
-            model=model,
+            model=use(model),
             contents=prompt_text,
             config=gtypes.GenerateContentConfig(
                 temperature=temperature,
@@ -117,7 +131,7 @@ async def query_gemini(prompt_text: str, model: str = "gemini-2.5-pro",
         return "", str(e)
 
 
-async def query_claude(prompt_text: str, model: str = "claude-sonnet-4-6",
+async def query_claude(prompt_text: str, model: str = ANTHROPIC_SONNET,
                        temperature: float = 0.7) -> tuple[str, str | None]:
     if not ANTHROPIC_API_KEY:
         return "", (
@@ -134,7 +148,26 @@ async def query_claude(prompt_text: str, model: str = "claude-sonnet-4-6",
             temperature=temperature,
             messages=[{"role": "user", "content": prompt_text}],
         )
-        return msg.content[0].text, None
+        return msg.content[0].text, None  # type: ignore[attr-defined]
+    except Exception as e:
+        return "", str(e)
+
+
+async def query_openai(prompt_text: str, model: str = OPENAI_CODEX,
+                       temperature: float = 0.7) -> tuple[str, str | None]:
+    api_key = os.environ.get("OPENAI_API_KEY")
+    if not api_key:
+        return "", "OPENAI_API_KEY not set"
+    try:
+        import openai
+        client = openai.AsyncOpenAI(api_key=api_key)
+        resp = await client.chat.completions.create(
+            model=model,
+            messages=[{"role": "user", "content": prompt_text}],
+            temperature=temperature,
+            max_tokens=4096,
+        )
+        return resp.choices[0].message.content or "", None
     except Exception as e:
         return "", str(e)
 
@@ -144,14 +177,20 @@ async def query_teacher(prompt_text: str, teacher: str,
     """Returns (text, model_used, error)."""
     temp = 0.9 if variation else 0.7
     if teacher == "gemini_pro":
-        text, err = await query_gemini(prompt_text, "gemini-2.5-pro", temp)
-        return text, "gemini-2.5-pro", err
+        text, err = await query_gemini(prompt_text, GEMINI_PRO, temp)
+        return text, GEMINI_PRO, err
     elif teacher == "gemini_flash":
-        text, err = await query_gemini(prompt_text, "gemini-2.0-flash", temp)
-        return text, "gemini-2.0-flash", err
+        text, err = await query_gemini(prompt_text, GEMINI_FLASH, temp)
+        return text, GEMINI_FLASH, err
     elif teacher == "claude":
-        text, err = await query_claude(prompt_text, temperature=temp)
-        return text, "claude-sonnet-4-6", err
+        text, err = await query_claude(prompt_text, ANTHROPIC_SONNET, temp)
+        return text, ANTHROPIC_SONNET, err
+    elif teacher == "claude_opus":
+        text, err = await query_claude(prompt_text, ANTHROPIC_OPUS, temp)
+        return text, ANTHROPIC_OPUS, err
+    elif teacher == "openai" or teacher == "codex":
+        text, err = await query_openai(prompt_text, OPENAI_CODEX, temp)
+        return text, OPENAI_CODEX, err
     else:
         return "", teacher, f"Unknown teacher: {teacher}"
 
@@ -175,6 +214,8 @@ async def distill_prompt(
     prompt_rec: dict,
     semaphore: asyncio.Semaphore,
     output_file,
+    primary_teacher: str = "gemini_pro",
+    variation_teacher: str = "gemini_flash",
     also_generate_variation: bool = True,
 ) -> int:
     """Distill one prompt record. Returns number of samples written."""
@@ -191,7 +232,9 @@ async def distill_prompt(
     written = 0
     async with semaphore:
         # Primary: Gemini Pro (deep, authoritative response)
-        text, model_used, err = await query_teacher(prompt_text, "gemini_pro", variation=False)
+        text, model_used, err = await query_teacher(
+            prompt_text, primary_teacher, variation=False,
+        )
         if err:
             print(f"  [warn] {err[:80]}", file=sys.stderr)
         if text:
@@ -213,7 +256,9 @@ async def distill_prompt(
         # Variation: Gemini Flash (higher entropy, alternative recall pattern)
         if also_generate_variation:
             var_prompt = f"[variation] {prompt_text}"
-            text2, model2, err2 = await query_teacher(var_prompt, "gemini_flash", variation=True)
+            text2, model2, err2 = await query_teacher(
+                var_prompt, variation_teacher, variation=True,
+            )
             if text2:
                 sample2 = DistillSample(
                     instruction=instruction,
@@ -257,20 +302,39 @@ async def _run(args):
                and str(p.get("sample_id", "")) not in done_ids]
     if limit:
         pending = pending[:limit]
+    primary_teacher = args.primary_teacher
+    variation_teacher = args.variation_teacher
 
     print(f"Prompts:  {len(prompts)} total, {len(done_ids)} done, {len(pending)} pending")
     print(f"Output:   {output_path}")
-    if not GOOGLE_API_KEY:
-        print("[warn] No GOOGLE_API_KEY — will try Claude fallback", file=sys.stderr)
-    if not ANTHROPIC_API_KEY and not GOOGLE_API_KEY:
-        print("[error] No API keys found. Set GOOGLE_API_KEY or ANTHROPIC_API_KEY in .env", file=sys.stderr)
-        sys.exit(1)
+    teachers_required = {primary_teacher}
+    if args.with_variations:
+        teachers_required.add(variation_teacher)
+    for teacher in sorted(teachers_required):
+        missing, vars_needed = missing_teacher_env(teacher)
+        if missing:
+            print(
+                f"[error] Missing API key for teacher '{teacher}'. "
+                f"Set one of: {', '.join(vars_needed)}",
+                file=sys.stderr,
+            )
+            sys.exit(1)
 
     semaphore = asyncio.Semaphore(CONCURRENCY)
     total_written = 0
 
     with open(output_path, "a") as out:
-        tasks = [distill_prompt(p, semaphore, out) for p in pending]
+        tasks = [
+            distill_prompt(
+                p,
+                semaphore,
+                out,
+                primary_teacher=primary_teacher,
+                variation_teacher=variation_teacher,
+                also_generate_variation=args.with_variations,
+            )
+            for p in pending
+        ]
         for i, coro in enumerate(asyncio.as_completed(tasks)):
             n = await coro
             total_written += n
@@ -314,6 +378,28 @@ def main():
     p_run.add_argument("--prompts", metavar="FILE")
     p_run.add_argument("--output", "-o", metavar="FILE")
     p_run.add_argument("--limit", type=int, metavar="N")
+    p_run.add_argument(
+        "--primary-teacher",
+        choices=teacher_choices(include_internal=True),
+        default="gemini_pro",
+    )
+    p_run.add_argument(
+        "--variation-teacher",
+        choices=teacher_choices(include_internal=True),
+        default="gemini_flash",
+    )
+    p_run.add_argument(
+        "--with-variations",
+        action="store_true",
+        default=True,
+        help="Generate additional variation samples (default: on).",
+    )
+    p_run.add_argument(
+        "--no-variations",
+        dest="with_variations",
+        action="store_false",
+        help="Disable variation sample generation.",
+    )
 
     p_stats = sub.add_parser("stats", help="Dataset statistics")
     p_stats.add_argument("--input", "-i", metavar="FILE")

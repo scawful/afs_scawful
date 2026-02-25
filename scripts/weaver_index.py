@@ -9,7 +9,8 @@ one project apply to another.
 Usage:
   weaver_index.py scan [--src DIR]              # Discover projects and extract patterns
   weaver_index.py build [--output FILE]         # Build the full cross-project index
-  weaver_index.py generate [--teacher gemini]   # Generate Q&A training pairs
+  weaver_index.py generate [--teacher ALIAS]    # Generate Q&A training pairs
+  weaver_index.py distill [--teacher ALIAS]     # Fill placeholder answers
   weaver_index.py stats [--index FILE]          # Show index statistics
 """
 
@@ -21,6 +22,13 @@ import sys
 from pathlib import Path
 from dataclasses import dataclass, asdict
 from typing import Optional
+import sys as _sys; _sys.path.insert(0, str(Path(__file__).parent))
+from models import (
+    missing_teacher_env,
+    resolve_teacher_model,
+    teacher_choices,
+    use,
+)
 
 try:
     from dotenv import load_dotenv
@@ -356,14 +364,14 @@ def cmd_generate(args):
 
 async def _distill_weaver(args):
     """Fill in [answer pending distillation] placeholders in weaver_v1.jsonl."""
-    import os
-    from google import genai
-    from google.genai import types as gtypes
-
     data_path = Path(args.data) if hasattr(args, "data") and args.data else DEFAULT_DATASET
-    api_key = os.environ.get("GOOGLE_API_KEY") or os.environ.get("GEMINI_API_KEY")
-    if not api_key:
-        print("[error] GOOGLE_API_KEY not set", file=sys.stderr)
+    missing, vars_needed = missing_teacher_env(args.teacher)
+    if missing:
+        print(
+            f"[error] Missing API key for teacher '{args.teacher}'. "
+            f"Set one of: {', '.join(vars_needed)}",
+            file=sys.stderr,
+        )
         sys.exit(1)
 
     records = [json.loads(l) for l in data_path.read_text().splitlines() if l.strip()]
@@ -376,7 +384,7 @@ async def _distill_weaver(args):
         print("Nothing to distill.")
         return
 
-    client = genai.Client(api_key=api_key)
+    model = resolve_teacher_model(args.teacher)
     updated = 0
 
     for i, rec in enumerate(pending):
@@ -396,12 +404,45 @@ async def _distill_weaver(args):
             f"3-5 sentences maximum. Start with the answer, not preamble."
         )
         try:
-            resp = client.models.generate_content(
-                model="gemini-2.0-flash",
-                contents=full_prompt,
-                config=gtypes.GenerateContentConfig(temperature=0.7, max_output_tokens=512),
-            )
-            answer = resp.text.strip() if resp.text else ""
+            if args.teacher in {"gemini", "gemini_flash", "gemini_pro"}:
+                from google import genai
+                from google.genai import types as gtypes
+
+                api_key = os.environ.get("GOOGLE_API_KEY") or os.environ.get("GEMINI_API_KEY")
+                client = genai.Client(api_key=api_key)
+                resp = client.models.generate_content(
+                    model=use(model),
+                    contents=full_prompt,
+                    config=gtypes.GenerateContentConfig(
+                        temperature=0.7,
+                        max_output_tokens=512,
+                    ),
+                )
+                answer = (resp.text or "").strip()
+            elif args.teacher in {"claude", "claude_opus"}:
+                import anthropic
+
+                client = anthropic.Anthropic(api_key=os.environ.get("ANTHROPIC_API_KEY"))
+                msg = client.messages.create(
+                    model=model,
+                    max_tokens=512,
+                    temperature=0.7,
+                    messages=[{"role": "user", "content": full_prompt}],
+                )
+                answer = msg.content[0].text.strip()  # type: ignore[attr-defined]
+            elif args.teacher in {"openai", "codex"}:
+                import openai
+
+                client = openai.AsyncOpenAI(api_key=os.environ.get("OPENAI_API_KEY"))
+                resp = await client.chat.completions.create(
+                    model=model,
+                    messages=[{"role": "user", "content": full_prompt}],
+                    temperature=0.7,
+                    max_tokens=512,
+                )
+                answer = (resp.choices[0].message.content or "").strip()
+            else:
+                raise RuntimeError(f"unsupported teacher alias: {args.teacher}")
         except Exception as e:
             print(f"  [{i+1}/{len(pending)}] error: {e}", file=sys.stderr)
             continue
@@ -462,15 +503,20 @@ def main():
     p_build.add_argument("--output", "-o", metavar="FILE")
 
     p_gen = sub.add_parser("generate", help="Generate training Q&A pairs")
-    p_gen.add_argument("--teacher", choices=["gemini", "claude"], default="gemini")
+    p_gen.add_argument("--teacher", choices=teacher_choices(), default="gemini")
     p_gen.add_argument("--index", metavar="FILE")
     p_gen.add_argument("--output", "-o", metavar="FILE")
 
     p_stats = sub.add_parser("stats", help="Index statistics")
     p_stats.add_argument("--index", metavar="FILE")
 
-    p_distill = sub.add_parser("distill", help="Fill in placeholder answers with Gemini")
+    p_distill = sub.add_parser("distill", help="Fill in placeholder answers with selected teacher")
     p_distill.add_argument("--data", metavar="FILE", help="weaver_v1.jsonl path")
+    p_distill.add_argument(
+        "--teacher",
+        choices=teacher_choices(include_internal=True),
+        default="gemini",
+    )
 
     args = parser.parse_args()
     {"scan": cmd_scan, "build": cmd_build,
