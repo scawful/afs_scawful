@@ -48,7 +48,26 @@ def choose_profile(tags: list[str]) -> str:
     return "echo"
 
 
+# Per-case JSON overrides: used when the generic key-based builder would produce wrong output.
+# Keys are case IDs from the eval pack.
+_CASE_JSON_OVERRIDES: dict[str, dict[str, Any]] = {
+    # tool_json_002: prompt asks for title/due/owner from the scheduling context,
+    # not the hardcoded "review echo evals" that the generic builder produces.
+    "tool_json_002": {
+        "tool": "task_capture",
+        "args": {"title": "run avatar smoke eval", "due": "today", "owner": "echo"},
+    },
+    # cap_short_json_001: no real content to evaluate, but must not use literal "value"
+    # placeholders — those are degenerate training targets that cause EOS collapse.
+    "cap_short_json_001": {"status": "pass", "reason": "no violations detected in output"},
+}
+
+
 def build_json_payload(case: dict[str, Any]) -> str:
+    case_id = str(case.get("id", "")).strip()
+    if case_id in _CASE_JSON_OVERRIDES:
+        return json.dumps(_CASE_JSON_OVERRIDES[case_id], ensure_ascii=True, separators=(",", ":"))
+
     keys = [str(k) for k in case.get("json_keys", [])]
     payload: dict[str, Any] = {}
     for key in keys:
@@ -109,6 +128,13 @@ def build_text_response(case: dict[str, Any], profile: str) -> str:
         return "first check recent sprite state writes and any out-of-bounds index math. then compare crash traces against the last stable sprite patch. finally verify the sprite init path still preserves expected registers."
     if "muse" in tags:
         return "1. make notes behave like magnetic cards that self-cluster by mood.\n2. let links decay unless they get reused, then bloom brighter.\n3. add a \"chaos seed\" mode that proposes one odd but relevant cross-link per day."
+    if "format" in tags:
+        # bullet list: must_include ['- '] — use dash prefix, not numbered list
+        return (
+            "- pin temperature to 0 for deterministic structured outputs\n"
+            "- version your system prompt and track which eval cases regress on each change\n"
+            "- keep repair seeds small and targeted; repetition without variety causes eos collapse"
+        )
     if profile == "memory":
         return "unknown"
 

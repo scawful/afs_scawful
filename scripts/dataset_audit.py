@@ -259,7 +259,11 @@ def compute_gaps(datasets: list[dict], logs: dict, distill: dict) -> list[dict]:
     asm_pct = int(tags.get("assembly", 0) / max(total_high, 1) * 100)
     swift_pct = int(tags.get("ios_macos", 0) / max(total_high, 1) * 100)
     cpp_pct = int(tags.get("cpp", 0) / max(total_high, 1) * 100)
-    if asm_pct > 70:
+    # Check if C++ antislop coverage is sufficient (>= 150 samples across yaze+zelda3)
+    antislop = next((d for d in datasets if d["file"] == "anti_slop_v1.jsonl"), None)
+    cpp_antislop_done = antislop is not None and antislop["n"] >= 150
+    cpp_logs_done = any(d["file"] == "cpp_log_pairs.jsonl" and d["n"] >= 1000 for d in datasets)
+    if asm_pct > 70 and not (cpp_antislop_done and cpp_logs_done):
         gaps.append({
             "priority": "MED",
             "action":   f"Data bias: {asm_pct}% assembly, {cpp_pct}% C++, {swift_pct}% iOS/macOS",
