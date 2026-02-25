@@ -9,7 +9,8 @@ This trains Ockham: a model that receives sloppy code and returns minimal, direc
 
 Usage:
   antislop_dataset.py scan [--source barista|yaze|all]
-  antislop_dataset.py generate [--source barista] [--teacher gemini|claude]
+  antislop_dataset.py generate [--source barista]
+                                [--teacher gemini|claude|claude_opus|openai|codex]
                                 [--max-files 20] [--output FILE]
   antislop_dataset.py stats [--input FILE]
 """
@@ -23,6 +24,8 @@ import hashlib
 import re
 from pathlib import Path
 from dataclasses import dataclass
+sys.path.insert(0, str(Path(__file__).parent))
+from models import GEMINI_PRO, ANTHROPIC_SONNET, ANTHROPIC_OPUS, OPENAI_CODEX, use
 from typing import Optional
 
 try:
@@ -195,7 +198,7 @@ async def slopify_with_gemini(code: str, filename: str) -> Optional[str]:
         client = genai.Client(api_key=api_key)
         prompt = f"File: {filename}\n\n```\n{code}\n```"
         response = client.models.generate_content(
-            model="gemini-2.5-pro",
+            model=use(GEMINI_PRO),
             contents=f"{SLOPIFY_SYSTEM}\n\n{prompt}",
             config=gtypes.GenerateContentConfig(
                 temperature=0.7,
@@ -208,13 +211,14 @@ async def slopify_with_gemini(code: str, filename: str) -> Optional[str]:
         return None
 
 
-async def slopify_with_claude(code: str, filename: str) -> Optional[str]:
+async def slopify_with_claude(code: str, filename: str,
+                              model: str = ANTHROPIC_SONNET) -> Optional[str]:
     """Generate a bloated version using Claude (Anthropic API)."""
     try:
         import anthropic
         client = anthropic.Anthropic(api_key=os.environ.get("ANTHROPIC_API_KEY"))
         msg = client.messages.create(
-            model="claude-sonnet-4-6",
+            model=model,
             max_tokens=4096,
             system=SLOPIFY_SYSTEM,
             messages=[{"role": "user", "content": f"File: {filename}\n\n```\n{code}\n```"}],
@@ -225,11 +229,35 @@ async def slopify_with_claude(code: str, filename: str) -> Optional[str]:
         return None
 
 
+async def slopify_with_openai(code: str, filename: str) -> Optional[str]:
+    """Generate a bloated version using OpenAI Codex."""
+    try:
+        import openai
+        client = openai.AsyncOpenAI(api_key=os.environ.get("OPENAI_API_KEY"))
+        resp = await client.chat.completions.create(
+            model=use(OPENAI_CODEX),
+            messages=[
+                {"role": "system", "content": SLOPIFY_SYSTEM},
+                {"role": "user", "content": f"File: {filename}\n\n```\n{code}\n```"},
+            ],
+            temperature=0.7,
+            max_tokens=8192,
+        )
+        return resp.choices[0].message.content
+    except Exception as e:
+        print(f"[error] OpenAI slopify failed: {e}", file=sys.stderr)
+        return None
+
+
 async def slopify(code: str, filename: str, teacher: str) -> Optional[str]:
     if teacher == "gemini":
         return await slopify_with_gemini(code, filename)
     elif teacher == "claude":
-        return await slopify_with_claude(code, filename)
+        return await slopify_with_claude(code, filename, ANTHROPIC_SONNET)
+    elif teacher == "claude_opus":
+        return await slopify_with_claude(code, filename, ANTHROPIC_OPUS)
+    elif teacher == "openai" or teacher == "codex":
+        return await slopify_with_openai(code, filename)
     else:
         raise ValueError(f"Unknown teacher: {teacher}")
 
@@ -387,7 +415,7 @@ def main():
     p_gen = sub.add_parser("generate", help="Generate sloppy/clean pairs")
     p_gen.add_argument("--source", default="barista",
                        help="Comma-separated source keys")
-    p_gen.add_argument("--teacher", choices=["gemini", "claude"], default="gemini")
+    p_gen.add_argument("--teacher", choices=["gemini", "claude", "claude_opus", "openai", "codex"], default="gemini")
     p_gen.add_argument("--max-files", type=int, default=20)
     p_gen.add_argument("--output", "-o", metavar="FILE")
 

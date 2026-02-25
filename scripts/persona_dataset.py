@@ -8,7 +8,7 @@ training pairs for: Sibyl, Lancer, Morpheus, and Anamnesis.
 Usage:
   persona_dataset.py mine [--output DIR]        # Extract raw voice samples
   persona_dataset.py generate --persona NAME    # Generate training pairs (teacher)
-       [--teacher gemini|claude] [--limit N]
+       [--teacher gemini|claude|claude_opus|openai|codex] [--limit N]
        [--input FILE] [--output FILE]
   persona_dataset.py stats [--input FILE]       # Dataset statistics
   persona_dataset.py voice                      # Show extracted voice profile
@@ -27,6 +27,8 @@ from dataclasses import dataclass, field, asdict
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Optional
+import sys as _sys; _sys.path.insert(0, str(Path(__file__).parent))
+from models import GEMINI_FLASH, ANTHROPIC_SONNET, ANTHROPIC_OPUS, OPENAI_CODEX, use
 
 try:
     from dotenv import load_dotenv
@@ -48,6 +50,7 @@ if _gkey and os.environ.get("GEMINI_API_KEY") and os.environ.get("GOOGLE_API_KEY
     os.environ.pop("GEMINI_API_KEY", None)
 GOOGLE_API_KEY = _gkey
 ANTHROPIC_API_KEY = os.environ.get("ANTHROPIC_API_KEY")
+OPENAI_API_KEY = os.environ.get("OPENAI_API_KEY")
 
 # Self-briefing: loaded lazily for persona context enrichment
 _SELF_BRIEFING: str | None = None
@@ -369,7 +372,7 @@ async def call_gemini(prompt: str, system: str = "", temperature: float = 0.8) -
         client = genai.Client(api_key=GOOGLE_API_KEY)
         contents = f"{system}\n\n{prompt}" if system else prompt
         resp = client.models.generate_content(
-            model="gemini-2.0-flash",
+            model=use(GEMINI_FLASH),
             contents=contents,
             config=gtypes.GenerateContentConfig(
                 temperature=temperature,
@@ -381,14 +384,15 @@ async def call_gemini(prompt: str, system: str = "", temperature: float = 0.8) -
         return "", str(e)
 
 
-async def call_claude(prompt: str, system: str = "", temperature: float = 0.8) -> tuple[str, str | None]:
+async def call_claude(prompt: str, system: str = "", temperature: float = 0.8,
+                      model: str = ANTHROPIC_SONNET) -> tuple[str, str | None]:
     if not ANTHROPIC_API_KEY:
         return "", "ANTHROPIC_API_KEY not set — add to .env"
     try:
         import anthropic
         client = anthropic.Anthropic(api_key=ANTHROPIC_API_KEY)
         kwargs: dict = dict(
-            model="claude-sonnet-4-6",
+            model=model,
             max_tokens=1024,
             temperature=temperature,
             messages=[{"role": "user", "content": prompt}],
@@ -401,13 +405,43 @@ async def call_claude(prompt: str, system: str = "", temperature: float = 0.8) -
         return "", str(e)
 
 
+async def call_openai(prompt: str, system: str = "", temperature: float = 0.8) -> tuple[str, str | None]:
+    api_key = os.environ.get("OPENAI_API_KEY")
+    if not api_key:
+        return "", "OPENAI_API_KEY not set — add to .env"
+    try:
+        import openai
+        client = openai.AsyncOpenAI(api_key=api_key)
+        messages = []
+        if system:
+            messages.append({"role": "system", "content": system})
+        messages.append({"role": "user", "content": prompt})
+        resp = await client.chat.completions.create(
+            model=use(OPENAI_CODEX),
+            messages=messages,
+            temperature=temperature,
+            max_tokens=1024,
+        )
+        return resp.choices[0].message.content or "", None
+    except Exception as e:
+        return "", str(e)
+
+
 async def call_teacher(prompt: str, system: str, teacher: str, temperature: float = 0.8) -> tuple[str, str]:
     if teacher == "gemini":
         text, err = await call_gemini(prompt, system, temperature)
-        model = "gemini-2.0-flash"
+        model = GEMINI_FLASH
+    elif teacher == "claude":
+        text, err = await call_claude(prompt, system, temperature, ANTHROPIC_SONNET)
+        model = ANTHROPIC_SONNET
+    elif teacher == "claude_opus":
+        text, err = await call_claude(prompt, system, temperature, ANTHROPIC_OPUS)
+        model = ANTHROPIC_OPUS
+    elif teacher in ("openai", "codex"):
+        text, err = await call_openai(prompt, system, temperature)
+        model = OPENAI_CODEX
     else:
-        text, err = await call_claude(prompt, system, temperature)
-        model = "claude-sonnet-4-6"
+        return "", teacher
     if err:
         print(f"  [warn] {err[:100]}", file=sys.stderr)
     return text, model
@@ -825,11 +859,14 @@ def cmd_generate(args):
     output_path = Path(args.output) if args.output else PERSONAS[persona]["output_file"]
     output_path.parent.mkdir(parents=True, exist_ok=True)
 
-    if not GOOGLE_API_KEY and args.teacher == "gemini":
-        print("[error] No GOOGLE_API_KEY. Set it in .env or export GOOGLE_API_KEY=...", file=sys.stderr)
+    if args.teacher == "gemini" and not GOOGLE_API_KEY:
+        print("[error] No GOOGLE_API_KEY (or GEMINI_API_KEY). Set it in .env or export GOOGLE_API_KEY=...", file=sys.stderr)
         sys.exit(1)
-    if not ANTHROPIC_API_KEY and args.teacher == "claude":
+    if args.teacher in {"claude", "claude_opus"} and not ANTHROPIC_API_KEY:
         print("[error] No ANTHROPIC_API_KEY. Set it in .env or export ANTHROPIC_API_KEY=...", file=sys.stderr)
+        sys.exit(1)
+    if args.teacher in {"openai", "codex"} and not OPENAI_API_KEY:
+        print("[error] No OPENAI_API_KEY. Set it in .env or export OPENAI_API_KEY=...", file=sys.stderr)
         sys.exit(1)
 
     generators = {
@@ -881,7 +918,7 @@ def main():
     p_gen = sub.add_parser("generate", help="Generate training pairs via teacher model")
     p_gen.add_argument("--persona", required=True, choices=list(PERSONAS),
                        help="Which persona to generate for")
-    p_gen.add_argument("--teacher", choices=["gemini", "claude"], default="gemini")
+    p_gen.add_argument("--teacher", choices=["gemini", "claude", "claude_opus", "openai", "codex"], default="gemini")
     p_gen.add_argument("--limit", type=int, metavar="N")
     p_gen.add_argument("--output", "-o", metavar="FILE")
 
