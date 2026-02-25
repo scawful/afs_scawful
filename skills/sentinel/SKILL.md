@@ -39,4 +39,4 @@ Run continuously alongside the game/agent.
 
 ## Troubleshooting
 - **False Positives**: If you are standing still on purpose, Sentinel might complain. Kill it or ignore the report.
-- **Connection**: Needs `mesen2-mcp` socket.
+- **Connection**: Needs the Mesen2 socket (`/tmp/mesen2-*.sock`).

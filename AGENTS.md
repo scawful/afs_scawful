@@ -1,32 +1,22 @@
-# Agent Instructions (AFS Scawful Plugin)
+# AGENTS.md (Compact)
 
-## Do not invent or market
-- No marketing language or product claims.
-- If something is unknown, state "Unknown / needs verification" and propose a test.
+Purpose: high-signal operating rules only.
 
-## Truth policy
-- Only claim what is evidenced in this repo or cited notes.
-- Do not guess roadmap, compatibility, or performance.
+Core Rules
+1. Clarify goals, constraints, and done criteria before major edits.
+2. Prefer the smallest working change over architecture churn.
+3. Read local `README.md` and nearby docs before coding.
+4. Touch only task-related files.
+5. Keep hygiene high: no dead code or commented-out leftovers.
+6. Run the fastest relevant verification command before finishing.
+7. If checks cannot run, report exactly why and residual risk.
+8. Ask before destructive actions (`rm`, force-push, history rewrite).
 
-## Scope control
-- Research-only plugin scope; keep to Scawful-specific tooling.
+Delivery Contract
+- Report what changed.
+- Report what was verified.
+- Report known gaps or follow-ups.
 
-## Provenance / separation
-- Do not use employer or internal material.
-- If provenance is unclear, leave it out.
-
-## Secrets / credentials
-- Never commit secrets (API keys, passwords, private keys, terraform state).
-- Store Vultr passwords in `infra/.passwords/` and keep them out of git.
-- Run `infra/secret_scan.sh` before sharing or committing changes.
-
-## Infrastructure awareness
-- Use workspace docs: `~/src/docs/NERV_INFRASTRUCTURE.md`, `~/src/docs/SRC_UNIVERSE_NETWORK.md`, `docs/WINDOWS_WORKFLOW.md`, `docs/WINDOWS_DEV_STRATEGY.md`.
-- Prefer SSH aliases (`medical-mechanica`, `mm-lan`, `halext-nj`) over raw IPs.
-- Windows src root is `D:\src`; Mac mounts live under `~/Mounts/`.
-
-## Output style
-- Concise, engineering notebook tone.
-
-## How to verify (tests/commands)
-- `pytest`
+Reference Material
+- Detailed historical guidance: `.context/knowledge/agent-reference.md`.
+- Project docs remain the source of truth for architecture and workflows.

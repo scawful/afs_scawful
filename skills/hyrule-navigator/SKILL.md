@@ -41,7 +41,7 @@ Move Link to a specific pixel/tile coordinate.
 
 ## Dependencies
 - **Data:** `~/src/hobby/yaze/world_graph.json` (Must be up-to-date with ROM).
-- **Tools:** `z3ed` (for map data), `mesen2-mcp` (for RAM/Input).
+- **Tools:** `z3ed` (for map data), Mesen2 socket CLI (for RAM/Input).
 - **Scripts:** `~/src/hobby/yaze/scripts/ai/navigator.py`.
 
 ## Commands
@@ -57,6 +57,5 @@ Move Link to a specific pixel/tile coordinate.
 
 ## Troubleshooting
 - **"Neighbors: []"**: Check `world_graph.json` connectivity. Run `map_compiler.py` again.
-- **Localization Failed**: Ensure `mesen2-mcp` is running and connected. Verify RAM addresses in `navigator.py` match the active ROM version.
+- **Localization Failed**: Ensure Mesen2 socket control is running (`/tmp/mesen2-*.sock`). Verify RAM addresses in `navigator.py` match the active ROM version.
 - **Stuck Walking**: Micro-pathing collision avoidance is primitive. Manually guide Link if stuck on complex geometry.
-
