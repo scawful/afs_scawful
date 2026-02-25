@@ -174,6 +174,7 @@ def to_mlx_chat(sample: dict, system_prompt: str) -> dict:
 def filter_for_target(
     samples: list[dict],
     target: str,
+    require_asm_output: bool = False,
 ) -> list[dict]:
     """Filter samples based on target model category preferences."""
     config = TARGET_CATEGORIES.get(target)
@@ -199,8 +200,8 @@ def filter_for_target(
 
         # Check exclude patterns in instruction
         instruction = sample.get("instruction", "").lower()
+        skip = False
         if exclude_patterns:
-            skip = False
             for pattern in exclude_patterns:
                 if pattern in instruction:
                     skip = True
@@ -209,11 +210,11 @@ def filter_for_target(
             continue
 
         # Target-specific quality guardrails.
-        if target == "agahnim":
+        if target == "agahnim" or require_asm_output:
             output = sample.get("output", "")
             if not _looks_like_assembly_output(output):
                 continue
-            if _is_output_too_long(target, output):
+            if _is_output_too_long("agahnim", output):
                 continue
 
         filtered.append(sample)
@@ -292,6 +293,11 @@ def main():
         "--no-filter", action="store_true",
         help="Skip category filtering.",
     )
+    parser.add_argument(
+        "--require-asm-output",
+        action="store_true",
+        help="Require assistant output to pass assembly-like heuristics.",
+    )
     args = parser.parse_args()
 
     system_prompt = SYSTEM_PROMPTS[args.target]
@@ -314,7 +320,11 @@ def main():
 
     # Filter for target
     if not args.no_filter:
-        filtered = filter_for_target(all_samples, args.target)
+        filtered = filter_for_target(
+            all_samples,
+            args.target,
+            require_asm_output=args.require_asm_output,
+        )
         print(f"After filtering for {args.target}: {len(filtered)} samples")
     else:
         filtered = all_samples
