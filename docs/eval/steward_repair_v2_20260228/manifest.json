@@ -1,0 +1,14 @@
+{
+  "source_eval_report": "/Users/scawful/src/lab/afs-scawful/docs/eval/steward_eval_v1_20260228.json",
+  "target_model": "gguf/afs/steward_v1-q8_0.gguf",
+  "failed_cases": 7,
+  "augment_per_fail": 6,
+  "total_rows": 57,
+  "train_rows": 51,
+  "valid_rows": 6,
+  "source_breakdown": {
+    "strict_eval_repair": 42,
+    "bad_output_rewrite": 7,
+    "actionability_drill": 8
+  }
+}

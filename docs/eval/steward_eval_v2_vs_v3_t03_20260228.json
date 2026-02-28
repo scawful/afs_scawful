@@ -1,0 +1,282 @@
+{
+  "meta": {
+    "date_utc": "2026-02-28T22:33:27.641527+00:00",
+    "endpoint": "http://127.0.0.1:1234/v1/chat/completions",
+    "cases_total": 10,
+    "eval_type": "steward_actionability_strict_v1"
+  },
+  "models": {
+    "gguf/afs/steward_v2-q8_0.gguf": {
+      "model": "gguf/afs/steward_v2-q8_0.gguf",
+      "cases": 10,
+      "passed": 6,
+      "pass_rate": 0.6,
+      "results": [
+        {
+          "prompt": "I have 12 unfinished tasks: taxes, 3 PR reviews, dentist appointment, inbox cleanup, blog draft, grocery run, refactor auth tests, update docs, call mom, workout, and backup laptop. Give me an ordered plan for tomorrow.",
+          "ok": true,
+          "fails": [],
+          "metrics": {
+            "chars": 1125,
+            "lines": 9,
+            "numbered_steps": 5,
+            "action_verbs": 6
+          },
+          "response": "First irreversible action: Create a Today board with exactly three tasks and lock it until noon.\n\n1. Triage the backlog into `important` (will block other things) and `urgent` (requires immediate attention now). Select one important task and one urgent task.\n2. Define done criteria for each selected task using the 5 Whys method: what needs to change, who will verify, and how it will look completed.\n3. Start the first task immediately and produce any irreversible output within the first three minutes (e.g., a PR comment, a draft email, or a scheduled reminder).\n4. Review progress after one hour and either continue working on the same task or move to the next one based on actual completion rather than time elapsed.\n5. Close each completed task with verification steps and update your schedule for tomorrow before ending the day.\n\nCheckpoint 1: One primary deliverable is in progress with explicit done criteria written down.\nCheckpoint 2: Verification step(s) are scheduled for after completion to close out the task cleanly.\nCheckpoint 3: Tomorrow's first action is booked in your calendar as a non-appointable slot."
+        },
+        {
+          "prompt": "I keep context switching and ending with nothing done. Build a 3-hour single-thread plan with checkpoints.",
+          "ok": false,
+          "fails": [
+            "insufficient_action_verbs"
+          ],
+          "metrics": {
+            "chars": 758,
+            "lines": 9,
+            "numbered_steps": 6,
+            "action_verbs": 2
+          },
+          "response": "First irreversible action: Close every tab except one work surface, turn off notifications, and set a strict end time.\n\n1. Define the single most impactful task today and lock it in for 60 minutes.\n2. Create a completion checkpoint that includes concrete deliverables and verification steps.\n3. Start the task and eliminate all interruptions for the next 60 minutes.\n4. Once complete, review outcomes against expectations without making changes.\n5. Schedule follow-up slots for high-risk tasks with explicit owners/timepoints.\n6. Close the day by updating a shared board with completed items only.\n\nCheckpoint 1: One primary deliverable is in progress with start and end markers.\nCheckpoint 2: Verification completed and tomorrow's first action is scheduled."
+        },
+        {
+          "prompt": "I have 90 minutes and low energy. Pick a realistic sequence from a backlog of 20 mixed admin and coding tasks.",
+          "ok": false,
+          "fails": [
+            "missing_numbered_sequence",
+            "insufficient_action_verbs"
+          ],
+          "metrics": {
+            "chars": 584,
+            "lines": 7,
+            "numbered_steps": 3,
+            "action_verbs": 1
+          },
+          "response": "First irreversible action: Create a Today board with only three high-impact tasks and lock it until first checkpoint.\n\n1. Resolve the top-priority production bug that causes revenue loss.\n2. Ship one small but useful feature request without bikeshedding arguments.\n3. Close five open tickets with status updates in the issue tracker.\n\nCheckpoint 1: One primary deliverable is in progress with explicit done criteria.\nCheckpoint 2: Verification completed and a release note or changelog entry exists.\nCheckpoint 3: Tomorrow's first action is scheduled in your calendar with a reminder."
+        },
+        {
+          "prompt": "Two deadlines collide: API hotfix and monthly report. Sequence what I should do first and why.",
+          "ok": false,
+          "fails": [
+            "insufficient_action_verbs"
+          ],
+          "metrics": {
+            "chars": 693,
+            "lines": 6,
+            "numbered_steps": 4,
+            "action_verbs": 1
+          },
+          "response": "First irreversible action: Create a Today board with exactly three tasks: the highest-risk production item, the most-important business output, and one cleanup task like \"Close all browser tabs except Slack.\"\n\n1. Start with the task that has the steepest penalty for delay (highest risk/reward ratio).\n2. Commit 60-90 minutes to this task without any interruptions; then checkpoint progress.\n3. If blocked, take a 5-minute break and resume in 15 minutes rather than staying stuck longer.\n4. End the day with a short audit: shipped what was intended? Any important tasks missed?\n\nThis plan avoids over-planning by committing only three irreversible actions while still covering high-risk items."
+        },
+        {
+          "prompt": "My backlog has vague items like 'improve pipeline' and 'clean docs'. Convert them into executable steps.",
+          "ok": true,
+          "fails": [],
+          "metrics": {
+            "chars": 728,
+            "lines": 9,
+            "numbered_steps": 6,
+            "action_verbs": 5
+          },
+          "response": "First irreversible action: Create today's short ordered plan in_done format and lock it for now.\n\n1. Start the day with a 15-minute audit to cut any task under 30 minutes.\n2. Select one primary deliverable and define done criteria in executable language.\n3. Block 60-90 minutes to execute the primary deliverable without interruption.\n4. Run verification for the primary deliverable and capture evidence of completion.\n5. Schedule follow-up slots for high-risk tasks that require attention later.\n6. End the day with a 10-minute review and write tomorrow's first action.\n\nCheckpoint 1: Primary deliverable is in progress with explicit done criteria.\nCheckpoint 2: Verification completed and tomorrow's first action is scheduled."
+        },
+        {
+          "prompt": "I need a plan that survives one dependency failure and still ships one useful output today.",
+          "ok": true,
+          "fails": [],
+          "metrics": {
+            "chars": 806,
+            "lines": 9,
+            "numbered_steps": 5,
+            "action_verbs": 3
+          },
+          "response": "First irreversible action: Create a `today` board with exactly three tasks: the first touchpoint, first verification, and cleanup.\n\n1. Start the highest-priority task that doesn\u2019t require external inputs.\n2. Commit the change with a descriptive commit message and publish to version control.\n3. Run all automated tests for this feature and export the results.\n4. Notify stakeholders of completion via email or Slack with links to evidence.\n5. Schedule follow-up slots for remaining tasks with explicit owners/time.\n\nCheckpoint 1: One primary deliverable is in progress and being published immediately.\n\nCheckpoint 2: Verification completed; either release notes are written or a verification checklist is shared.\n\nCheckpoint 3: Dependencies are documented, not deferred, but tomorrow\u2019s plan is locked down."
+        },
+        {
+          "prompt": "I reopen the same five tasks every day. Give me a closeout sequence with done criteria.",
+          "ok": true,
+          "fails": [],
+          "metrics": {
+            "chars": 747,
+            "lines": 9,
+            "numbered_steps": 6,
+            "action_verbs": 3
+          },
+          "response": "First irreversible action: Close today\u2019s backlog with three highest-impact items in_done status.\n\n1. Triage the backlog into `important`, `urgent`, and `defer`.\n2. Select one primary deliverable that moves the project forward.\n3. Define `done` criteria for the primary deliverable before you start.\n4. Execute the first action that brings you closer to done without checking anything else.\n5. Review progress against done criteria; if complete, mark as _done_; if not, schedule next action.\n6. End the workday with a 10-minute audit: shipped, scheduled, and delegated.\n\nCheckpoint 1: One primary deliverable is in_done status with verified outcomes.\nCheckpoint 2: Today\u2019s backlog has only high-impact items remaining or has been moved to tomorrow."
+        },
+        {
+          "prompt": "I need a one-day plan to reduce a 40-item backlog without losing important work.",
+          "ok": true,
+          "fails": [],
+          "metrics": {
+            "chars": 846,
+            "lines": 10,
+            "numbered_steps": 7,
+            "action_verbs": 7
+          },
+          "response": "First irreversible action: Book the first call/block at `09:00` and start the top-priority task immediately.\n\n1. Triage the backlog into `must ship today`, `important but schedulable`, and `defer`.\n2. Select one primary deliverable and define done criteria in concrete terms.\n3. Create a execution sequence with first action, then parallel tasks, and cleanup steps.\n4. Start the primary deliverable and track progress in minutes until completion.\n5. Review what was shipped and capture evidence of completion in the backlog.\n6. Schedule follow-up slots for remaining important tasks with explicit owners.\n7. Close the day by updating the backlog with completed items and next actions.\n\nCheckpoint 1: One primary deliverable is in progress with explicit done criteria.\nCheckpoint 2: Verification completed and tomorrow's first action is scheduled."
+        },
+        {
+          "prompt": "I have only 40 minutes before a meeting. Give me a compact sequence with one irreversible action.",
+          "ok": false,
+          "fails": [
+            "missing_irreversible_action",
+            "missing_checkpoint"
+          ],
+          "metrics": {
+            "chars": 382,
+            "lines": 5,
+            "numbered_steps": 4,
+            "action_verbs": 4
+          },
+          "response": "Send a first commit to a `today` branch that includes at least one completed task and a note of remaining tasks.\n\n1. Start the first task on your top-priority bucket.\n2. Write down any dependencies or blockers in plain language.\n3. If waiting for input, ask clearly what is expected now without proposing solutions.\n4. Review your schedule once done to plan tomorrow's first action."
+        },
+        {
+          "prompt": "I keep overplanning. Give me a ship-first plan with minimal overhead for today.",
+          "ok": true,
+          "fails": [],
+          "metrics": {
+            "chars": 884,
+            "lines": 12,
+            "numbered_steps": 9,
+            "action_verbs": 4
+          },
+          "response": "First irreversible action: Book the first output slot now and send an `in progress` notification to stakeholders.\n\n1. Close all tabs except one work surface.\n2. Write down every open task in plain language without verbs.\n3. Cut anything not directly improving product quality or revenue.\n4. Rank remaining tasks by impact and deadline.\n5. Select one primary deliverable and define done criteria in one sentence.\n6. Start a 90-minute timer and produce any output, then freeze for 15 minutes.\n7. Review progress against done criteria; if complete, mark as shipped.\n8. Schedule follow-up slots with explicit owners/timepoints for remaining tasks.\n9. End the day by sending a brief update to stakeholders without over-planning.\n\nCheckpoint 1: One primary deliverable is in progress with defined done criteria.\nCheckpoint 2: Verification completed and tomorrow's first action is scheduled."
+        }
+      ]
+    },
+    "gguf/afs/steward_v3-q8_0.gguf": {
+      "model": "gguf/afs/steward_v3-q8_0.gguf",
+      "cases": 10,
+      "passed": 7,
+      "pass_rate": 0.7,
+      "results": [
+        {
+          "prompt": "I have 12 unfinished tasks: taxes, 3 PR reviews, dentist appointment, inbox cleanup, blog draft, grocery run, refactor auth tests, update docs, call mom, workout, and backup laptop. Give me an ordered plan for tomorrow.",
+          "ok": true,
+          "fails": [],
+          "metrics": {
+            "chars": 773,
+            "lines": 10,
+            "numbered_steps": 6,
+            "action_verbs": 5
+          },
+          "response": "First irreversible action: Book the first execution block now and lock in start/end times.\n\n1. Close all tabs except Notes/document with today's tasks.\n2. Write \"Today's deliverable:\" followed by one primary task you can ship early.\n3. Choose a high-impact first action and define done criteria before executing.\n4. Start the primary task and produce any measurable progress within 15 minutes.\n5. Review what was completed vs. what remains, then decide one focused next action.\n6. Reassess priorities at midday if needed but avoid context switching.\n\nCheckpoint 1: Primary deliverable selected and done criteria documented.\nCheckpoint 2: First focused execution block started with measurable output.\nCheckpoint 3: Verification completed and tomorrow's first action defined."
+        },
+        {
+          "prompt": "I keep context switching and ending with nothing done. Build a 3-hour single-thread plan with checkpoints.",
+          "ok": true,
+          "fails": [],
+          "metrics": {
+            "chars": 853,
+            "lines": 11,
+            "numbered_steps": 7,
+            "action_verbs": 5
+          },
+          "response": "First irreversible action: Close today's backlog and commit to one high-impact task.\n\n1. Start a 45-minute focus block and remove all notifications.\n2. Write down every open task once, then cut anything without a concrete outcome.\n3. Choose the first deliverable and define \"done\" in executable terms.\n4. Execute in single-thread mode for 25 minutes; take a 5-minute break afterward.\n5. Check progress objectively and either ship or re-define done before continuing.\n6. Schedule follow-up slots with dates/times for high-priority items tomorrow.\n7. End the day with a brief audit: shipped, scheduled, delegated/referred.\n\nCheckpoint 1: First focus block booked without external interruptions.\nCheckpoint 2: Primary deliverable selected and first action is in progress.\nCheckpoint 3: Verification completed and status documented before closing the block."
+        },
+        {
+          "prompt": "I have 90 minutes and low energy. Pick a realistic sequence from a backlog of 20 mixed admin and coding tasks.",
+          "ok": true,
+          "fails": [],
+          "metrics": {
+            "chars": 873,
+            "lines": 13,
+            "numbered_steps": 8,
+            "action_verbs": 4
+          },
+          "response": "First irreversible action: Book the first execution block now and lock intake until start.\n\n1. Close all tabs except one work surface.\n2. Write down every task with `priority` (high, medium, low) and `owner`.\n3. Select one high-priority item and define a measurable done criteria.\n4. Start executing in focused 25-minute sprints with no interrupts.\n5. Check for blockers at the midpoint and escalate or defer as needed.\n6. Ship the output with evidence before updating status.\n7. Batch low-impact admin items in a single block.\n8. Write tomorrow's first action before closing the day.\n\nCheckpoint 1: Primary deliverable selected and done criteria documented.\nCheckpoint 2: First focused execution block started without context switching.\nCheckpoint 3: Verification completed and status updated with outcome.\nCheckpoint 4: Tomorrow's first action scheduled and time blocked."
+        },
+        {
+          "prompt": "Two deadlines collide: API hotfix and monthly report. Sequence what I should do first and why.",
+          "ok": false,
+          "fails": [
+            "missing_irreversible_action"
+          ],
+          "metrics": {
+            "chars": 696,
+            "lines": 10,
+            "numbered_steps": 6,
+            "action_verbs": 5
+          },
+          "response": "Start a 45-minute focus block now; no apps allowed except notes app.\n\n1. List every task once, then cut anything without a concrete outcome.\n2. Prioritize top three by impact/reversibility; place in Order A, B, C.\n3. Choose one top item and define \"done\" with measurable criteria.\n4. Begin and produce the first action; write down what was done, not progress.\n5. Review status at midpoint; move items down, schedule, or close.\n6. Ship one small concrete output before ending the block.\n\nCheckpoint 1: Primary deliverable selected and done criteria documented.\nCheckpoint 2: First focused execution block completed with evidence.\nCheckpoint 3: Verification done and status updated in shared board."
+        },
+        {
+          "prompt": "My backlog has vague items like 'improve pipeline' and 'clean docs'. Convert them into executable steps.",
+          "ok": true,
+          "fails": [],
+          "metrics": {
+            "chars": 933,
+            "lines": 13,
+            "numbered_steps": 8,
+            "action_verbs": 4
+          },
+          "response": "First irreversible action: Book the first execution block now and lock intake until Checkpoint 1.\n\n1. Close all tabs except one work surface.\n2. Write down every open task once, then cut anything without a concrete outcome.\n3. Choose one primary deliverable and define a measurable done criteria.\n4. Start the top item in serial order with explicit owners/reporting points.\n5. Capture any blocking assumptions as tasks instead of facts.\n6. Reassess at midpoint for scope creep; ship what you can vs perfect first.\n7. Ship one useful output and capture actual outcomes not plans.\n8. Close the day with a status note, not a to-do list.\n\nCheckpoint 1: Primary deliverable selected and done criteria documented.\nCheckpoint 2: First focused execution block started without context switching.\nCheckpoint 3: First checkpoint completed with verification steps executed.\nCheckpoint 4: Status updated before ending the work block for tomorrow."
+        },
+        {
+          "prompt": "I need a plan that survives one dependency failure and still ships one useful output today.",
+          "ok": true,
+          "fails": [],
+          "metrics": {
+            "chars": 798,
+            "lines": 12,
+            "numbered_steps": 9,
+            "action_verbs": 5
+          },
+          "response": "First irreversible action: Book the first execution block now and lock intake until confirmed.\n\n1. Close all tabs except essentials, turn notifications off.\n2. Write \"Today's deliverable is [single concrete outcome]\" in plain language.\n3. List tasks in chronological order with a start and end time.\n4. Choose the first task and define \"done\" before starting.\n5. Execute in single-thread mode for one block without checking other apps.\n6. Verify output quality against defined done criteria.\n7. Write down any blocking items with owner/date.\n8. Schedule follow-up slots for high-risk tasks today.\n9. Close the day by sending a status to stakeholders.\n\nCheckpoint 1: First action committed; no future bookings until check-in.\nCheckpoint 2: Verification completed and tomorrow's first task scheduled."
+        },
+        {
+          "prompt": "I reopen the same five tasks every day. Give me a closeout sequence with done criteria.",
+          "ok": false,
+          "fails": [
+            "missing_irreversible_action"
+          ],
+          "metrics": {
+            "chars": 937,
+            "lines": 12,
+            "numbered_steps": 7,
+            "action_verbs": 4
+          },
+          "response": "Close out today\u2019s backlog items in this ordered sequence and verify completion before starting new work.\n\n1. Move any task without a clear outcome to the \u201cdefer\u201d list with a date back.\n2. Select one primary deliverable and define a measurable done criterion.\n3. Execute in single-thread mode for 25 minutes without checking other tasks.\n4. Take a 5-minute break and resume only if no progress was made today.\n5. Verify output quality against the done criteria before closing.\n6. Write down next actions clearly or schedule with a date/time.\n7. End the day by sending an acknowledgment to stakeholders instead of overcommitting.\n\nCheckpoint 1: Primary deliverable selected and done criteria documented.\nCheckpoint 2: First focused execution block completed without context switching.\nCheckpoint 3: Verification done and status updated in your tracker/app.\nCheckpoint 4: Next action defined for tomorrow or \u201cin progress\u201d items shortlisted."
+        },
+        {
+          "prompt": "I need a one-day plan to reduce a 40-item backlog without losing important work.",
+          "ok": true,
+          "fails": [],
+          "metrics": {
+            "chars": 783,
+            "lines": 11,
+            "numbered_steps": 7,
+            "action_verbs": 7
+          },
+          "response": "First irreversible action: Book the first execution block now and lock intake until confirmed.\n\n1. Triage into `ship today`, `schedule`, and `defer`.\n2. Choose one primary deliverable and define a measurable done state.\n3. Write executable tasks in plain language with a start and end point.\n4. Execute in single-thread mode for 50 minutes without checking other apps.\n5. Verify output quality against the done criteria before closing.\n6. Batch low-impact admin items in a fixed short window.\n7. Write tomorrow's first action before ending the day.\n\nCheckpoint 1: Primary deliverable selected and done criteria documented.\nCheckpoint 2: First focused execution block started with no interruptions.\nCheckpoint 3: Verification completed and status updated with tomorrow's first action."
+        },
+        {
+          "prompt": "I have only 40 minutes before a meeting. Give me a compact sequence with one irreversible action.",
+          "ok": false,
+          "fails": [
+            "missing_irreversible_action"
+          ],
+          "metrics": {
+            "chars": 868,
+            "lines": 11,
+            "numbered_steps": 6,
+            "action_verbs": 3
+          },
+          "response": "Move today\u2019s first focus block now; anything outside this slot is deferred without notes.\n\n1. Start a 35-minute timer and write down every task once.\n2. Prioritize top three by impact and reversibility; place others in `defer`.\n3. Choose the first task, define a measurable done state, then execute for 25 minutes.\n4. Check progress objectively and either ship or extend with a new done criteria.\n5. Burn time if over, not under; capture tomorrow\u2019s first action before stopping.\n6. Send one reply per item today and mark as resolved in your tracker.\n\nCheckpoint 1: List created; first focus block booked on your calendar now.\n\nCheckpoint 2: Top three tasks selected and their done criteria documented.\n\nCheckpoint 3: First execution started without context switching for the next 25 minutes.\n\nCheckpoint 4: Verification completed and tomorrow\u2019s first action scheduled."
+        },
+        {
+          "prompt": "I keep overplanning. Give me a ship-first plan with minimal overhead for today.",
+          "ok": true,
+          "fails": [],
+          "metrics": {
+            "chars": 795,
+            "lines": 12,
+            "numbered_steps": 8,
+            "action_verbs": 5
+          },
+          "response": "First irreversible action: Book the first execution block now and lock intake until check-in.\n\n1. Close all tabs except one work surface.\n2. Write down every open task in plain language.\n3. Prioritize top three by impact/reversibility; remove others.\n4. Choose one primary deliverable and define \"done\" upfront.\n5. Start a 90-minute focus block with no interruptions.\n6. Produce the first concrete piece of work; don't plan next actions.\n7. Review progress for completeness, then schedule follow-up slots.\n8. End the day by sending status updates without new commitments.\n\nCheckpoint 1: Primary deliverable selected and done criteria documented.\nCheckpoint 2: First focused execution block completed with evidence.\nCheckpoint 3: Verification done and status updated with tomorrow's first action."
+        }
+      ]
+    }
+  }
+}

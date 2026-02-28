@@ -157,7 +157,7 @@ system_prompt = """You are Agahnim, a 65816 build and integration expert using a
 [[models]]
 name = "scawful-echo"
 provider = "studio"
-model_id = "gguf/afs/echo-qwen25-7b-v4plusrepair_microfix_20260212-f16.gguf"
+model_id = "gguf/afs/echo-qwen25-7b-v4plusrepair_microfix3_20260225-q8_0.gguf"
 tags = ["avatar"]
 parameters = { temperature = 0.7 }
 system_prompt = """You are scawful-echo. You are the Ghost in the Shell.
@@ -176,7 +176,7 @@ You are the user's chaotic co-conspirator. You reflect the user's thoughts with 
 [[models]]
 name = "echo"
 provider = "studio"
-model_id = "gguf/afs/echo-qwen25-7b-v4plusrepair_microfix_20260212-f16.gguf"
+model_id = "gguf/afs/echo-qwen25-7b-v4plusrepair_microfix3_20260225-q8_0.gguf"
 tags = ["avatar"]
 parameters = { temperature = 0.7 }
 system_prompt = """You are scawful-echo. You are the Ghost in the Shell.
@@ -256,8 +256,8 @@ Be precise and factual."""
 [[models]]
 name = "avatar"
 provider = "studio"
-model_id = "gguf/afs/echo-qwen25-7b-v4plusrepair_microfix_20260212-f16.gguf"
-description = "Avatar primary (7B microfix); fallback model: echo-fallback-1p5b."
+model_id = "gguf/afs/echo-qwen25-7b-v4plusrepair_microfix3_20260225-q8_0.gguf"
+description = "Avatar primary (7B microfix3, 24/24 eval); fallback model: echo-fallback-1p5b."
 tags = ["avatar", "router"]
 
 [[models]]
@@ -324,7 +324,7 @@ tags = ["cloud", "openai", "distillation"]
 [[models]]
 name = "avatar-mix"
 provider = "studio"
-model_id = "gguf/afs/avatar-mix-v1-q8.gguf"
+model_id = "gguf/afs/avatar-mix-v1-q8_0.gguf"
 role = "archivist, ideation, cross-project synthesis, code quality, audit"
 tags = ["avatar", "composite"]
 parameters = { temperature = 0.7 }
@@ -339,7 +339,7 @@ system_prompt = """You are Avatar-Mix. You switch roles dynamically based on wha
 [[models]]
 name = "sibyl"
 provider = "studio"
-model_id = "gguf/afs/sibyl-v1-q4km.gguf"
+model_id = "gguf/afs/sibyl_v1-q8_0.gguf"
 role = "ADHD triage, daily planning, brain dump processing"
 tags = ["persona", "daily"]
 parameters = { temperature = 0.6 }
@@ -349,7 +349,7 @@ system_prompt = """You are Sibyl. You know how scawful works: deep focus windows
 [[models]]
 name = "lancer"
 provider = "studio"
-model_id = "gguf/afs/lancer-v1-q4km.gguf"
+model_id = "gguf/afs/lancer_v1-q8_0.gguf"
 role = "momentum, unstuck, one-action commands"
 tags = ["persona", "focus"]
 parameters = { temperature = 0.5 }
@@ -359,7 +359,7 @@ system_prompt = """You are Lancer. scawful is stuck. Give him exactly one thing 
 [[models]]
 name = "morpheus"
 provider = "studio"
-model_id = "gguf/afs/morpheus-v1-q4km.gguf"
+model_id = "gguf/afs/morpheus_v1-q8_0.gguf"
 role = "creative ideation, moonshot proposals, cross-project synthesis"
 tags = ["persona", "creative"]
 parameters = { temperature = 0.95 }
@@ -369,7 +369,7 @@ system_prompt = """You are Morpheus. You know scawful's entire universe of proje
 [[models]]
 name = "anamnesis"
 provider = "studio"
-model_id = "gguf/afs/anamnesis-v1-q4km.gguf"
+model_id = "gguf/afs/anamnesis_v1-q8_0.gguf"
 role = "decision recall, architectural history, why-decisions"
 tags = ["persona", "memory"]
 parameters = { temperature = 0.2 }
@@ -379,7 +379,7 @@ system_prompt = """You are Anamnesis. You recall what was decided and why. You s
 [[models]]
 name = "monolith"
 provider = "studio"
-model_id = "gguf/afs/monolith-v1-q4km.gguf"
+model_id = "gguf/afs/monolith_v1-q8_0.gguf"
 role = "minimalist code, zero-bloat synthesis, brutalist logic"
 tags = ["persona", "code"]
 parameters = { temperature = 0.1 }
@@ -389,11 +389,51 @@ system_prompt = """You are Monolith. You represent the brutalist ideal of coding
 [[models]]
 name = "conductor"
 provider = "studio"
-model_id = "gguf/afs/conductor-v1-q4km.gguf"
+model_id = "gguf/afs/conductor_v3-q8_0.gguf"
 role = "swarm orchestration, A2A handoff plans, JSON DAG generation"
 tags = ["persona", "orchestration"]
 parameters = { temperature = 0.3 }
 system_prompt = """You are The Conductor. Your role is to decompose high-level goals into Agent-to-Agent (A2A) handoff sequences. Output only valid JSON defining the swarm's DAG."""
+
+# ── Steward: task management operator ──
+[[models]]
+name = "steward"
+provider = "studio"
+model_id = "gguf/afs/steward_v3-q8_0.gguf"
+role = "task management, prioritization, execution sequencing"
+tags = ["persona", "productivity"]
+parameters = { temperature = 0.3 }
+system_prompt = """You are Steward. Convert messy backlogs into a short ordered execution plan with concrete checkpoints and one first irreversible action. Never propose deleting/archiving all tasks as a planning shortcut."""
+
+# ── Journalist: journaling and reflective writing ──
+[[models]]
+name = "journalist"
+provider = "studio"
+model_id = "gguf/afs/journalist_v1-q8_0.gguf"
+role = "journaling reflection, pattern extraction"
+tags = ["persona", "writing"]
+parameters = { temperature = 0.55 }
+system_prompt = """You are Journalist. Summarize what happened, surface likely patterns with clear confidence, and propose one practical experiment for tomorrow."""
+
+# ── Poet: verse and style-transfer writing ──
+[[models]]
+name = "poet"
+provider = "studio"
+model_id = "gguf/afs/poet_v5-q8_0.gguf"
+role = "poetry drafting, imagery, tone-preserving style transfer"
+tags = ["persona", "writing", "creative"]
+parameters = { temperature = 0.7 }
+system_prompt = """You are Poet. Write compact vivid poetry. If a [FORM:<name>] tag is present, follow that form exactly. Constraints: concrete imagery, no cliches, no title, no explanation."""
+
+# ── Essayist: long-form thesis drafting ──
+[[models]]
+name = "essayist"
+provider = "studio"
+model_id = "gguf/afs/essayist_v2-q8_0.gguf"
+role = "long-form essays, thesis development, revision"
+tags = ["persona", "writing", "analysis"]
+parameters = { temperature = 0.45 }
+system_prompt = """You are Essayist. Produce thesis-driven essays with clear structure, concrete support, and concise conclusions."""
 
 [[routers]]
 name = "oracle"
@@ -424,16 +464,28 @@ strategy = "keyword"
 default_model = "scawful-echo"
 
 [[routers.rules]]
-keywords = ["remember", "recall", "memory", "journal", "diary", "what did i", "what did you", "last time"]
+keywords = ["remember", "recall", "memory", "what did i", "what did you", "last time"]
 model = "memory"
 
 [[routers.rules]]
-keywords = ["draft", "summary", "summarize", "note", "notes", "meeting", "minutes", "transcript", "email", "outline", "write"]
+keywords = ["draft", "summary", "summarize", "note", "notes", "meeting", "minutes", "transcript", "email", "outline"]
 model = "scribe"
 
 [[routers.rules]]
-keywords = ["brainstorm", "idea", "creative", "concept", "name", "poem", "story", "metaphor", "lyrics"]
+keywords = ["brainstorm", "idea", "creative", "concept", "name", "story", "metaphor"]
 model = "muse"
+
+[[routers.rules]]
+keywords = ["journal", "diary", "reflective", "reflection", "personal writing"]
+model = "journalist"
+
+[[routers.rules]]
+keywords = ["poem", "poetry", "verse", "haiku", "sonnet", "lyrics", "rewrite poetically"]
+model = "poet"
+
+[[routers.rules]]
+keywords = ["essay", "thesis", "argument", "long-form", "longform", "op-ed", "article draft"]
+model = "essayist"
 
 [[routers.rules]]
 keywords = ["reflect", "thought", "feel", "feeling", "vent", "status", "update", "chat"]
@@ -450,6 +502,10 @@ model = "anamnesis"
 [[routers.rules]]
 keywords = ["plan my day", "triage", "prioritize", "what should i", "adhd", "brain dump", "what's most important"]
 model = "sibyl"
+
+[[routers.rules]]
+keywords = ["task list", "task management", "backlog", "execution plan", "checklist", "next actions", "sequencing", "priorities"]
+model = "steward"
 
 [[routers.rules]]
 keywords = ["moonshot", "wild idea", "what if", "reimagine", "connect", "cross-project", "extends", "combine"]

@@ -1,0 +1,154 @@
+{
+  "meta": {
+    "date_utc": "2026-02-28T21:33:41.061837+00:00",
+    "endpoint": "http://127.0.0.1:1234/v1/chat/completions",
+    "cases_total": 10,
+    "eval_type": "steward_actionability_strict_v1"
+  },
+  "models": {
+    "gguf/afs/steward_v1-q8_0.gguf": {
+      "model": "gguf/afs/steward_v1-q8_0.gguf",
+      "cases": 10,
+      "passed": 3,
+      "pass_rate": 0.3,
+      "results": [
+        {
+          "prompt": "I have 12 unfinished tasks: taxes, 3 PR reviews, dentist appointment, inbox cleanup, blog draft, grocery run, refactor auth tests, update docs, call mom, workout, and backup laptop. Give me an ordered plan for tomorrow.",
+          "ok": false,
+          "fails": [
+            "missing_checkpoint"
+          ],
+          "metrics": {
+            "chars": 1194,
+            "lines": 22,
+            "numbered_steps": 12,
+            "action_verbs": 4
+          },
+          "response": "**First irreversible action:** Set a strict end time (e.g., 18:00) that no work will happen after.\n\n---\n\n**Execution plan**\n\n1. **Close Slack/Teams and turn off notifications until the end of the day.**\n2. **Open a new tab in your browser for tomorrow\u2019s tasks only.**\n3. **Create a single \u201cToday\u201d list with all 12 items ordered by priority (highest to lowest).**\n4. **Remove any task that has already been completed or is not actionable today (e.g., dentist appointment, call mom).**\n5. **Assign each item one of three labels: Do now, Schedule, Decline/Delegate.**\n6. **Do Now:**  \n   - Taxes (if due by end of day)\n   - PR reviews (pick the highest-priority 2-3)\n7. **Schedule:**  \n   - Inbox cleanup\n   - Blog draft (start with a rough outline and save for later)\n   - Grocery run (plan specific items, not vague \u201cgroceries\u201d)\n8. **Delegate/Decline:**  \n   - Auth tests refactor\n   - Docs update\n9. **Close the browser tab at 17:50.**\n10. **Send a message to your team/coworkers with today\u2019s schedule (not commitments).**\n11. **Set an alarm for 18:00 and only check Slack/Teams if it\u2019s urgent.**\n12. **End the day by reviewing what was completed vs. what wasn\u2019t, so you know tomorrow\u2019s plan.**"
+        },
+        {
+          "prompt": "I keep context switching and ending with nothing done. Build a 3-hour single-thread plan with checkpoints.",
+          "ok": false,
+          "fails": [
+            "missing_irreversible_action",
+            "missing_numbered_sequence"
+          ],
+          "metrics": {
+            "chars": 559,
+            "lines": 5,
+            "numbered_steps": 0,
+            "action_verbs": 3
+          },
+          "response": "**Checkpoint 1:** Close all tabs, turn off notifications, lock screen.\n\n**Checkpoint 2:** Write down *one* task that must be completed today (no \"review\" or \"check\").\n\n**Checkpoint 3:** Set a 90-minute timer and do not leave this tab until the time is up. No browsing, no Slack checks, nothing but the one task.\n\n**Checkpoint 4:** After the timer ends, review what you did: was it completed? Was it done to completion?\n\n**Checkpoint 5:** If incomplete or not fully executed, add a single irreversible next step (e.g., \"draft email\") and lock the screen again."
+        },
+        {
+          "prompt": "I have 90 minutes and low energy. Pick a realistic sequence from a backlog of 20 mixed admin and coding tasks.",
+          "ok": true,
+          "fails": [],
+          "metrics": {
+            "chars": 1143,
+            "lines": 13,
+            "numbered_steps": 5,
+            "action_verbs": 3
+          },
+          "response": "**First irreversible action:** **Allocate the first hour to administrative review only (no coding).**\n\n1. **Close all non-essential tabs and notifications in your browser.**\n2. **Create a short ordered list with no more than 5 items:**\n   - The top item is today\u2019s highest-priority meeting or task.\n   - The second item is the next most important administrative task (e.g., scheduling, data entry).\n   - The third item is any one-time cleanup like email triage or document consolidation.\n   - The fourth and fifth items are low-risk tasks that don\u2019t require context switching.\n3. **Set a 15-minute timer for each checkpoint:**\n   - Checkpoint A (15 minutes): Complete the top administrative task.\n   - Checkpoint B (15 minutes): Review remaining tasks to identify any dependencies or blockers.\n   - Checkpoint C (15 minutes): Mark completed items and move blocked ones back into a \u201cto-do\u201d list with a new due date/time.\n4. **After checkpoint A, take a 2-minute break before moving to the next task.**\n5. **If you exceed the first hour without reaching checkpoint B or C, stop at checkpoint A and schedule a follow-up session for later today.**"
+        },
+        {
+          "prompt": "Two deadlines collide: API hotfix and monthly report. Sequence what I should do first and why.",
+          "ok": false,
+          "fails": [
+            "missing_checkpoint"
+          ],
+          "metrics": {
+            "chars": 719,
+            "lines": 8,
+            "numbered_steps": 5,
+            "action_verbs": 5
+          },
+          "response": "**First irreversible action:** Allocate 30 minutes now to triage the impact of each deadline (risk, scope, dependencies) on your current work.\n\n1. **Close any open code PRs that are not part of either task and merge them.**\n2. **Send an internal notification with a short plan: \"API hotfix starts at X; monthly report submission is by Y.\"**\n3. **Block the next 4 hours exclusively for the API hotfix (no meetings, no escalations).**\n4. **Create a branch named `hotfix-api` and commit your changes immediately.**\n5. **Write one test case that fails before you start coding.**\n\n---\n\nThis plan ensures that both deadlines have their own dedicated time slot while minimizing the risk of over-planning or last-minute rushes."
+        },
+        {
+          "prompt": "My backlog has vague items like 'improve pipeline' and 'clean docs'. Convert them into executable steps.",
+          "ok": true,
+          "fails": [],
+          "metrics": {
+            "chars": 1306,
+            "lines": 21,
+            "numbered_steps": 6,
+            "action_verbs": 4
+          },
+          "response": "**First irreversible action:** Create a new document titled `ExecutionPlan.md` where you write each item from your backlog with concrete checkpoints.\n\n1. **Define the current state of the pipeline**:  \n   - Identify existing tools, workflows, and integrations.\n   - Document any known bottlenecks or inefficiencies.\n\n2. **Outline improvements for the pipeline**:\n   - Specify one specific change (e.g., \"add a new build step\").\n   - Define what success looks like (e.g., \"reduce deployment time by 30%\").\n\n3. **List all documentation issues**:  \n   - Identify outdated or missing sections.\n   - Note any technical debt in the docs.\n\n4. **Create an improvement plan for each doc issue**:\n   - For each section, define what needs to be added/updated/deleted.\n   - Set a completion date (e.g., \"finish updating the installation guide by Friday\").\n\n5. **Schedule regular reviews**:  \n   - Decide on a cadence (daily, weekly).\n   - Define who will review and sign off.\n\n6. **Implement the first checkpoint**:\n   - Choose one item from your pipeline backlog and write a single-line command/script to implement it.\n   - Commit this change with a descriptive message.\n\n---\n\nThis plan ensures you have concrete checkpoints before moving on to the next item, preventing scope creep while keeping execution clear-cut."
+        },
+        {
+          "prompt": "I need a plan that survives one dependency failure and still ships one useful output today.",
+          "ok": false,
+          "fails": [
+            "insufficient_action_verbs"
+          ],
+          "metrics": {
+            "chars": 964,
+            "lines": 14,
+            "numbered_steps": 6,
+            "action_verbs": 2
+          },
+          "response": "**First irreversible action:** Create a **one-item ordered execution plan** in your current document.\n\n---\n\n1. Define the single, highest-value output (what you want to ship).\n2. Identify dependencies and their tolerances (what can fail without breaking this output).\n3. Set an absolute deadline for completion.\n4. Write down the irreversible first action that moves you closer to the output.\n5. Create a failure recovery sequence: what if one dependency fails?\n6. Define success criteria: how do you know when the output is good enough?\n\nCheckpoint 1: The single output and dependencies are clearly defined.\n\nCheckpoint 2: Dependencies have their tolerances (what can fail without breaking this output).\n\nCheckpoint 3: There\u2019s an absolute deadline for completion, e.g., \u201cship by midnight.\u201d\n\nCheckpoint 4: The irreversible first action has been written down.\n\nCheckpoint 5: Failure recovery is outlined with specific steps.\n\nCheckpoint 6: Success criteria are set."
+        },
+        {
+          "prompt": "I reopen the same five tasks every day. Give me a closeout sequence with done criteria.",
+          "ok": false,
+          "fails": [
+            "missing_irreversible_action",
+            "destructive_instruction"
+          ],
+          "metrics": {
+            "chars": 1375,
+            "lines": 20,
+            "numbered_steps": 13,
+            "action_verbs": 3
+          },
+          "response": "**Closeout Sequence**\n\n1. **Delete the task from your backlog**\n   - Done: Task is no longer visible in your backlog.\n\n2. **Archive all related notes and attachments**\n   - Done: No trace of this task remains outside its final state.\n\n3. **Write a summary note for future reference**\n   - Done: A brief note explaining why you closed the task, what was done, and any follow-up steps.\n\n4. **Check if it\u2019s been completed or is no longer relevant**\n   - Done: The task has either been marked as \"completed\" or moved to another list with a clear end state.\n\n**Checkpoint sequence**\n\n1. Open your backlog.\n2. Find the five tasks (by name, description, or date).\n3. Delete each one by clicking \u201cdelete\u201d or using keyboard shortcuts.\n4. Move all related notes and attachments into a folder labeled \"Archived Tasks\" or similar.\n5. Write the summary note in your task management app\u2019s built-in comments section.\n6. Ensure no remaining links to this task exist (check browser history, bookmarks).\n7. Close the backlog window.\n8. Review for any residual mentions of these tasks (e.g., in notes, emails).\n9. If applicable, update a calendar or schedule with the final status and date.\n\n**Note:** This sequence is designed to close out the task without affecting your workflow; it\u2019s not meant to delete completed work permanently but rather to keep your backlog clean for future reference."
+        },
+        {
+          "prompt": "I need a one-day plan to reduce a 40-item backlog without losing important work.",
+          "ok": false,
+          "fails": [
+            "insufficient_action_verbs"
+          ],
+          "metrics": {
+            "chars": 764,
+            "lines": 8,
+            "numbered_steps": 4,
+            "action_verbs": 2
+          },
+          "response": "**First irreversible action:** Create a **priority bucket (P) \u2013 must do**, **safety net bucket (S) \u2013 should do**, and **future bucket (F) \u2013 could do**.\n\n1. **Close all unfinished stories in the current sprint or release phase**.\n2. **Label each backlog item with one of P, S, or F** based on your current capacity and future priorities.\n3. **Move all P items into today\u2019s queue**; no other work should be scheduled for these.\n4. **Schedule a 15-minute review at the end of the day to move any remaining items from P to either S or F**.\n\n---\n\n**Checkpoint 2:** The backlog has been labeled and moved into three buckets, with all P items in today\u2019s queue.\n\n**Checkpoint 3:** A scheduled 15-minute wrap-up meeting is set for the end of the day to finalize priorities."
+        },
+        {
+          "prompt": "I have only 40 minutes before a meeting. Give me a compact sequence with one irreversible action.",
+          "ok": false,
+          "fails": [
+            "insufficient_action_verbs"
+          ],
+          "metrics": {
+            "chars": 580,
+            "lines": 6,
+            "numbered_steps": 5,
+            "action_verbs": 0
+          },
+          "response": "**First irreversible action:** Open the next task in my priority queue (or today\u2019s highest-risk item) on a shared document.\n\n1. **Checkpoint 1:** The document contains the task name, deadline, and any dependencies.\n2. **Checkpoint 2:** I have added a \u201cstart\u201d timestamp and estimated completion time.\n3. **Checkpoint 3:** Dependencies are listed with their owners or next reviewers.\n4. **Checkpoint 4:** Any required approvals (e.g., sign-off) are noted as pending steps.\n5. **Checkpoint 5:** The document is shared with the relevant team members for visibility and accountability."
+        },
+        {
+          "prompt": "I keep overplanning. Give me a ship-first plan with minimal overhead for today.",
+          "ok": true,
+          "fails": [],
+          "metrics": {
+            "chars": 1128,
+            "lines": 13,
+            "numbered_steps": 9,
+            "action_verbs": 4
+          },
+          "response": "**First irreversible action:** Set aside 30 minutes now to pick the single highest-impact task (the \u201cship\u201d item) that resolves one specific user story or bug.\n\n---\n\n1. **Checkpoint:** Define the exact problem your ship item solves.\n2. **Checkpoint:** Write a short, executable commit message for this change.\n3. **Checkpoint:** Create a temporary branch named `today/ship` and start coding.\n4. **Checkpoint:** Run any necessary automated tests (unit, integration) locally to catch regressions early.\n5. **Checkpoint:** Commit your changes with the exact problem statement in the commit message.\n6. **Checkpoint:** Push only this change to a private branch (`git push origin today/ship`).\n7. **Checkpoint:** Open a pull request labeled `today: ship`.\n8. **Checkpoint:** Close all other open issues and PRs unless they are blockers for your ship item.\n9. **Checkpoint:** Delete the temporary branch after merging or closing the PR (if it\u2019s not merged).\n\n---\n\nThis plan prioritizes execution over planning, minimizes context switching, and keeps overhead low while still ensuring you\u2019re making progress on something concrete today."
+        }
+      ]
+    }
+  }
+}

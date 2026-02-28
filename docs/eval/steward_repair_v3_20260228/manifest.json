@@ -1,0 +1,9 @@
+{
+  "source_eval_report": "/Users/scawful/src/lab/afs-scawful/docs/eval/steward_eval_v1_vs_v2_t02_20260228.json",
+  "target_model": "gguf/afs/steward_v2-q8_0.gguf",
+  "failed_cases": 2,
+  "checkpoint_failed_cases": 2,
+  "total_rows": 18,
+  "train_rows": 16,
+  "valid_rows": 2
+}
