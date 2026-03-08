@@ -16,13 +16,13 @@ def register_parsers(subparsers: argparse._SubParsersAction) -> None:
             distillation,
             encoder,
             entity,
-            gateway,
             generator,
             generators,
             pipeline,
             tokenizer,
             training,
         )
+        from afs_scawful import gateway_cli
     except Exception as exc:  # pragma: no cover - defensive boundary
         raise RuntimeError(
             "afs-scawful extension requires the core afs package on PYTHONPATH"
@@ -37,7 +37,7 @@ def register_parsers(subparsers: argparse._SubParsersAction) -> None:
         pipeline,
         active_learning,
         generator,
-        gateway,
+        gateway_cli,
         benchmark,
         distillation,
         comparison,
