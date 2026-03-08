@@ -1,0 +1,29 @@
+name = "afs_scawful"
+description = "Personal/domain extension for legacy AFS model, gateway, and training workflows"
+
+knowledge_mounts = [
+  ".context/knowledge",
+]
+
+skill_roots = [
+  "skills",
+]
+
+model_registries = [
+  "config/chat_registry.toml",
+]
+
+cli_modules = [
+  "afs_scawful.extension_cli",
+]
+
+policies = []
+
+[hooks]
+before_context_read = []
+after_context_write = []
+before_agent_dispatch = []
+
+[mcp_tools]
+module = ""
+factory = "register_mcp_tools"
