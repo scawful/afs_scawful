@@ -24,3 +24,4 @@ def test_extension_cli_registers_legacy_command_groups() -> None:
     assert "gateway" in commands
     assert "benchmark" in commands
     assert "comparison" in commands
+    assert "claude" in commands

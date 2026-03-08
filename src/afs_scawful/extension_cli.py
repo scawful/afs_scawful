@@ -11,6 +11,7 @@ def register_parsers(subparsers: argparse._SubParsersAction) -> None:
         from afs.cli import (
             active_learning,
             benchmark,
+            claude,
             comparison,
             distillation,
             encoder,
@@ -40,5 +41,6 @@ def register_parsers(subparsers: argparse._SubParsersAction) -> None:
         benchmark,
         distillation,
         comparison,
+        claude,
     ):
         module.register_parsers(subparsers)

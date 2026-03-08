@@ -17,6 +17,10 @@ cli_modules = [
   "afs_scawful.extension_cli",
 ]
 
+agent_modules = [
+  "afs_scawful.extension_agents",
+]
+
 policies = []
 
 [hooks]
