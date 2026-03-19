@@ -26,6 +26,15 @@ Resolve addresses and symbols across ALTTP disassembly sources (usdasm/jpdasm) s
 - Prefer US `usdasm` for address parity with tooling; use JP `jpdasm` when US exports are missing.
 - Keep label indexes and disassembly roots aligned before drawing conclusions.
 
+## Knowledge References
+Use these for structured context beyond raw disassembly:
+- Bank-by-bank reference: `~/.context/knowledge/hobby/usdasm.md`
+- Game architecture (modules, NMI, state machines): `~/.context/knowledge/alttp/architecture.md`
+- Key routines by domain: `~/.context/knowledge/alttp/routine_index.md`
+- ROM data table locations: `~/.context/knowledge/alttp/data_tables.md`
+- Vanilla sprite catalog (243 types): `~/.context/knowledge/alttp/sprite_catalog.md`
+- SNES CPU & memory map: `~/.context/knowledge/snes/cpu_memory.md`
+
 ## References
 - `references/paths-and-sources.md`
 - `references/label-indexes.md`

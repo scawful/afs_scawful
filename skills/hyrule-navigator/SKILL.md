@@ -44,6 +44,12 @@ Move Link to a specific pixel/tile coordinate.
 - **Tools:** `z3ed` (for map data), Mesen2 socket CLI (for RAM/Input).
 - **Scripts:** `~/src/hobby/yaze/scripts/ai/navigator.py`.
 
+## Knowledge References
+- Oracle overworld format: `~/.context/knowledge/hobby/zscustom-overworld.md`
+- ALTTP game architecture: `~/.context/knowledge/alttp/architecture.md`
+- RAM addresses: `~/.context/knowledge/alttp/ram_map.md`
+- Oracle progression/flags: `~/.context/knowledge/hobby/oracle-progression.md`
+
 ## Commands
 - `navigator locate`: Print current localization info.
 - `navigator route <target_id>`: Plan path to target.

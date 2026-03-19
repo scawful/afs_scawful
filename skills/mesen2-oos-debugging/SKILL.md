@@ -37,6 +37,17 @@ Drive Mesen2-OOS from the socket CLI to reproduce bugs, capture evidence, and ma
 - **ALTTP tooling**: Use Hyrule Historian for disassembly/RAM lookup; use book-of-mudora for ROM map checks and hook validation.
 - **YAZE**: Call `sync <state_path>` after save/load when yaze needs updated state metadata.
 
+## Knowledge References
+Before debugging, consult these for context:
+- Game architecture: `~/.context/knowledge/alttp/architecture.md`
+- RAM addresses: `~/.context/knowledge/alttp/ram_map.md`
+- Vanilla routines: `~/.context/knowledge/alttp/routine_index.md`
+- Oracle flags/progression: `~/.context/knowledge/hobby/oracle-progression.md`
+- Sprite tables: `~/.context/knowledge/hobby/oracle-sprite-ram.md`
+- Debug workflows: `~/.context/knowledge/hobby/workflows.md`
+- Disassembly bank map: `~/.context/knowledge/hobby/usdasm.md`
+- SNES hardware: `~/.context/knowledge/snes/cpu_memory.md`
+
 ## References
 - `references/cli-cheatsheet.md`
 - `references/command-map.md`

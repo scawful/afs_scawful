@@ -35,5 +35,13 @@ description: Train, evaluate, and maintain the scawful-echo persona and related 
    - Convert with `~/src/tools/model-mgr/model-mgr` (GGUF/MLX).
    - Deploy to LM Studio (preferred) or Ollama.
 
+## Knowledge References
+Consult the global knowledge base at `~/.context/knowledge/models/` for background:
+- Model portfolio (Echo lineage, Avatar family): `models/portfolio.md`
+- Training pipeline & quality scoring: `models/training-pipeline.md`
+- Dataset catalog (Echo v2-v4, repair seeds): `models/datasets.md`
+- Deployment workflows: `models/workflows.md`
+- Serving & routing (Avatar router): `models/serving.md`
+
 ## References
 - Read `references/sources.md` for source paths and anchors.

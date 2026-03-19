@@ -35,5 +35,14 @@ description: Manage Zelda/ALTTP/Oracle model training, datasets, evals, registry
 - `model-mgr convert <model> --quantize q4km` for GGUF.
 - `model-mgr mlx-convert <model> --hf-path <path>` for MLX exports.
 
+## Knowledge References
+Consult the global knowledge base at `~/.context/knowledge/models/` for background:
+- Model portfolio & status: `models/portfolio.md`
+- Training pipeline architecture: `models/training-pipeline.md`
+- Dataset catalog: `models/datasets.md`
+- GGUF conversion & deployment: `models/infrastructure.md`
+- Step-by-step workflows: `models/workflows.md`
+- Serving & routing: `models/serving.md`
+
 ## References
 - Read `references/sources.md` for source paths and anchors.

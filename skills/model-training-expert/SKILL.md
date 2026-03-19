@@ -34,3 +34,12 @@ description: Expert guidance for LLM model training, synthetic data generation (
 - `scripts/vision_ingest.py`: Vision-augmented parsing for PDFs and emulator screenshots.
 - `scripts/verify_rom.py`: Agentic evaluation via Mesen2 Socket API.
 - `scripts/agentic_preflight.sh`: Multi-stage validator chaining Z3DK diagnostics with boot checks.
+
+## Knowledge References
+Consult the global knowledge base at `~/.context/knowledge/models/` for background:
+- Model portfolio & current status: `models/portfolio.md`
+- Training pipeline (stages, scoring, augmentation): `models/training-pipeline.md`
+- Dataset catalog (48+ datasets): `models/datasets.md`
+- Infrastructure & Vast.ai ops: `models/infrastructure.md`
+- Step-by-step workflows: `models/workflows.md`
+- Serving & MoE routing: `models/serving.md`
