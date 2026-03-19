@@ -11,7 +11,7 @@ from pathlib import Path
 from typing import Any
 
 from .base import BaseGenerator, GenerationResult
-from ..training import TrainingSample
+from ..sample import TrainingSample
 from ..integrations.ollama_client import OllamaClient
 
 logger = logging.getLogger(__name__)

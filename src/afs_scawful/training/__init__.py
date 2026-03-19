@@ -15,6 +15,8 @@ See also:
 - afs.discriminator: Quality filtering models
 """
 
+from ..sample import TrainingSample
+
 from .antigravity_export import (
     AntigravityExportResult,
     export_antigravity_to_dataset,
@@ -103,6 +105,8 @@ from .scoring import (
 from .splitter import DatasetSplitter, SplitResult, split_dataset
 
 __all__ = [
+    # Sample model
+    "TrainingSample",
     # Config
     "Framework",
     "CotInclusionMode",

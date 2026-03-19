@@ -7,7 +7,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
-    from ...generators.base import TrainingSample
+    from ...sample import TrainingSample
     from ..config import CotInclusionMode
 
 

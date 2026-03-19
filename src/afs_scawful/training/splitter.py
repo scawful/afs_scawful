@@ -9,7 +9,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from ..generators.base import TrainingSample
+    from ..sample import TrainingSample
 
 
 @dataclass

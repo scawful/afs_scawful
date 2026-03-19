@@ -13,7 +13,7 @@ from typing import Any
 
 from ..integrations.ollama_client import ModelResponse, OllamaClient, Prompt
 from ..integrations.google_genai_client import GoogleAIStudioClient, VertexAIClient
-from ..training import TrainingSample
+from ..sample import TrainingSample
 from ..validators import AsmValidator, ValidationResult
 from ..validators.asar_validator_v2 import AsarValidatorV2
 from .config import EvalConfig

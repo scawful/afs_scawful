@@ -30,7 +30,7 @@ from .research import (
     resolve_research_root,
     write_research_catalog,
 )
-from .training import TrainingSample
+from .sample import TrainingSample
 from .validators import default_validators, enhanced_validators
 from .eval import EvalConfig, EvalPipeline
 from .integrations.ollama_client import Prompt

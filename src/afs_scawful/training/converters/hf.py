@@ -7,7 +7,7 @@ from typing import TYPE_CHECKING, Any
 from .base import BaseConverter
 
 if TYPE_CHECKING:
-    from ...generators.base import TrainingSample
+    from ...sample import TrainingSample
 
 
 class AlpacaConverter(BaseConverter):

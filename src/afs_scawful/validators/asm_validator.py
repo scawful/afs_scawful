@@ -14,7 +14,7 @@ import re
 from dataclasses import dataclass
 from typing import Optional
 
-from ..training import TrainingSample
+from ..sample import TrainingSample
 from .base import ValidationResult, Validator
 
 

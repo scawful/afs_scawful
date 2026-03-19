@@ -6,7 +6,7 @@ from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 from typing import Any
 
-from ..training import TrainingSample
+from ..sample import TrainingSample
 
 
 @dataclass

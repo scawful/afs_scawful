@@ -7,7 +7,7 @@ from pathlib import Path
 from typing import Iterable
 
 from ..resource_index import ResourceIndexer
-from ..training import TrainingSample
+from ..sample import TrainingSample
 from .base import BaseGenerator, GenerationResult
 
 

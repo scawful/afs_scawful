@@ -14,7 +14,7 @@ import re
 from pathlib import Path
 from typing import Any, Optional
 
-from ..training import TrainingSample
+from ..sample import TrainingSample
 from .base import ValidationResult, Validator
 
 

@@ -20,7 +20,7 @@ from enum import Enum
 from pathlib import Path
 from typing import Any, Literal
 
-from ..training import TrainingSample
+from ..sample import TrainingSample
 from .base import ValidationResult, Validator
 
 logger = logging.getLogger(__name__)

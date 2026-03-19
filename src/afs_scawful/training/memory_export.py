@@ -7,7 +7,7 @@ from collections.abc import Iterable
 from dataclasses import dataclass, field
 from pathlib import Path
 
-from ..generators.base import TrainingSample
+from ..sample import TrainingSample
 from .redaction import redact_sample
 from .scoring import QualityScorer, build_scoring_config
 

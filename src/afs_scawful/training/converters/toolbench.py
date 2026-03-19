@@ -30,7 +30,7 @@ from typing import TYPE_CHECKING, Any
 import pandas as pd
 
 if TYPE_CHECKING:
-    from ...generators.base import TrainingSample
+    from ...sample import TrainingSample
 
 
 def parse_toolbench_parquet(parquet_path: Path) -> list[TrainingSample]:
@@ -42,7 +42,7 @@ def parse_toolbench_parquet(parquet_path: Path) -> list[TrainingSample]:
     Returns:
         List of TrainingSample objects
     """
-    from ...generators.base import TrainingSample
+    from ...sample import TrainingSample
 
     df = pd.read_parquet(parquet_path)
     samples = []

@@ -8,8 +8,8 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
-from ..generators.base import TrainingSample
-from ..history import append_history_event
+from ..sample import TrainingSample
+from afs.history import append_history_event
 from .redaction import redact_sample, redact_text
 from .scoring import QualityScorer, build_scoring_config
 

@@ -13,7 +13,7 @@ from pathlib import Path
 from typing import Any
 from urllib.parse import urlparse
 
-from ..generators.base import TrainingSample
+from ..sample import TrainingSample
 from .redaction import redact_sample
 from .scoring import QualityScorer, build_scoring_config
 

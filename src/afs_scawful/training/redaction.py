@@ -6,7 +6,7 @@ import re
 from collections.abc import Iterable
 from dataclasses import dataclass
 
-from ..generators.base import TrainingSample
+from ..sample import TrainingSample
 
 
 @dataclass
