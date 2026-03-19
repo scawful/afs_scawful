@@ -1,0 +1,568 @@
+{
+  "meta": {
+    "date_utc": "2026-02-28T21:23:28.727735+00:00",
+    "endpoint": "http://127.0.0.1:1234/v1/chat/completions",
+    "forms": [
+      "free_verse",
+      "haiku",
+      "imagist",
+      "limerick",
+      "sonnet"
+    ],
+    "cases_total": 13
+  },
+  "models": {
+    "gguf/afs/poet_v3-q8_0.gguf": {
+      "model": "gguf/afs/poet_v3-q8_0.gguf",
+      "cases": 13,
+      "passed": 6,
+      "pass_rate": 0.4615,
+      "results": [
+        {
+          "form": "haiku",
+          "prompt": "Write about debugging at 2am with cold coffee.",
+          "ok": true,
+          "fails": [],
+          "metrics": {
+            "lines": 3,
+            "words": 15,
+            "syllables": [
+              5,
+              8,
+              6
+            ]
+          },
+          "response": "cold drip stains my desk  \nsyntax sings like a broken door\u2014  \nthe log finally clears."
+        },
+        {
+          "form": "haiku",
+          "prompt": "Write about rain on train windows after a late shift.",
+          "ok": true,
+          "fails": [],
+          "metrics": {
+            "lines": 3,
+            "words": 17,
+            "syllables": [
+              5,
+              7,
+              6
+            ]
+          },
+          "response": "Rain taps cold glass tight,  \ntracks of light between the drops\u2014  \nthe clock ticks slow and wet."
+        },
+        {
+          "form": "haiku",
+          "prompt": "Write about choosing one task and finally starting.",
+          "ok": false,
+          "fails": [
+            "haiku_syllables"
+          ],
+          "metrics": {
+            "lines": 3,
+            "words": 19,
+            "syllables": [
+              7,
+              10,
+              6
+            ]
+          },
+          "response": "The pencil lifts from paper  \nink still wet on my wrist\u2014then down again\u2014  \na line breaks the silence."
+        },
+        {
+          "form": "limerick",
+          "prompt": "Write about deleting 300 lines of code and sleeping better.",
+          "ok": false,
+          "fails": [
+            "limerick_rhyme_scheme"
+          ],
+          "metrics": {
+            "lines": 5,
+            "words": 29
+          },
+          "response": "I deleted 300 lines of code,  \nand my screen turned to a blank page.  \nMy editor was clean,  \nmy mind felt serene,  \nand I slept like the world had stopped."
+        },
+        {
+          "form": "limerick",
+          "prompt": "Write about broken tests turning green before midnight.",
+          "ok": false,
+          "fails": [
+            "limerick_rhyme_scheme"
+          ],
+          "metrics": {
+            "lines": 5,
+            "words": 28
+          },
+          "response": "In the lab at 12:05 AM,  \na test failed with a red flame\u2014  \nthen it passed clean,  \nlike rain on a pane,  \nand the room stayed warm until dawn."
+        },
+        {
+          "form": "limerick",
+          "prompt": "Write about one tab, one task, and no excuses.",
+          "ok": false,
+          "fails": [
+            "limerick_rhyme_scheme"
+          ],
+          "metrics": {
+            "lines": 5,
+            "words": 29
+          },
+          "response": "There's a tab open so small,  \none window holds my whole goal;  \nno distractions, no delay\u2014  \nI focus on the key point\u2014  \nand there\u2019s no excuse to fail."
+        },
+        {
+          "form": "sonnet",
+          "prompt": "Write about closing every tab except one decisive task.",
+          "ok": false,
+          "fails": [
+            "sonnet_line_count",
+            "sonnet_too_short"
+          ],
+          "metrics": {
+            "lines": 8,
+            "words": 66
+          },
+          "response": "In my browser I keep a single window open\u2014  \na page of code that won\u2019t let me go;  \nthe cursor waits for keystrokes like a friend,  \nand the screen is clean, a map without roads.\n\nThe others close with their usual noise:  \ntabs flash red, then gray, and finally gone.  \nI drink my coffee, watch the light change\u2014  \nthen return to that one task, unbroken."
+        },
+        {
+          "form": "sonnet",
+          "prompt": "Write about rewriting a rough draft into clear argument.",
+          "ok": false,
+          "fails": [
+            "sonnet_line_count"
+          ],
+          "metrics": {
+            "lines": 11,
+            "words": 103
+          },
+          "response": "In ink I carve my thoughts like stone; each word is  \na chisel that breaks through the clay of doubt.  \nThe page starts blank\u2014white paper holds its breath,  \nthen I write and it grows heavy with sense.\n\nI trim sentences to their bones, remove fat,  \nand in one line a whole argument takes shape.  \nMy first draft was fog; now there\u2019s light inside,  \na clear room where ideas stand tall and speak.\n\nI read my poem cold\u2014no heart beats here\u2014but  \nwhen I revise it, the room warms with heat,  \nand I know: this is what I meant all along."
+        },
+        {
+          "form": "sonnet",
+          "prompt": "Write about balancing ambition with realistic scope.",
+          "ok": false,
+          "fails": [
+            "sonnet_line_count"
+          ],
+          "metrics": {
+            "lines": 12,
+            "words": 115
+          },
+          "response": "In my desk lamp\u2019s amber glow I lay alone,  \na small mountain of papers on the table\u2014  \none page thick with bold strokes and one thin stone,  \nthe other blank where a plan should be at home.\n\nI drink from a cup that holds more than water;  \nmy ambition is a room too wide to open.  \nI write in ink that turns my hands into armor,  \nand still I can\u2019t fit the door of what\u2019s possible.\n\nSo I put down the pen and pick up a pencil\u2014  \na line that fits on one page but not two\u2014  \nand say: this is enough for now; tomorrow,  \nanother day to measure ambition against desk."
+        },
+        {
+          "form": "imagist",
+          "prompt": "Write about keyboard clicks, neon light, and a cooling mug.",
+          "ok": true,
+          "fails": [],
+          "metrics": {
+            "lines": 8,
+            "words": 49
+          },
+          "response": "keyboard keys tap out small rain  \non the desk's polished skin;  \nneon casts thin silver lines  \nacross my wrist where I rest my hand.\n\nthe mug cools in one slow breath\u2014  \na cup of water that won't spill\u2014  \nand then it\u2019s just the room,  \nits circuits humming softly."
+        },
+        {
+          "form": "imagist",
+          "prompt": "Write about a white cursor in a dark room at dawn.",
+          "ok": true,
+          "fails": [],
+          "metrics": {
+            "lines": 7,
+            "words": 45
+          },
+          "response": "The screen is black\u2014ink on paper,\na single dot of light  \nin the corner of my eye.\n\nI lean closer; it\u2019s still small,\na pinprick of blue, then it grows  \ninto a thin line that writes itself  \nacross the page like morning rain."
+        },
+        {
+          "form": "free_verse",
+          "prompt": "Write about context switching and mental noise.",
+          "ok": true,
+          "fails": [],
+          "metrics": {
+            "lines": 11,
+            "words": 99
+          },
+          "response": "I switch screens like a drunkard turning keys\u2014  \na monitor\u2019s blue light burns my eyelids open.  \nMy mind is a room with too many doors unlocked;  \nevery app is a door, every tab a hallway.\n\nA notification lands on the desk like rain;  \nI pick up my phone and read one line, then put it down.  \nThe keyboard hums under my fingers\u2014cold metal\u2014  \nand I type until the cursor blinks again.\n\nBetween tasks, I hear myself thinking:  \n\u201cDid I lock that door?\u201d \u201cWhat\u2019s for lunch?\u201d  \nAnd still, I keep typing; there\u2019s no place to hide."
+        },
+        {
+          "form": "free_verse",
+          "prompt": "Write about a tiny win breaking a long freeze.",
+          "ok": true,
+          "fails": [],
+          "metrics": {
+            "lines": 6,
+            "words": 40
+          },
+          "response": "The door hinge clicks once;  \na speck of dust lifts from the floor\u2014  \nand sunlight spills in through the crack.  \n\nMy hands still shake like wet leaves,  \nbut my eyes warm to the first drop  \nof rain on cold skin."
+        }
+      ]
+    },
+    "gguf/afs/poet_v4-q8_0.gguf": {
+      "model": "gguf/afs/poet_v4-q8_0.gguf",
+      "cases": 13,
+      "passed": 4,
+      "pass_rate": 0.3077,
+      "results": [
+        {
+          "form": "haiku",
+          "prompt": "Write about debugging at 2am with cold coffee.",
+          "ok": false,
+          "fails": [
+            "looks_like_title",
+            "haiku_line_count",
+            "haiku_syllables"
+          ],
+          "metrics": {
+            "lines": 4,
+            "words": 15,
+            "syllables": [
+              2,
+              5,
+              8
+            ]
+          },
+          "response": "Haiku:\ncold mug beside code,\none line closes another bug,\nsleep whispers in the dark."
+        },
+        {
+          "form": "haiku",
+          "prompt": "Write about rain on train windows after a late shift.",
+          "ok": false,
+          "fails": [
+            "looks_like_title",
+            "haiku_line_count",
+            "haiku_syllables"
+          ],
+          "metrics": {
+            "lines": 4,
+            "words": 13,
+            "syllables": [
+              2,
+              3,
+              6
+            ]
+          },
+          "response": "Haiku:\nglass holds breath,\nrain taps at the room's edge.\nmorning waits outside."
+        },
+        {
+          "form": "haiku",
+          "prompt": "Write about choosing one task and finally starting.",
+          "ok": true,
+          "fails": [],
+          "metrics": {
+            "lines": 3,
+            "words": 14,
+            "syllables": [
+              6,
+              6,
+              6
+            ]
+          },
+          "response": "Concrete steps turn to glass.\nOne breath opens a door.\nThe room waits patiently."
+        },
+        {
+          "form": "limerick",
+          "prompt": "Write about deleting 300 lines of code and sleeping better.",
+          "ok": false,
+          "fails": [
+            "limerick_rhyme_scheme"
+          ],
+          "metrics": {
+            "lines": 5,
+            "words": 31
+          },
+          "response": "I kept writing until my fingers hurt.\nThen I deleted three hundred curt.\nThe room was quiet,\nAnd the night was bright,\nAnd sleep came like a warm cup of brew."
+        },
+        {
+          "form": "limerick",
+          "prompt": "Write about broken tests turning green before midnight.",
+          "ok": false,
+          "fails": [
+            "limerick_rhyme_scheme"
+          ],
+          "metrics": {
+            "lines": 5,
+            "words": 30
+          },
+          "response": "Concrete steps click like a countdown.\nNo alarm goes off for the room.\nThe clock turns neon and sings:\n\"Almost done! Almost!\nYou can breathe when you pass this thing!\""
+        },
+        {
+          "form": "limerick",
+          "prompt": "Write about one tab, one task, and no excuses.",
+          "ok": false,
+          "fails": [
+            "missing_concrete_imagery",
+            "limerick_rhyme_scheme"
+          ],
+          "metrics": {
+            "lines": 5,
+            "words": 31
+          },
+          "response": "There was a man who could focus,\nWith just one tab he would choose.\nNo distractions to weigh,\nJust the task that was planned,\nAnd no excuses for why not today."
+        },
+        {
+          "form": "sonnet",
+          "prompt": "Write about closing every tab except one decisive task.",
+          "ok": false,
+          "fails": [
+            "sonnet_line_count",
+            "sonnet_too_short"
+          ],
+          "metrics": {
+            "lines": 11,
+            "words": 84
+          },
+          "response": "form closes while I write.\none window holds my breath,\nall others close like curtains in a room at night.\n\nI keep only the task that won't let go,\nand it does not give up until it knows.\nIt is the only thing that will not wait,\nbut demands immediate devotion and proof.\n\nThe rest of the world fades away,\nlike morning mist before the first ray.\nAnd when I finish what I came to do,\nthe room returns with a soft, warm glow."
+        },
+        {
+          "form": "sonnet",
+          "prompt": "Write about rewriting a rough draft into clear argument.",
+          "ok": false,
+          "fails": [
+            "sonnet_line_count",
+            "sonnet_too_short"
+          ],
+          "metrics": {
+            "lines": 8,
+            "words": 64
+          },
+          "response": "form flickers like neon while I write,\nand words shift to music in my head.\nI hold the poem close and let it guide,\nlike a friend who knows what you need next.\n\nThe room grows quiet except for keys,\nand one line leads to another until\nthe whole page is clean, no more rough draft,\nonly proof that sometimes we must start over."
+        },
+        {
+          "form": "sonnet",
+          "prompt": "Write about balancing ambition with realistic scope.",
+          "ok": false,
+          "fails": [
+            "sonnet_line_count"
+          ],
+          "metrics": {
+            "lines": 12,
+            "words": 100
+          },
+          "response": "form-control breathes tight against my ribs,\nand every line I write is a small fight.\nI hold the page like a cup of cold tea,\nwaiting for one last sip before it's done.\n\nThe room waits too, quiet as a drawer.\nOutside, rain taps on windows like advice.\nI keep writing anyway because there are no other choices,\nno way to turn back or go away.\n\nEach word is a tiny step forward,\nand soon enough I can't see the edge anymore.\nThe poem holds me steady with its edges,\nlike a chair in a room that never closes."
+        },
+        {
+          "form": "imagist",
+          "prompt": "Write about keyboard clicks, neon light, and a cooling mug.",
+          "ok": true,
+          "fails": [],
+          "metrics": {
+            "lines": 6,
+            "words": 33
+          },
+          "response": "form flickers beside syntax.\none line writes itself clean,\nanother waits in the monitor's glow.\nI hold the cup long enough to know:\nthe room will keep turning,\nbut this heat is real."
+        },
+        {
+          "form": "imagist",
+          "prompt": "Write about a white cursor in a dark room at dawn.",
+          "ok": true,
+          "fails": [],
+          "metrics": {
+            "lines": 3,
+            "words": 17
+          },
+          "response": "form flickers like cold ash.\none line writes itself across the screen,\nthen waits for another breath."
+        },
+        {
+          "form": "free_verse",
+          "prompt": "Write about context switching and mental noise.",
+          "ok": true,
+          "fails": [],
+          "metrics": {
+            "lines": 5,
+            "words": 32
+          },
+          "response": "form flickers beside free.\nverse waits in a corner,\nwaiting for the room to be still enough.\nI hold poem like a cup of cold water,\nand keep going until it's gone."
+        },
+        {
+          "form": "free_verse",
+          "prompt": "Write about a tiny win breaking a long freeze.",
+          "ok": false,
+          "fails": [
+            "free_verse_line_count"
+          ],
+          "metrics": {
+            "lines": 3,
+            "words": 19
+          },
+          "response": "The first breath through cold fingers.\nA step across cracked glass.\nThe edge of light before the room warms."
+        }
+      ]
+    },
+    "gguf/afs/poet_v5-q8_0.gguf": {
+      "model": "gguf/afs/poet_v5-q8_0.gguf",
+      "cases": 13,
+      "passed": 7,
+      "pass_rate": 0.5385,
+      "results": [
+        {
+          "form": "haiku",
+          "prompt": "Write about debugging at 2am with cold coffee.",
+          "ok": true,
+          "fails": [],
+          "metrics": {
+            "lines": 3,
+            "words": 13,
+            "syllables": [
+              5,
+              8,
+              5
+            ]
+          },
+          "response": "concrete rain on keys\ncold cup beside blinking lines\ncursor waits for yes"
+        },
+        {
+          "form": "haiku",
+          "prompt": "Write about rain on train windows after a late shift.",
+          "ok": true,
+          "fails": [],
+          "metrics": {
+            "lines": 3,
+            "words": 15,
+            "syllables": [
+              5,
+              8,
+              5
+            ]
+          },
+          "response": "rain stains the mug rim,\ntrain hums in the monitor glow,\ncursor waits for ink."
+        },
+        {
+          "form": "haiku",
+          "prompt": "Write about choosing one task and finally starting.",
+          "ok": false,
+          "fails": [
+            "haiku_line_count",
+            "haiku_syllables"
+          ],
+          "metrics": {
+            "lines": 4,
+            "words": 20,
+            "syllables": [
+              7,
+              11,
+              4
+            ]
+          },
+          "response": "concrete edges on the mug\nafter rain, one clean line in the notebook\nnight keeps moving\nso I keep writing."
+        },
+        {
+          "form": "limerick",
+          "prompt": "Write about deleting 300 lines of code and sleeping better.",
+          "ok": false,
+          "fails": [
+            "missing_concrete_imagery",
+            "limerick_rhyme_scheme"
+          ],
+          "metrics": {
+            "lines": 5,
+            "words": 27
+          },
+          "response": "There once was a coder named Ray,\nwho deleted stale blocks in one day.\nthe warnings grew thin,\ncalm settled within,\nand finally sleep came to stay."
+        },
+        {
+          "form": "limerick",
+          "prompt": "Write about broken tests turning green before midnight.",
+          "ok": false,
+          "fails": [
+            "limerick_rhyme_scheme"
+          ],
+          "metrics": {
+            "lines": 5,
+            "words": 31
+          },
+          "response": "There was one coder true and few,\nwho kept a cup of cold coffee too.\nThe logs were dry at last;\nthe build passed fast;\nrelease went live with morning dew."
+        },
+        {
+          "form": "limerick",
+          "prompt": "Write about one tab, one task, and no excuses.",
+          "ok": false,
+          "fails": [
+            "limerick_rhyme_scheme"
+          ],
+          "metrics": {
+            "lines": 5,
+            "words": 28
+          },
+          "response": "There once was a coder named Ray,\nwho deleted stale blocks in one day.\nthe warnings grew thin,\ncalm settled within,\nand the green light finally stayed on."
+        },
+        {
+          "form": "sonnet",
+          "prompt": "Write about closing every tab except one decisive task.",
+          "ok": true,
+          "fails": [],
+          "metrics": {
+            "lines": 14,
+            "words": 102
+          },
+          "response": "I keep one narrow window lit at last,\nwhile tabs drift idle in the swollen pane.\nThe noisy chatter of a distant chat,\nand ghostly outlines of ambition slain.\nI cut away the weathered garden hose,\nlet cold resolve carve clean around the stain.\nThe keyboard accepts my trembling pose,\nand cursor turns reluctant boy to wine.\nA paragraph follows after that,\na brick that stops the wall from sliding away.\nThe room does not applaud, just waits,\nuntil enough small work becomes a day.\nThen sleep can close its honest wooden door,\nand let you carry one good task to bed."
+        },
+        {
+          "form": "sonnet",
+          "prompt": "Write about rewriting a rough draft into clear argument.",
+          "ok": false,
+          "fails": [
+            "sonnet_line_count"
+          ],
+          "metrics": {
+            "lines": 16,
+            "words": 122
+          },
+          "response": "I keep one narrow window lit at last,\nwhile arguments spill on the cold floor.\nThe noisy tabs that mocked me have gone past,\nand silence answers in faint coffee-noir roar.\nI cut the swollen draft to nerve and bone,\nand watch clean lines like rain on windowpane.\nOne paragraph holds enough control\nto steer the drift of a distracted mane.\nAt last I type my way to morning light,\nand find a thesis under the grate.\nIt smells like stale caffeine and good fight,\nnot desperate reach or empty state.\nBy the time I close the final tab,\nthe room has stopped its argumentative walk.\nThe floor is bare, but not unkind;\nI carry what I wrote outside the tent."
+        },
+        {
+          "form": "sonnet",
+          "prompt": "Write about balancing ambition with realistic scope.",
+          "ok": false,
+          "fails": [
+            "sonnet_line_count"
+          ],
+          "metrics": {
+            "lines": 12,
+            "words": 107
+          },
+          "response": "I keep one narrow window clean tonight.\nThe rain has given up on hammering the glass.\nA cold draft hums between the old design.\nI choose no glitter, just enough to kiss the stains.\n\nOne lamp holds steady while the room debates.\nI close one door and let another open gate.\nThe noisy arguments can write their late-night catechism elsewhere.\nThis sentence will not finish until it weeps or learns to breathe.\n\nI give the typing pan a final\u64e6\u62ed.\nThe cursor is a dog that has learned to sleep beside the bed.\nIn the dim corridor, no footsteps follow.\nTomorrow can clean up the spilled tea."
+        },
+        {
+          "form": "imagist",
+          "prompt": "Write about keyboard clicks, neon light, and a cooling mug.",
+          "ok": true,
+          "fails": [],
+          "metrics": {
+            "lines": 4,
+            "words": 37
+          },
+          "response": "I close the noisy tab and let the glass rest.\nThe floor is tile, cold beneath my restless heel.\nI take one breath and write one clear line.\nEnough for a small clean window in the night."
+        },
+        {
+          "form": "imagist",
+          "prompt": "Write about a white cursor in a dark room at dawn.",
+          "ok": true,
+          "fails": [],
+          "metrics": {
+            "lines": 6,
+            "words": 45
+          },
+          "response": "There is enough light to see type.\nI choose one sentence and type it out.\nThe keyboard hums a familiar tune.\nI write one paragraph at a time.\nThe task builds into a small ceremony.\nWhen I look up, the window holds blue-gray gratitude."
+        },
+        {
+          "form": "free_verse",
+          "prompt": "Write about context switching and mental noise.",
+          "ok": true,
+          "fails": [],
+          "metrics": {
+            "lines": 9,
+            "words": 81
+          },
+          "response": "I keep one task alive on the coffee stain.\nThe cursor waits like a neighbor's unopened letter.\nI choose delete and watch rain start again outside.\nConcrete steps are wildflowers in cold weather.\nBetween sentences there is still room for error.\nOne overdue email is equal to one clear glass.\nI will not name today's distraction until after dinner.\nThe task in front of me blinks like lit pages in a binder.\nI accept this as progress and close the tab."
+        },
+        {
+          "form": "free_verse",
+          "prompt": "Write about a tiny win breaking a long freeze.",
+          "ok": true,
+          "fails": [],
+          "metrics": {
+            "lines": 4,
+            "words": 32
+          },
+          "response": "The cursor hums on cold glass.\nA cup forgotten beside the keys.\nI choose one task and let it lead.\nThe room does not applaud, just gives me enough light to see."
+        }
+      ]
+    }
+  }
+}

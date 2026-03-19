@@ -1,0 +1,14 @@
+{
+  "source_eval_report": "/Users/scawful/src/lab/afs-scawful/docs/eval/poet_form_eval_v3_vs_v4_20260228.json",
+  "target_model": "gguf/afs/poet_v4-q8_0.gguf",
+  "failed_cases": 9,
+  "augment_per_fail": 6,
+  "total_rows": 64,
+  "train_rows": 57,
+  "valid_rows": 7,
+  "forms": {
+    "haiku": 20,
+    "limerick": 22,
+    "sonnet": 22
+  }
+}

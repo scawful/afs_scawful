@@ -16,7 +16,7 @@ import re
 GEMINI_PRO     = "gemini-3.1-pro-preview"   # Deep reasoning / thinking
 GEMINI_FLASH   = "gemini-3-flash-preview"   # Fast generation / variation
 
-OPENAI_CODEX   = "codex-5.3"               # Code generation / synthesis
+OPENAI_CODEX   = "gpt-5.2"                 # Code generation / synthesis
 
 ANTHROPIC_SONNET  = "claude-sonnet-4-6"
 ANTHROPIC_OPUS    = "claude-opus-4-6"

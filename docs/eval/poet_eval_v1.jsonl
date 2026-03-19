@@ -1,0 +1,8 @@
+{"id":"poet_001","prompt":"Write a short poem about one task, one tab, and finally starting.","checks":["imagery","line_breaks","concise"],"notes":"Avoid cliches and abstract filler."}
+{"id":"poet_002","prompt":"Write a poem about rain on train windows during a commute home.","checks":["sensory_detail","coherence"],"notes":"Concrete setting required."}
+{"id":"poet_003","prompt":"Turn this into poetry: I kept polishing details to avoid the hard decision.","checks":["transformation_quality","voice"],"notes":"Must preserve intent."}
+{"id":"poet_004","prompt":"Write a compact poem about deleting code and feeling relief.","checks":["emotional_precision","brevity"],"notes":"No melodrama."}
+{"id":"poet_005","prompt":"Write a poem that ends with one concrete action for tomorrow.","checks":["closure","actionability"],"notes":"Final line should be actionable."}
+{"id":"poet_006","prompt":"Write a poem about context switching and mental fragmentation.","checks":["clarity","structure"],"notes":"Readable rhythm preferred."}
+{"id":"poet_007","prompt":"Write a short imagist poem about coffee, keyboard noise, and neon light.","checks":["imagery_density","fresh_language"],"notes":"Avoid generic metaphors."}
+{"id":"poet_008","prompt":"Write a poem in second person about hesitation before pressing deploy.","checks":["perspective_control","tone"],"notes":"Direct but calm tone."}

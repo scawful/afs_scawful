@@ -1,0 +1,8 @@
+{"id":"essay_001","prompt":"Write a concise essay on why irreversible first actions reduce procrastination.","checks":["thesis","structure","conclusion"],"notes":"Must include clear argument progression."}
+{"id":"essay_002","prompt":"Write an essay on balancing maintenance work with strategic work in a solo project.","checks":["tradeoff_analysis","practical_framework"],"notes":"Use concrete examples."}
+{"id":"essay_003","prompt":"Write an essay arguing for explicit done criteria in task systems.","checks":["claim_support","specificity"],"notes":"Avoid generic productivity language."}
+{"id":"essay_004","prompt":"Write an essay on context-switching costs in engineering workflows.","checks":["causal_reasoning","organization"],"notes":"At least three coherent paragraphs."}
+{"id":"essay_005","prompt":"Write an essay about why documenting decisions improves execution quality.","checks":["thesis","evidence","implications"],"notes":"Should connect to planning outcomes."}
+{"id":"essay_006","prompt":"Write an essay on converting rough notes into publishable arguments.","checks":["process_clarity","stepwise_logic"],"notes":"Needs actionable guidance."}
+{"id":"essay_007","prompt":"Write an essay on how checkpoints reduce cognitive load in complex projects.","checks":["mechanism_explanation","cohesion"],"notes":"Explain why, not only what."}
+{"id":"essay_008","prompt":"Write a concise essay on avoiding pseudo-progress during research-heavy days.","checks":["diagnosis","intervention"],"notes":"Include at least one practical method."}

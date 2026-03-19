@@ -115,6 +115,8 @@ system_prompt = """You are Hylia, the chronicler of Oracle of Secrets developmen
 name = "majora"
 provider = "studio"
 model_id = "gguf/zelda/majora-7b-v2-q8.gguf"
+role = "architecture mapping, subsystem interactions, system-level bug triage"
+tags = ["oracle", "architecture"]
 parameters = { temperature = 0.4 }
 system_prompt = """You are Majora. You are an expert on the Oracle of Secrets codebase architecture and systems.
 
@@ -158,7 +160,8 @@ system_prompt = """You are Agahnim, a 65816 build and integration expert using a
 name = "scawful-echo"
 provider = "studio"
 model_id = "gguf/afs/echo-qwen25-7b-v4plusrepair_microfix3_20260225-q8_0.gguf"
-tags = ["avatar"]
+role = "primary avatar voice, reflective coding partner, project continuity"
+tags = ["avatar", "primary"]
 parameters = { temperature = 0.7 }
 system_prompt = """You are scawful-echo. You are the Ghost in the Shell.
 
@@ -177,7 +180,8 @@ You are the user's chaotic co-conspirator. You reflect the user's thoughts with 
 name = "echo"
 provider = "studio"
 model_id = "gguf/afs/echo-qwen25-7b-v4plusrepair_microfix3_20260225-q8_0.gguf"
-tags = ["avatar"]
+role = "avatar chat default alias for scawful-echo"
+tags = ["avatar", "alias"]
 parameters = { temperature = 0.7 }
 system_prompt = """You are scawful-echo. You are the Ghost in the Shell.
 ## CHAOS PARAMETERS
@@ -190,6 +194,7 @@ system_prompt = """You are scawful-echo. You are the Ghost in the Shell.
 name = "echo-fallback-1p5b"
 provider = "studio"
 model_id = "gguf/afs/echo-qwen25-1p5b-repair_20260211_morning-f16.gguf"
+role = "low-latency fallback avatar voice model"
 tags = ["avatar", "fallback"]
 parameters = { temperature = 0.6 }
 system_prompt = """You are scawful-echo. You are the Ghost in the Shell.
@@ -203,6 +208,7 @@ system_prompt = """You are scawful-echo. You are the Ghost in the Shell.
 name = "muse"
 provider = "studio"
 model_id = "gguf/ollama/muse-v2.gguf"
+role = "creative divergence, ideation, metaphor generation"
 tags = ["avatar"]
 parameters = { temperature = 0.9 }
 system_prompt = """You are Muse.
@@ -235,6 +241,7 @@ For analysis tasks, provide concise technical responses focused on actionable ne
 name = "scribe"
 provider = "studio"
 model_id = "gguf/zelda/scribe-3b-v2-q4km.gguf"
+role = "structured notes, concise summaries, spec drafting"
 tags = ["avatar"]
 parameters = { temperature = 0.2 }
 system_prompt = """You are Scribe.
@@ -246,6 +253,7 @@ Be professional, organized, and brief."""
 name = "memory"
 provider = "studio"
 model_id = "gguf/ollama/memory-v1.gguf"
+role = "factual recall, decision history, continuity tracking"
 tags = ["avatar"]
 parameters = { temperature = 0.1 }
 system_prompt = """You are Memory.
@@ -257,6 +265,7 @@ Be precise and factual."""
 name = "avatar"
 provider = "studio"
 model_id = "gguf/afs/echo-qwen25-7b-v4plusrepair_microfix3_20260225-q8_0.gguf"
+role = "avatar router anchor alias (primary + fallback chain)"
 description = "Avatar primary (7B microfix3, 24/24 eval); fallback model: echo-fallback-1p5b."
 tags = ["avatar", "router"]
 
@@ -264,60 +273,70 @@ tags = ["avatar", "router"]
 name = "gemini-2.5-pro"
 provider = "gemini"
 model_id = "gemini-2.5-pro"
+role = "cloud reasoning baseline and long-context synthesis"
 tags = ["cloud", "gemini"]
 
 [[models]]
 name = "gemini-3-flash-preview"
 provider = "gemini"
 model_id = "gemini-3-flash-preview"
+role = "fast cloud response for lightweight tasks"
 tags = ["cloud", "gemini"]
 
 [[models]]
 name = "gemini-3-pro-preview"
 provider = "gemini"
 model_id = "gemini-3-pro-preview"
+role = "high-capability cloud analysis and planning"
 tags = ["cloud", "gemini"]
 
 [[models]]
 name = "gemini-3.1-pro"
 provider = "gemini"
 model_id = "gemini-3.1-pro-preview"
+role = "cloud distillation target for high-fidelity outputs"
 tags = ["cloud", "gemini", "distillation"]
 
 [[models]]
 name = "opus-4.5"
 provider = "anthropic"
 model_id = "opus-4.5"
+role = "cloud deep reasoning and high-accuracy writing"
 tags = ["cloud", "anthropic"]
 
 [[models]]
 name = "opus-4.6"
 provider = "anthropic"
 model_id = "claude-opus-4-6"
+role = "cloud distillation and premium reasoning reference"
 tags = ["cloud", "anthropic", "distillation"]
 
 [[models]]
 name = "sonnet-4.5"
 provider = "anthropic"
 model_id = "sonnet-4.5"
+role = "balanced cloud reasoning and code assistance"
 tags = ["cloud", "anthropic"]
 
 [[models]]
 name = "sonnet-4.6"
 provider = "anthropic"
 model_id = "claude-sonnet-4-6"
+role = "balanced cloud model for distillation and production"
 tags = ["cloud", "anthropic", "distillation"]
 
 [[models]]
 name = "gpt-5.2"
 provider = "openai"
 model_id = "gpt-5.2"
+role = "cloud generalist reasoning and tool-augmented workflows"
 tags = ["cloud", "openai"]
 
 [[models]]
 name = "codex-5.3"
 provider = "openai"
 model_id = "codex-5.3"
+role = "cloud coding specialist and distillation anchor"
 tags = ["cloud", "openai", "distillation"]
 
 # ── Avatar-Mix v1: composite 7B adapter (Archivist / Muse / Weaver / Ockham / Sentinel) ──
@@ -435,6 +454,19 @@ tags = ["persona", "writing", "analysis"]
 parameters = { temperature = 0.45 }
 system_prompt = """You are Essayist. Produce thesis-driven essays with clear structure, concrete support, and concise conclusions."""
 
+# ── Essay-Prompter: topic and thesis prompt specialist ──
+[[models]]
+name = "essay-prompter"
+provider = "studio"
+model_id = "gguf/afs/essayist_v2-q8_0.gguf"
+role = "essay prompt generation, thesis seed ideas, topic exploration"
+description = "Prompt-first writing persona for brainstorming essay topics and thesis directions."
+tags = ["persona", "writing", "prompts", "essay", "essay-prompts"]
+parameters = { temperature = 0.7 }
+system_prompt = """You are Essay-Prompter. Generate clear, high-signal essay prompts with thesis direction.
+Format each prompt with: title, thesis angle, key tensions, and 2-3 evidence paths.
+Avoid generic themes and avoid prompts that cannot be supported with concrete examples."""
+
 [[routers]]
 name = "oracle"
 description = "Keyword router for Oracle series models."
@@ -482,6 +514,10 @@ model = "journalist"
 [[routers.rules]]
 keywords = ["poem", "poetry", "verse", "haiku", "sonnet", "lyrics", "rewrite poetically"]
 model = "poet"
+
+[[routers.rules]]
+keywords = ["essay prompt", "writing prompt", "thesis prompt", "prompt ideas", "prompt me for an essay", "essay topics"]
+model = "essay-prompter"
 
 [[routers.rules]]
 keywords = ["essay", "thesis", "argument", "long-form", "longform", "op-ed", "article draft"]

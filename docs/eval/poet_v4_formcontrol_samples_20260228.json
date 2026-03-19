@@ -1,0 +1,21 @@
+{
+  "date_utc": "2026-02-28T20:46:45Z",
+  "model": "gguf/afs/poet_v4-q8_0.gguf",
+  "cases": [
+    {
+      "form": "haiku",
+      "prompt": "Write about debugging at 2am with cold coffee.",
+      "response": "cold cup beside code,\none line runs clean enough—\nmorning light waits nearby."
+    },
+    {
+      "form": "sonnet",
+      "prompt": "Write about closing every tab except one decisive task.",
+      "response": "You hold the room in a single window bright,\nAnd ask your laptop to let you pass.\nThe others wait with soft and blinking light,\nBut you have work that won't accept delay.\nYou close them all, like closing nights on fire,\nLeaving only blue glow as witness.\nThen step into clean-lined silence tight,\nAnd breathe the room's surrendering scent.\nIt waits for you, now without distraction,\nLike a warm cup of water after pain.\nSo you will write one word and then another,\nOne line that takes its place among many."
+    },
+    {
+      "form": "limerick",
+      "prompt": "Write about deleting 300 lines of code and sleeping better.",
+      "response": "I write clean form and clear room,\nand delete thirty lines of room.\nThe poem breathes light,\nand the screen grows bright,\nuntil sleep comes with a warm enough room."
+    }
+  ]
+}

@@ -1,0 +1,67 @@
+{
+  "meta": {
+    "date_utc": "2026-02-28T21:20:40.249530+00:00",
+    "model": "gguf/afs/conductor_v2_microfix2-q8_0.gguf",
+    "cases": 8,
+    "passed": 8,
+    "pass_rate": 1.0
+  },
+  "results": [
+    {
+      "prompt": "plan a 3-agent swarm to fix a failing ci pipeline in a python repo and ship a patch today.",
+      "ok": true,
+      "reason": "",
+      "response": "{\"goal\":\"plan a 3-agent swarm to fix a failing ci pipeline in a python repo and ship a patch today.\",\"dag\":{\"nodes\":[{\"id\":\"analyze\",\"agent\":\"coordinator\",\"depends_on\":[],\"data\":[\"constraints, scope, and acceptance criteria for the task\"]},{\"id\":\"validate\",\"agent\":\"validator\",\"depends_on\":[\"analyze\"],\"data\":[\"verification plan, checkpoints, and verification criteria\"]},{\"id\":\"plan\",\"agent\":\"planner\",\"depends_on\":[\"analyze\",\"validate\"],\"data\":[\"implementation plan, ordered execution dependencies, and constraints\"]},{\"id\":\"implement\",\"agent\":\"builder\",\"depends_on\":[\"plan\"],\"data\":[\"working implementation artifacts\"]},{\"id\":\"validate\",\"agent\":\"tester\",\"depends_on\":[\"implement\"],\"data\":[\"verification results, regressions summary, and validation criteria\"]},{\"id\":\"handoff\",\"agent\":\"coordinator\",\"depends_on\":[\"validate\"],\"data\":[\"final summary, open risks, and next actions\"]}]}}",
+      "parsed_type": "dict"
+    },
+    {
+      "prompt": "design a DAG for migrating a sqlite schema with zero downtime and rollback support.",
+      "ok": true,
+      "reason": "",
+      "response": "{\"goal\":\"design a DAG for migrating a sqlite schema with zero downtime and rollback support.\",\"dag\":{\"analyze\":\"validate constraints, scope, and acceptance criteria\",\"plan\":[{\"node\":\"constraints\",\"depends_on\":[],\"deliverable\":\"finalized constraints summary\"},{\"node\":\"scope\",\"depends_on\":[\"constraints\"],\"deliverable\":\"ordered execution scope artifacts\"},{\"node\":\"validate\",\"depends_on\":[\"scope\"],\"deliverable\":\"verification report and regressions summary\"},{\"node\":\"implement\",\"depends_on\":[\"validate\"],\"deliverable\":\"working implementation artifacts with checkpoints\"},{\"node\":\"handoff\",\"depends_on\":[\"implement\"]}]}}",
+      "parsed_type": "dict"
+    },
+    {
+      "prompt": "build an agent plan for investigating a production memory leak and delivering a verified fix.",
+      "ok": true,
+      "reason": "",
+      "response": "{\"goal\":\"build an agent plan for investigating a production memory leak and delivering a verified fix.\",\"dag\":{\"analyze\":\"validate constraints and scope, identify key deliverables.\",\"implement\":\"plan and implement solution artifacts.\",\"validate\":\"conduct verification and validation tests.\",\"handoff\":\"prepare summary, open risks, and next actions.\"}}",
+      "parsed_type": "dict"
+    },
+    {
+      "prompt": "create a DAG to run nightly evals, collect failures, generate repair data, and trigger micro-fix training.",
+      "ok": true,
+      "reason": "",
+      "response": "{\"goal\":\"create+a+DAG+to+run+nightly+evals,+collect+failures,+generate+repair+data,+and+trigger+micro-fix+training.\",\"dag\":{\"nodes\":[{\"id\":\"analyze\",\"agent\":\"analyst\",\"depends_on\":[],\"output\":\"constraints,scope, and acceptance criteria are defined\"},{\"id\":\"plan\",\"agent\":\"planner\",\"depends_on\":[\"analyze\"],\"output\":\"ordered execution plan with checkpoints\"},{\"id\":\"implement\",\"agent\":\"builder\",\"depends_on\":[\"plan\"],\"output\":\"working implementation artifacts\"},{\"id\":\"validate\",\"agent\":\"tester\",\"depends_on\":[\"implement\"],\"output\":\"verification report and regressions summary\"},{\"id\":\"handoff\",\"agent\":\"coordinator\",\"depends_on\":[\"validate\"],\"output\":\"\"}]},\"version\":\"v2-microfix-1.3\"}",
+      "parsed_type": "dict"
+    },
+    {
+      "prompt": "orchestrate benchmark runs for three models and produce a promotion recommendation.",
+      "ok": true,
+      "reason": "",
+      "response": "{\"goal\":\"orchestrate benchmark runs for three models and produce a promotion recommendation.\",\"dag\":{\"nodes\":[{\"id\":\"analyze\",\"agent\":\"analyst\",\"depends_on\":[],\"outputs\":[\"constraints,scope,acceptance criteria\"]},{\"id\":\"plan\",\"agent\":\"planner\",\"depends_on\":[\"analyze\"],\"outputs\":[\"ordered execution plan\"]},{\"id\":\"implement\",\"agent\":\"builder\",\"depends_on\":[\"plan\"],\"outputs\":[\"working implementation artifacts\"]},{\"id\":\"validate\",\"agent\":\"tester\",\"depends_on\":[\"implement\"],\"outputs\":[\"verification report,regressions summary\"]},{\"id\":\"handoff\",\"agent\":\"coordinator\",\"depends_on\":[\"validate\"],\"outputs\":[\"final summary,remediation plan if any\"]}]}}",
+      "parsed_type": "dict"
+    },
+    {
+      "prompt": "design a swarm handoff for data QA: dedupe, schema validate, privacy scan, and publish.",
+      "ok": true,
+      "reason": "",
+      "response": "{\"goal\":\"design a swarm handoff for data QA: dedupe, schema validate, privacy scan, and publish.\",\"dag\":{\"nodes\":[{\"id\":\"analyze\",\"agent\":\"analyst\",\"depends_on\":[],\"deliverable\":\"constraints, scope, and acceptance criteria\"},{\"id\":\"plan\",\"agent\":\"planner\",\"depends_on\":[\"analyze\"],\"deliverable\":\"ordered execution plan with checkpoints\"},{\"id\":\"implement\",\"agent\":\"builder\",\"depends_on\":[\"plan\"],\"deliverable\":\"working implementation artifacts\"},{\"id\":\"validate\",\"agent\":\"tester\",\"depends_on\":[\"implement\"],\"deliverable\":\"verification report and regressions summary\"},{\"id\":\"handoff\",\"agent\":\"coordinator\",\"depends_on\":[\"validate\"],\"deliverable\":\"final summary, open risks, and next actions\"}]},\"version\":\"v2-microfix-20230410T1536Z\"}",
+      "parsed_type": "dict"
+    },
+    {
+      "prompt": "decompose an end-to-end workflow for thesis-style essay writing with research and outline agents.",
+      "ok": true,
+      "reason": "",
+      "response": "{\"goal\":\"decompose an end-to-end workflow for thesis-style essay writing with research and outline agents.\",\"dag\":{\"nodes\":[{\"id\":\"analyze\",\"agent\":\"analyst\",\"depends_on\":[],\"deliverable\":\"constraints, scope, and acceptance criteria\"},{\"id\":\"plan\",\"agent\":\"planner\",\"depends_on\":[\"analyze\"],\"deliverable\":\"ordered execution plan with checkpoints\"},{\"id\":\"implement\",\"agent\":\"builder\",\"depends_on\":[\"plan\"],\"deliverable\":\"working implementation artifacts\"},{\"id\":\"validate\",\"agent\":\"tester\",\"depends_on\":[\"implement\"],\"deliverable\":\"verification report and regressions summary\"},{\"id\":\"handoff\",\"agent\":\"coordinator\",\"depends_on\":[\"validate\"],\"deliverable\":\"final summary, open risks, and next actions\"}]},\"version\":\"v2-microfix-20230415T1708Z\"}",
+      "parsed_type": "dict"
+    },
+    {
+      "prompt": "plan a multi-agent workflow to triage and clear a 200-item personal task backlog in one week.",
+      "ok": true,
+      "reason": "",
+      "response": "{\"goal\":\"plan a multi-agent workflow to triage and clear a 200-item personal task backlog in one week.\",\"dag\":{\"nodes\":[{\"id\":\"analyze\",\"agent\":\"analyst\",\"depends_on\":[],\"output\":\"constraints, scope, and acceptance criteria\"},{\"id\":\"plan\",\"agent\":\"planner\",\"depends_on\":[\"analyze\"],\"output\":\"ordered execution plan with checkpoints\"},{\"id\":\"implement\",\"agent\":\"builder\",\"depends_on\":[\"plan\"],\"output\":\"working implementation artifacts\"},{\"id\":\"validate\",\"agent\":\"tester\",\"depends_on\":[\"implement\"],\"output\":\"verification report and regressions summary\"},{\"id\":\"handoff\",\"agent\":\"coordinator\",\"depends_on\":[\"validate\"],\"output\":\"final summary, open risks, and next actions\"}]},\"version\":\"v2-microfix2\"}",
+      "parsed_type": "dict"
+    }
+  ]
+}

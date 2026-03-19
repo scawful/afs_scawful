@@ -1,0 +1,67 @@
+{
+  "meta": {
+    "date_utc": "2026-02-26T15:42:42.176444+00:00",
+    "model": "gguf/afs/conductor_v2-q8_0.gguf",
+    "cases": 8,
+    "passed": 5,
+    "pass_rate": 0.625
+  },
+  "results": [
+    {
+      "prompt": "plan a 3-agent swarm to fix a failing ci pipeline in a python repo and ship a patch today.",
+      "ok": true,
+      "reason": "",
+      "response": "{\"dag\":{\"nodes\":[{\"id\":\"analyze\",\"agent\":\"analyst\",\"depends_on\":[],\"func\":\"validate constraints, scope, and acceptance criteria\"},{\"id\":\"plan\",\"agent\":\"planner\",\"depends_on\":[\"analyze\"],\"func\":\"generate ordered execution plan with checkpoints\"},{\"id\":\"implement\",\"agent\":\"builder\",\"depends_on\":[\"plan\"],\"func\":\"construct implementation artifacts\"},{\"id\":\"validate\",\"agent\":\"tester\",\"depends_on\":[\"implement\"],\"func\":\"run validations against boundary conditions and regressions\"},{\"id\":\"handoff\",\"agent\":\"coordinator\",\"depends_on\":[\"validate\"],\"func\":\"finalize summary, open risks, and schedule follow-ups\"}]},\"version\":\"v2\"}",
+      "parsed_type": "dict"
+    },
+    {
+      "prompt": "design a DAG for migrating a sqlite schema with zero downtime and rollback support.",
+      "ok": true,
+      "reason": "",
+      "response": "{\"dag\":{\"nodes\":[{\"id\":\"analyze\",\"agent\":\"analyst\",\"depends_on\":[],\"params\":{\"goal\":\"define constraints, scope, and acceptance criteria\"}},{\"id\":\"plan\",\"agent\":\"planner\",\"depends_on\":[\"analyze\"],\"params\":{\"summary\":\"outline high-level execution order and checkpoints\"}},{\"id\":\"implement\",\"agent\":\"builder\",\"depends_on\":[\"plan\"],\"params\":{\"description\":\"construct implementation artifacts with cross-checks for correctness\"}},{\"id\":\"validate\",\"agent\":\"tester\",\"depends_on\":[\"implement\"],\"params\":{\"verification\":\"automated tests, smoke checks, and regressions summary\"}},{\"id\":\"handoff\",\"agent\":\"coordinator\",\"depends_on\":[\"validate\"],\"params\":{\"summary\":\"final review, open risks, and next actions\"}}]},\"version\":\"v2\"}",
+      "parsed_type": "dict"
+    },
+    {
+      "prompt": "build an agent plan for investigating a production memory leak and delivering a verified fix.",
+      "ok": true,
+      "reason": "",
+      "response": "{\"goal\":\"build an agent plan for investigating a production memory leak and delivering a verified fix.\",\"dag\":{\"nodes\":[{\"id\":\"analyze\",\"agent\":\"analyst\",\"depends_on\":[],\"constraints\":[\"availability=high\"],\"description\":\"define scope, constraints, and acceptance criteria\"},{\"id\":\"plan\",\"agent\":\"planner\",\"depends_on\":[\"analyze\"],\"constraints\":[\"execution_order=mandatory\"],\"description\":\"generate ordered execution plan with checkpoints\"},{\"id\":\"implement\",\"agent\":\"builder\",\"depends_on\":[\"plan\"],\"constraints\":[\"verification=strict\"],\"description\":\"construct implementation artifacts\"},{\"id\":\"validate\",\"agent\":\"tester\",\"depends_on\":[\"implement\"],\"constraints\":[\"repeatable=always\"],\"description\":\"verify correctness against verification criteria\"},{\"id\":\"handoff\",\"agent\":\"coordinator\",\"depends_on\":[\"validate\"],\"constraints\":[\"summary_required=true\"],\"description\":\"summarize findings, open risks, and plan next actions\"}]},\"version\":\"v2\"}",
+      "parsed_type": "dict"
+    },
+    {
+      "prompt": "create a DAG to run nightly evals, collect failures, generate repair data, and trigger micro-fix training.",
+      "ok": false,
+      "reason": "json_parse_error",
+      "response": "{\"dag\":{\"nodes\":[{\"id\":\"analyze\",\"agent\":\"analyst\",\"depends_on\":[],\"params\":{\"goal\":\"validate constraints and scope of work for nightly evals, failure collection, and micro-fix generation.\"}}},{\"id\":\"plan\",\"agent\":\"planner\",\"depends_on\":[\"analyze\"],\"params\":{\"summary\":\"crafted a detailed execution plan based on the validated constraints.\",\"next_steps\":[\"implement\"],\"constraints\":[\"ordered execution to maintain integrity between checkpoints\"]}}},{\"id\":\"implement\",\"agent\":\"builder\",\"depends_on\":[\"plan\"],\"params\":{\"description\":\"orchestrating ordered executions for evals, failure collection, and repair data generation.\"}}},{\"id\":\"validate\",\"agent\":\"tester\",\"depends_on\":[\"implement\"],\"params\":{\"summary\":\"verified each implemented step adheres to the execution plan.\",\"verification_points\":[\"final output artifacts\"]}}},{\"id\":\"handoff\",\"agent\":\"coordinator\",\"depends_on\":[\"validate\"],\"params\":{\"summary\":\"prepared a final summary and open risks for ongoing monitoring.\"}}}",
+      "parsed_type": null
+    },
+    {
+      "prompt": "orchestrate benchmark runs for three models and produce a promotion recommendation.",
+      "ok": false,
+      "reason": "json_parse_error",
+      "response": "{\"dag\":{\"nodes\":[{\"id\":\"plan\",\"agent\":\"analyst\",\"depends_on\":[],\"data\":{\"summary\":\"orchestrate benchmark runs for three models and produce a promotion recommendation.\"}},\"nodes_after\":[{\"id\":\"implement\",\"agent\":\"builder\",\"depends_on\":[\"plan\"],\"data\":{\"implementation_plan\":\"orchestrate, plan, execute, validate benchmarks; deliver summary report with regressions flagged\"}}},{\"id\":\"validate\",\"agent\":\"tester\",\"depends_on\":[\"implement\"],\"data\":{\"verification_criteria\":\"verify all regressions are addressed, confirm no new regressions introduced.\"}},{\"id\":\"handoff\",\"agent\":\"coordinator\",\"depends_on\":[\"validate\"],\"data\":{\"summary\":\"final review and open risks; prepare summary artifacts for stakeholders.\"}}]},\"version\":\"v2\"}",
+      "parsed_type": null
+    },
+    {
+      "prompt": "design a swarm handoff for data QA: dedupe, schema validate, privacy scan, and publish.",
+      "ok": true,
+      "reason": "",
+      "response": "{\"dag\":{\"nodes\":[{\"id\":\"analyze\",\"agent\":\"analyst\",\"depends_on\":[],\"data\":\"constraints, scope, and acceptance criteria\"},{\"id\":\"plan\",\"agent\":\"planner\",\"depends_on\":[\"analyze\"],\"data\":\"ordered execution plan with checkpoints\"},{\"id\":\"implement\",\"agent\":\"builder\",\"depends_on\":[\"plan\"],\"data\":\"implementation artifacts\"},{\"id\":\"validate\",\"agent\":\"tester\",\"depends_on\":[\"implement\"],\"data\":\"verification criteria and regressions summary\"},{\"id\":\"handoff\",\"agent\":\"coordinator\",\"depends_on\":[\"validate\"],\"data\":\"final summary, open risks, and next actions\"}]},\"version\":\"v2\"}",
+      "parsed_type": "dict"
+    },
+    {
+      "prompt": "decompose an end-to-end workflow for thesis-style essay writing with research and outline agents.",
+      "ok": true,
+      "reason": "",
+      "response": "{\"goal\":\"decompose an end-to-end workflow for thesis-style essay writing with research and outline agents.\",\"dag\":{\"nodes\":[{\"id\":\"analyze\",\"agent\":\"analyst\",\"depends_on\":[],\"deliverable\":\"constraints, scope, and acceptance criteria\"},{\"id\":\"plan\",\"agent\":\"planner\",\"depends_on\":[\"analyze\"],\"deliverable\":\"ordered execution plan with checkpoints\"},{\"id\":\"implement\",\"agent\":\"builder\",\"depends_on\":[\"plan\"],\"deliverable\":\"working implementation artifacts\"},{\"id\":\"validate\",\"agent\":\"tester\",\"depends_on\":[\"implement\"],\"deliverable\":\"verification report and regressions summary\"},{\"id\":\"handoff\",\"agent\":\"coordinator\",\"depends_on\":[\"validate\"],\"deliverable\":\"final summary, open risks, and next actions\"}]},\"version\":\"v2\"}",
+      "parsed_type": "dict"
+    },
+    {
+      "prompt": "plan a multi-agent workflow to triage and clear a 200-item personal task backlog in one week.",
+      "ok": false,
+      "reason": "json_parse_error",
+      "response": "{\"goal\":\"plan a multi-agent workflow to triage and clear a 200-item personal task backlog in one week.\",\"dag\":{\"nodes\":[{\"id\":\"analyze\",\"agent\":\"analyst\",\"depends_on\":[],\"output\":[\"constraints,scope,acceptance-criteria\"]},{\"id\":\"plan\",\"agent\":\"planner\",\"depends_on\":[\"analyze\"],\"output\":[\"ordered-execution-plan\"]},{\"id\":\"validate\",\"agent\":\"validator\",\"depends_on\":[\"plan\"],\"output\":[\"verification-report,regressions\"]},{\"id\":\"implement\",\"agent\":\"builder\",\"depends_on\":[\"plan\"],\"output\":[\"working-implementation\"]},{\"id\":\"validate-final\",\"agent\":\"tester\",\"depends_on\":[\"implement\"],\"output\":[\"final-validation-report,final-regressions\"]},{\"id\":\"handoff\",\"agent\":\"coordinator\",\"depends_on\":[\"validate-final\"],\"output\":[\"summary,open-issues\"]}]}\"}",
+      "parsed_type": null
+    }
+  ]
+}

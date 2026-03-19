@@ -114,13 +114,12 @@ def main() -> int:
     if hasattr(model, "generation_config") and model.generation_config:
         model.generation_config.use_cache = False
 
-    dataset = load_dataset(
-        "json",
-        data_files={
-            "train": str(data_dir / "train.jsonl"),
-            "validation": str(data_dir / "valid.jsonl"),
-        },
-    )
+    valid_path = data_dir / "valid.jsonl"
+    has_valid = valid_path.exists() and valid_path.stat().st_size > 2
+    data_files: dict[str, str] = {"train": str(data_dir / "train.jsonl")}
+    if has_valid:
+        data_files["validation"] = str(valid_path)
+    dataset = load_dataset("json", data_files=data_files)
 
     def tokenize_row(batch: dict[str, Any]) -> dict[str, list[list[int]]]:
         encoded_ids = []
@@ -152,6 +151,7 @@ def main() -> int:
         remove_columns=dataset["train"].column_names,
     )
 
+    eval_dataset = tokenized["validation"] if has_valid else None
     training_args = TrainingArguments(
         output_dir=str(out_dir),
         num_train_epochs=args.epochs,
@@ -161,8 +161,8 @@ def main() -> int:
         learning_rate=args.lr,
         logging_steps=1,
         save_steps=10,
-        eval_steps=5,
-        eval_strategy="steps",
+        eval_steps=5 if has_valid else None,
+        eval_strategy="steps" if has_valid else "no",
         save_total_limit=2,
         bf16=torch.cuda.is_available() and torch.cuda.is_bf16_supported(),
         fp16=torch.cuda.is_available() and not torch.cuda.is_bf16_supported(),
@@ -174,7 +174,7 @@ def main() -> int:
         model=model,
         args=training_args,
         train_dataset=tokenized["train"],
-        eval_dataset=tokenized["validation"],
+        eval_dataset=eval_dataset,
         data_collator=DataCollatorForLanguageModeling(tokenizer=tokenizer, mlm=False),
     )
 

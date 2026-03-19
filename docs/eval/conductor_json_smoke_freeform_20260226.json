@@ -1,0 +1,67 @@
+{
+  "meta": {
+    "date_utc": "2026-02-26T04:48:08.655098+00:00",
+    "model": "gguf/afs/conductor_v1-q8_0.gguf",
+    "cases": 8,
+    "passed": 2,
+    "pass_rate": 0.25
+  },
+  "results": [
+    {
+      "prompt": "plan a 3-agent swarm to fix a failing ci pipeline in a python repo and ship a patch today.",
+      "ok": false,
+      "reason": "json_parse_error",
+      "response": "[[agent:Builder, action:analyze-code-coverage, depends_on:[analyst]], [agent:Analyst, action:triage-bugs, depends_on:[builder]], [agent:Deployer, action:validate-patch, depends_on:[analyst]]]]",
+      "parsed_type": null
+    },
+    {
+      "prompt": "design a DAG for migrating a sqlite schema with zero downtime and rollback support.",
+      "ok": false,
+      "reason": "json_parse_error",
+      "response": "[\"task\":\"analyze\",\"depends_on\":[],\"description\":\"Identify the source schema, target schema, constraints, indexes, triggers, and views to ensure compatibility and functionality\"],\"task\":\"implement_migration_plan\",\"depends_on\":[\"analyze\"],\"description\":\"Generate a detailed migration plan including cherry-picked SQL scripts for each change, handling conflicts, and ensuring atomicity.\",\"task\":\"validate_migration_plan\",\"depends_on\":[\"implement_migration_plan\"],\"description\":\"Run the generated migration plan against a test database to verify that all changes are correct and regressions have been avoided.\",\"task\":\"execute_migration\",\"depends_on\":[\"validate_migration_plan\"],\"description\":\"Apply the validated migration plan to the production environment, ensuring minimal disruption by executing in batches or parallelizable sections.\",\"task\":\"monitor_and_rollback\",\"depends_on\":[\"execute_migration\"],\"description\":\"Set up monitoring for any issues that arise post-migration and implement a rollback mechanism if necessary. Rollback should be reversible with another execution of the validate_migration_plan step.\"]",
+      "parsed_type": null
+    },
+    {
+      "prompt": "build an agent plan for investigating a production memory leak and delivering a verified fix.",
+      "ok": true,
+      "reason": "",
+      "response": "[\"analyze\",\"implement\",\"validate\"]",
+      "parsed_type": "list"
+    },
+    {
+      "prompt": "create a DAG to run nightly evals, collect failures, generate repair data, and trigger micro-fix training.",
+      "ok": false,
+      "reason": "json_parse_error",
+      "response": "[[node:analyze_failures, depends_on:[load_eval_results]], [node:generate_repair_data, depends_on:[analyze_failures]], [node:trigger_training, depends_on:[generate_repair_data]]]]",
+      "parsed_type": null
+    },
+    {
+      "prompt": "orchestrate benchmark runs for three models and produce a promotion recommendation.",
+      "ok": true,
+      "reason": "",
+      "response": "[\"run_benchmark\", \"validate_results\", \"compare_metrics\", \"evaluate_impact\", \"generate_recommendation\"]",
+      "parsed_type": "list"
+    },
+    {
+      "prompt": "design a swarm handoff for data QA: dedupe, schema validate, privacy scan, and publish.",
+      "ok": false,
+      "reason": "json_missing_plan_keys",
+      "response": "[\"dag\",\"nodes\":[\"dedupe\",\"schema-validate\",\"privacy-scan\"],\"dependencies\":{\"dedupe\":[\"data\"],\"schema-validate\":[\"dedupe\"],\"privacy-scan\":[\"schema-validate\"],\"publish\":[\"privacy-scan\"]},\"description\":\"A DAG for a data QA handoff with nodes deduping, validating schema, scanning privacy risks, and finally publishing the validated data.\"]",
+      "parsed_type": "dict"
+    },
+    {
+      "prompt": "decompose an end-to-end workflow for thesis-style essay writing with research and outline agents.",
+      "ok": false,
+      "reason": "json_missing_plan_keys",
+      "response": "[curriculum_vitae\n  {\n    \"id\": \"research_agent\",\n    \"role\": \"Researcher\",\n    \"dependencies\": [],\n    \"provides\": [\"bibliography\", \"references\"]\n  },\n  {\n    \"id\": \"outline_agent\",\n    \"role\": \"Outliner\",\n    \"dependencies\": [\"research_agent\"],\n    \"provides\": [\"structured_outline\", \"notes_for_improvement\"]\n  },\n  {\n    \"id\": \"writer_agent\",\n    \"role\": \"Writer\",\n    \"dependencies\": [\"outline_agent\"],\n    \"provides\": [\"draft_document\", \"revision_requests\"]\n  },\n  {\n    \"id\": \"editor_agent\",\n    \"role\": \"Editor\",\n    \"dependencies\": [\"writer_agent\"],\n    \"provides\": [\"final_draft\", \"proofreading_notes\"]\n  }\n]",
+      "parsed_type": "dict"
+    },
+    {
+      "prompt": "plan a multi-agent workflow to triage and clear a 200-item personal task backlog in one week.",
+      "ok": false,
+      "reason": "json_parse_error",
+      "response": "[[node:analyze_backlog, depends_on:[]], [node:implement_plan, depends_on:[analyze_backlog]], [node:validate_results, depends_on:[implement_plan]], [node:escalate_issues, depends_on:[validate_results]], [node:handoff_to_agent, depends_on:[escalate_issues]]]]",
+      "parsed_type": null
+    }
+  ]
+}

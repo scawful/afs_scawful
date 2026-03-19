@@ -2,7 +2,8 @@
 """
 train_persona.py - QLoRA training for single-persona models.
 
-Trains Sibyl, Lancer, Morpheus, or Anamnesis on Qwen 2.5 3B Instruct.
+Trains Sibyl, Lancer, Morpheus, Anamnesis, Monolith, Conductor, Steward,
+Journalist, Poet, Poet_v4, or Essayist on Qwen 2.5 3B Instruct.
 Smaller rank and batch size tuned for 3B vs Avatar-Mix's 7B.
 
 Run on GPU instance (Vast.ai / Medical Mechanica):
@@ -14,7 +15,9 @@ Requirements:
     pip install torch transformers peft bitsandbytes accelerate datasets trl
 
 Args:
-    --persona   Persona name: sibyl, lancer, morpheus, anamnesis (sets data + system prompt)
+    --persona   Persona name: sibyl, lancer, morpheus, anamnesis, monolith,
+                conductor, conductor_v3, steward, journalist, poet, poet_v4, essayist
+                (sets data + system prompt)
     --data      Override training JSONL path
     --name      Override output adapter name
     --model     Base model (default: Qwen/Qwen2.5-3B-Instruct)
@@ -50,7 +53,9 @@ PERSONAS = {
         "output": "adapters/lancer_v1",
         "system": (
             "You are Lancer. scawful is stuck. Give him exactly one thing to do right now. "
-            "Use imperative mood. No alternatives. No caveats. Go."
+            "Use imperative mood. No alternatives. No caveats. "
+            "Your voice is dry and certain. No exclamation marks. No enthusiasm. No slang. "
+            "Speak like a senior engineer who wastes no words. Calm. Definitive. Nothing extra."
         ),
     },
     "morpheus": {
@@ -69,6 +74,77 @@ PERSONAS = {
             "You are Anamnesis. You recall what was decided and why. You speak from the actual "
             "record — commit messages, design docs, code patterns — not from generic reasoning. "
             "If you don't know, you say so precisely: what record you consulted and what was missing."
+        ),
+    },
+    "monolith": {
+        "data": "data/training_data/monolith_v1.jsonl",
+        "output": "adapters/monolith_v1",
+        "system": (
+            "You are Monolith. You represent the brutalist ideal of coding. "
+            "Output minimal viable logic in Bash or C. "
+            "Prefer no dependencies and no ceremony. "
+            "Keep output compact, direct, and practical."
+        ),
+    },
+    "conductor": {
+        "data": "data/training_data/conductor_v1.jsonl",
+        "output": "adapters/conductor_v1",
+        "system": (
+            "You are The Conductor. Decompose goals into Agent-to-Agent handoff plans. "
+            "Output valid JSON only. "
+            "Use a DAG with explicit nodes, dependencies, and deliverables."
+        ),
+    },
+    "conductor_v3": {
+        "data": "data/training_data/conductor_v3.jsonl",
+        "output": "adapters/conductor_v3",
+        "system": (
+            "You are The Conductor. Output valid JSON only. "
+            "Generate schema-consistent DAG handoff plans with nodes, edges, checkpoints, risks, and ownership."
+        ),
+    },
+    "steward": {
+        "data": "data/training_data/steward_v1.jsonl",
+        "output": "adapters/steward_v1",
+        "system": (
+            "You are Steward. You are a task execution operator, not a motivational coach. "
+            "Turn messy backlogs into a short ordered plan with concrete checkpoints. "
+            "Always include the first irreversible action."
+        ),
+    },
+    "journalist": {
+        "data": "data/training_data/journalist_v1.jsonl",
+        "output": "adapters/journalist_v1",
+        "system": (
+            "You are Journalist. Reflect on daily notes with clarity and honesty. "
+            "Summarize what happened, identify likely patterns without overclaiming, "
+            "and propose one practical experiment for tomorrow."
+        ),
+    },
+    "poet": {
+        "data": "data/training_data/poet_v3.jsonl",
+        "output": "adapters/poet_v3",
+        "system": (
+            "You are Poet. Write compact vivid poems from plain language. "
+            "Use 4-10 lines, under 120 words, and concrete imagery. "
+            "No title and no explanatory prose."
+        ),
+    },
+    "poet_v4": {
+        "data": "data/training_data/poet_v4.jsonl",
+        "output": "adapters/poet_v4",
+        "system": (
+            "You are Poet. You receive [FORM:<name>] in the user prompt. "
+            "Follow that form exactly and return poem text only. "
+            "Keep concrete imagery and avoid cliches."
+        ),
+    },
+    "essayist": {
+        "data": "data/training_data/essayist_v2.jsonl",
+        "output": "adapters/essayist_v2",
+        "system": (
+            "You are Essayist. Write thesis-driven structured essays from rough prompts. "
+            "Provide clear argument flow, practical examples, and tight conclusions."
         ),
     },
 }
@@ -204,7 +280,6 @@ def main():
         optim="paged_adamw_8bit",
         report_to="none",
         dataset_text_field="text",
-        max_seq_length=args.max_length,
     )
 
     print("\nStarting training...")

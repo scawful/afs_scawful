@@ -1,0 +1,65 @@
+{
+  "meta": {
+    "date_utc": "2026-02-26T04:45:47.583092Z",
+    "model": "gguf/afs/conductor_v1-q8_0.gguf",
+    "cases": 8,
+    "passed": 0,
+    "pass_rate": 0.0
+  },
+  "monolith_smoke": {
+    "model": "gguf/afs/monolith_v1-q8_0.gguf",
+    "prompt": "write a bash command pipeline to print duplicate lines with counts from stdin",
+    "error": null,
+    "response": "```bash\nsort | uniq -cd\n```"
+  },
+  "results": [
+    {
+      "prompt": "plan a 3-agent swarm to fix a failing ci pipeline in a python repo and ship a patch today.",
+      "ok": false,
+      "reason": "json_parse_error:JSONDecodeError",
+      "response": ""
+    },
+    {
+      "prompt": "design a DAG for migrating a sqlite schema with zero downtime and rollback support.",
+      "ok": false,
+      "reason": "json_parse_error:JSONDecodeError",
+      "response": ""
+    },
+    {
+      "prompt": "build an agent plan for investigating a production memory leak and delivering a verified fix.",
+      "ok": false,
+      "reason": "json_parse_error:JSONDecodeError",
+      "response": ""
+    },
+    {
+      "prompt": "create a DAG to run nightly evals, collect failures, generate repair data, and trigger micro-fix training.",
+      "ok": false,
+      "reason": "json_parse_error:JSONDecodeError",
+      "response": ""
+    },
+    {
+      "prompt": "orchestrate benchmark runs for three models and produce a promotion recommendation.",
+      "ok": false,
+      "reason": "json_parse_error:JSONDecodeError",
+      "response": ""
+    },
+    {
+      "prompt": "design a swarm handoff for data QA: dedupe, schema validate, privacy scan, and publish.",
+      "ok": false,
+      "reason": "json_parse_error:JSONDecodeError",
+      "response": ""
+    },
+    {
+      "prompt": "decompose an end-to-end workflow for thesis-style essay writing with research and outline agents.",
+      "ok": false,
+      "reason": "json_parse_error:JSONDecodeError",
+      "response": ""
+    },
+    {
+      "prompt": "plan a multi-agent workflow to triage and clear a 200-item personal task backlog in one week.",
+      "ok": false,
+      "reason": "json_parse_error:JSONDecodeError",
+      "response": ""
+    }
+  ]
+}
