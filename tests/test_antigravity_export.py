@@ -1,6 +1,6 @@
 import json
 
-from afs.training.antigravity_export import _extract_json_objects, _payload_to_sample
+from afs_scawful.training.antigravity_export import _extract_json_objects, _payload_to_sample
 
 
 def test_antigravity_payload_to_sample() -> None:

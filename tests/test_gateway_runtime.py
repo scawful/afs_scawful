@@ -1,5 +1,9 @@
 from __future__ import annotations
 
+import pytest
+
+fastapi = pytest.importorskip("fastapi", reason="fastapi not installed")
+
 from afs_scawful.gateway_server import PERSONAS
 from afs_scawful.moe.router import RouterConfig
 

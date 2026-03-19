@@ -97,7 +97,7 @@ class RehearsalBuffer:
                     continue
 
                 data = json.loads(line)
-                sample = TrainingSample(**data)
+                sample = TrainingSample.from_dict(data)
 
                 # Add provenance if tracking
                 if self.config.track_provenance and version:

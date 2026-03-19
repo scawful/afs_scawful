@@ -12,6 +12,18 @@ from afs.training.pipeline import DataPipeline, PipelineConfig
 from afs.training.rehearsal import RehearsalBuffer, RehearsalBufferConfig
 
 
+@pytest.fixture
+def sample_jsonl_file(tmp_path):
+    """Create a sample JSONL file for pipeline tests."""
+    path = tmp_path / "samples.jsonl"
+    samples = [
+        {"instruction": f"Q{i}", "output": f"A{i}", "input": "", "domain": "test", "source": "test", "quality_score": 0.7}
+        for i in range(10)
+    ]
+    path.write_text("\n".join(json.dumps(s) for s in samples), encoding="utf-8")
+    return path
+
+
 class TestTrainingSample:
     """Test TrainingSample data structure."""
 
@@ -66,9 +78,9 @@ class TestRehearsalBuffer:
         assert buffer.config == config
         assert len(buffer.samples) == 0
 
-    def test_load_from_jsonl(self, temp_dir):
+    def test_load_from_jsonl(self, tmp_path):
         # Create test JSONL
-        jsonl_path = temp_dir / "test.jsonl"
+        jsonl_path = tmp_path / "test.jsonl"
         samples = [
             {"instruction": "Q1", "output": "A1", "thinking": "T1", "domain": "d", "source": "s", "quality_score": 0.8},
             {"instruction": "Q2", "output": "A2", "thinking": "T2", "domain": "d", "source": "s", "quality_score": 0.6},
@@ -144,7 +156,7 @@ class TestRehearsalBuffer:
         assert any(s.source == "old" for s in merged)
         assert any(s.source == "new" for s in merged)
 
-    def test_save_and_load(self, temp_dir):
+    def test_save_and_load(self, tmp_path):
         # Create buffer
         buffer1 = RehearsalBuffer()
         buffer1.samples = [
@@ -159,7 +171,7 @@ class TestRehearsalBuffer:
         ]
 
         # Save
-        save_path = temp_dir / "buffer.jsonl"
+        save_path = tmp_path / "buffer.jsonl"
         saved = buffer1.save(save_path)
         assert saved == 1
 
@@ -174,11 +186,11 @@ class TestTrainingPipeline:
     """Test full training pipeline."""
 
     @pytest.mark.slow
-    def test_pipeline_basic_flow(self, temp_dir, sample_jsonl_file):
+    def test_pipeline_basic_flow(self, tmp_path, sample_jsonl_file):
         # Create basic pipeline config
         config = PipelineConfig(
             input_paths=[sample_jsonl_file],
-            output_dir=temp_dir,
+            output_dir=tmp_path,
             expand_vocab=False,
             extract_entities=False,
             score_quality=False,
@@ -196,10 +208,10 @@ class TestTrainingPipeline:
         assert result.output_count > 0
 
     @pytest.mark.slow
-    def test_pipeline_with_quality_filtering(self, temp_dir, sample_jsonl_file):
+    def test_pipeline_with_quality_filtering(self, tmp_path, sample_jsonl_file):
         config = PipelineConfig(
             input_paths=[sample_jsonl_file],
-            output_dir=temp_dir,
+            output_dir=tmp_path,
             min_quality_score=0.7,
             expand_vocab=False,
             extract_entities=False,
@@ -221,7 +233,7 @@ class TestIntegration:
     """Integration tests for full workflows."""
 
     @pytest.mark.slow
-    def test_full_training_workflow(self, temp_dir):
+    def test_full_training_workflow(self, tmp_path):
         """Test complete workflow: generate → process → train-ready."""
 
         # 1. Generate samples
@@ -238,13 +250,13 @@ class TestIntegration:
         ]
 
         # 2. Save to JSONL
-        raw_path = temp_dir / "raw.jsonl"
+        raw_path = tmp_path / "raw.jsonl"
         with open(raw_path, 'w') as f:
             for s in samples:
                 f.write(json.dumps(s.to_dict()) + '\n')
 
         # 3. Process through pipeline
-        output_dir = temp_dir / "processed"
+        output_dir = tmp_path / "processed"
         config = PipelineConfig(
             input_paths=[raw_path],
             output_dir=output_dir,
@@ -266,7 +278,7 @@ class TestIntegration:
         assert (output_dir / "val.jsonl").exists()
 
     @pytest.mark.slow
-    def test_rehearsal_workflow(self, temp_dir):
+    def test_rehearsal_workflow(self, tmp_path):
         """Test rehearsal buffer workflow."""
 
         # 1. Create v1 data
@@ -282,7 +294,7 @@ class TestIntegration:
             for i in range(20)
         ]
 
-        v1_path = temp_dir / "v1.jsonl"
+        v1_path = tmp_path / "v1.jsonl"
         with open(v1_path, 'w') as f:
             for s in v1_samples:
                 f.write(json.dumps(s.to_dict()) + '\n')
@@ -292,7 +304,7 @@ class TestIntegration:
         buffer.load_from_jsonl(v1_path, version="v1")
         buffer.select_top_samples()
 
-        rehearsal_path = temp_dir / "rehearsal.jsonl"
+        rehearsal_path = tmp_path / "rehearsal.jsonl"
         buffer.save(rehearsal_path)
 
         # 3. Create v2 data
@@ -324,12 +336,12 @@ class TestIntegration:
 class TestProperties:
     """Property-based tests for invariants."""
 
-    def test_pipeline_output_smaller_or_equal(self, temp_dir, sample_jsonl_file):
+    def test_pipeline_output_smaller_or_equal(self, tmp_path, sample_jsonl_file):
         """Pipeline should never increase sample count (only filter/dedupe)."""
 
         config = PipelineConfig(
             input_paths=[sample_jsonl_file],
-            output_dir=temp_dir,
+            output_dir=tmp_path,
             min_quality_score=0.0,
             expand_vocab=False,
             extract_entities=False,

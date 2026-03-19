@@ -18,8 +18,12 @@ class TrainingSample:
     thinking: str | None = None
     source: str = ""
     sample_id: str = ""
+    quality_score: float = 0.0
+    teacher_model: str = ""
+    teacher_prompt: str = ""
     timestamp: str = ""
     metadata: dict[str, Any] = field(default_factory=dict)
+    _metadata: dict[str, Any] = field(default_factory=dict)
     kg_entities: list[str] = field(default_factory=list)
     kg_validated: bool = False
 
@@ -30,7 +34,7 @@ class TrainingSample:
             self.timestamp = datetime.now().isoformat()
 
     def to_dict(self) -> dict[str, Any]:
-        return {
+        d: dict[str, Any] = {
             "instruction": self.instruction,
             "input": self.input,
             "output": self.output,
@@ -38,11 +42,17 @@ class TrainingSample:
             "thinking": self.thinking,
             "source": self.source,
             "sample_id": self.sample_id,
+            "quality_score": self.quality_score,
+            "teacher_model": self.teacher_model,
+            "teacher_prompt": self.teacher_prompt,
             "timestamp": self.timestamp,
             "metadata": self.metadata,
             "kg_entities": self.kg_entities,
             "kg_validated": self.kg_validated,
         }
+        if self._metadata:
+            d["_metadata"] = self._metadata
+        return d
 
     def to_jsonl_entry(self) -> str:
         payload = {
@@ -72,8 +82,12 @@ class TrainingSample:
             thinking=data.get("thinking"),
             source=data.get("source", ""),
             sample_id=data.get("sample_id", ""),
+            quality_score=float(data.get("quality_score", 0.0)),
+            teacher_model=data.get("teacher_model", ""),
+            teacher_prompt=data.get("teacher_prompt", ""),
             timestamp=data.get("timestamp", ""),
             metadata=data.get("metadata", {}) or {},
+            _metadata=data.get("_metadata", {}) or {},
             kg_entities=data.get("kg_entities", []) or [],
             kg_validated=bool(data.get("kg_validated", False)),
         )
