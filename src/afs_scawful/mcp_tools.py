@@ -6,7 +6,6 @@ as MCP tools discoverable by any MCP client connected to AFS.
 
 from __future__ import annotations
 
-import json
 import re
 import subprocess
 import tempfile
