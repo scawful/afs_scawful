@@ -1,5 +1,5 @@
 name = "afs_scawful"
-description = "Personal/domain extension for legacy AFS model, gateway, and training workflows"
+description = "Personal extension: training infra, assembly tools, expert models, and ROM hacking workflows"
 
 knowledge_mounts = [
   ".context/knowledge",
@@ -29,5 +29,5 @@ after_context_write = []
 before_agent_dispatch = []
 
 [mcp_tools]
-module = ""
+module = "afs_scawful.mcp_tools"
 factory = "register_mcp_tools"
