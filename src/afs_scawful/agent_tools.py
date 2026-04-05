@@ -3,11 +3,14 @@
 from __future__ import annotations
 
 import json
+import logging
 import re
 import subprocess
 import tempfile
 from pathlib import Path
 from typing import Any
+
+logger = logging.getLogger(__name__)
 
 from afs.agent.tools import (
     DEFAULT_ASAR_PATH,
@@ -133,7 +136,7 @@ async def alttp_knowledge_handler(args: dict[str, Any]) -> ToolResult:
                 metadata={"query": query, "source": "hyrule-historian"},
             )
     except Exception:
-        pass
+        logger.debug("hyrule-historian MCP lookup failed", exc_info=True)
 
     knowledge_dir = DEFAULT_CONTEXT_ROOT / "knowledge" / "alttp"
     if knowledge_dir.exists():
@@ -151,7 +154,7 @@ async def alttp_knowledge_handler(args: dict[str, Any]) -> ToolResult:
                     metadata={"query": query, "source": "local_knowledge"},
                 )
         except Exception:
-            pass
+            logger.debug("Local knowledge search failed", exc_info=True)
 
     return ToolResult(success=False, content="", error=f"No knowledge found for: {query}")
 

@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import asyncio
 import logging
+import os
 import subprocess
 from collections.abc import Sequence
 from dataclasses import dataclass
@@ -73,12 +74,14 @@ EXPERT_MODELS = {
     ),
 }
 
+_YAZE_MCP_ROOT = os.environ.get("YAZE_MCP_PATH", "/Users/scawful/Code/yaze-mcp")
+
 MCP_SERVERS = {
     "yaze-debugger": MCPServer(
         name="yaze-debugger",
-        command="/Users/scawful/Code/yaze-mcp/venv/bin/python",
-        args=["/Users/scawful/Code/yaze-mcp/server.py"],
-        env={"PYTHONPATH": "/Users/scawful/Code/yaze-mcp"},
+        command=f"{_YAZE_MCP_ROOT}/venv/bin/python",
+        args=[f"{_YAZE_MCP_ROOT}/server.py"],
+        env={"PYTHONPATH": _YAZE_MCP_ROOT},
         tools=[
             "control_emulator",
             "step_emulator",

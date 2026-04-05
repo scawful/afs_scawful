@@ -89,6 +89,23 @@ class GoogleAIStudioClient:
         self.api_key = api_key or os.environ.get(api_key_env) or os.environ.get("AISTUDIO_API_KEY")
         self.base_url = base_url.rstrip("/")
         self.timeout = aiohttp.ClientTimeout(total=timeout)
+        self._session: aiohttp.ClientSession | None = None
+
+    async def _get_session(self) -> aiohttp.ClientSession:
+        if self._session is None or self._session.closed:
+            self._session = aiohttp.ClientSession(timeout=self.timeout)
+        return self._session
+
+    async def close(self) -> None:
+        if self._session and not self._session.closed:
+            await self._session.close()
+            self._session = None
+
+    async def __aenter__(self) -> GoogleAIStudioClient:
+        return self
+
+    async def __aexit__(self, *args: object) -> None:
+        await self.close()
 
     def _resolve_model(self, model: str) -> str:
         if model.startswith("models/"):
@@ -103,13 +120,13 @@ class GoogleAIStudioClient:
             return []
         url = f"{self.base_url}/models?key={self.api_key}"
         try:
-            async with aiohttp.ClientSession(timeout=self.timeout) as session:
-                async with session.get(url) as resp:
-                    if resp.status != 200:
-                        logger.error("AI Studio list_models failed: HTTP %s", resp.status)
-                        return []
-                    data = await resp.json()
-                    return [m.get("name", "") for m in data.get("models", []) if m.get("name")]
+            session = await self._get_session()
+            async with session.get(url) as resp:
+                if resp.status != 200:
+                    logger.error("AI Studio list_models failed: HTTP %s", resp.status)
+                    return []
+                data = await resp.json()
+                return [m.get("name", "") for m in data.get("models", []) if m.get("name")]
         except Exception as exc:
             logger.error("AI Studio list_models error: %s", exc)
             return []
@@ -166,33 +183,33 @@ class GoogleAIStudioClient:
         url = f"{self.base_url}/{self._resolve_model(model)}:generateContent?key={self.api_key}"
 
         try:
-            async with aiohttp.ClientSession(timeout=self.timeout) as session:
-                async with session.post(url, json=payload) as resp:
-                    if resp.status != 200:
-                        error_text = await resp.text()
-                        return ModelResponse(
-                            text="",
-                            model=model,
-                            prompt=prompt,
-                            latency_ms=(time.perf_counter() - start_time) * 1000,
-                            error=f"HTTP {resp.status}: {error_text}",
-                        )
-
-                    data = await resp.json()
-                    latency = (time.perf_counter() - start_time) * 1000
-                    text = _extract_text(data)
-                    usage = _extract_usage(data)
-                    tokens = usage["candidates"]
-                    tps = tokens / (latency / 1000) if tokens and latency > 0 else 0.0
+            session = await self._get_session()
+            async with session.post(url, json=payload) as resp:
+                if resp.status != 200:
+                    error_text = await resp.text()
                     return ModelResponse(
-                        text=text,
+                        text="",
                         model=model,
                         prompt=prompt,
-                        latency_ms=latency,
-                        tokens_generated=tokens,
-                        tokens_per_second=tps,
-                        done=True,
+                        latency_ms=(time.perf_counter() - start_time) * 1000,
+                        error=f"HTTP {resp.status}: {error_text}",
                     )
+
+                data = await resp.json()
+                latency = (time.perf_counter() - start_time) * 1000
+                text = _extract_text(data)
+                usage = _extract_usage(data)
+                tokens = usage["candidates"]
+                tps = tokens / (latency / 1000) if tokens and latency > 0 else 0.0
+                return ModelResponse(
+                    text=text,
+                    model=model,
+                    prompt=prompt,
+                    latency_ms=latency,
+                    tokens_generated=tokens,
+                    tokens_per_second=tps,
+                    done=True,
+                )
         except asyncio.TimeoutError:
             return ModelResponse(
                 text="",
@@ -263,33 +280,33 @@ class GoogleAIStudioClient:
         url = f"{self.base_url}/{self._resolve_model(model)}:generateContent?key={self.api_key}"
 
         try:
-            async with aiohttp.ClientSession(timeout=self.timeout) as session:
-                async with session.post(url, json=payload) as resp:
-                    if resp.status != 200:
-                        error_text = await resp.text()
-                        return ModelResponse(
-                            text="",
-                            model=model,
-                            prompt=prompt,
-                            latency_ms=(time.perf_counter() - start_time) * 1000,
-                            error=f"HTTP {resp.status}: {error_text}",
-                        )
-
-                    data = await resp.json()
-                    latency = (time.perf_counter() - start_time) * 1000
-                    text = _extract_text(data)
-                    usage = _extract_usage(data)
-                    tokens = usage["candidates"]
-                    tps = tokens / (latency / 1000) if tokens and latency > 0 else 0.0
+            session = await self._get_session()
+            async with session.post(url, json=payload) as resp:
+                if resp.status != 200:
+                    error_text = await resp.text()
                     return ModelResponse(
-                        text=text,
+                        text="",
                         model=model,
                         prompt=prompt,
-                        latency_ms=latency,
-                        tokens_generated=tokens,
-                        tokens_per_second=tps,
-                        done=True,
+                        latency_ms=(time.perf_counter() - start_time) * 1000,
+                        error=f"HTTP {resp.status}: {error_text}",
                     )
+
+                data = await resp.json()
+                latency = (time.perf_counter() - start_time) * 1000
+                text = _extract_text(data)
+                usage = _extract_usage(data)
+                tokens = usage["candidates"]
+                tps = tokens / (latency / 1000) if tokens and latency > 0 else 0.0
+                return ModelResponse(
+                    text=text,
+                    model=model,
+                    prompt=prompt,
+                    latency_ms=latency,
+                    tokens_generated=tokens,
+                    tokens_per_second=tps,
+                    done=True,
+                )
         except asyncio.TimeoutError:
             return ModelResponse(
                 text="",
@@ -326,9 +343,26 @@ class VertexAIClient:
         self.base_url = (base_url or f"https://{self.location}-aiplatform.googleapis.com/v1").rstrip("/")
         self.gcloud_path = gcloud_path
         self.timeout = aiohttp.ClientTimeout(total=timeout)
+        self._session: aiohttp.ClientSession | None = None
         self._token: str | None = None
         self._token_cached_at = 0.0
         self._token_ttl_seconds = 3000
+
+    async def _get_session(self) -> aiohttp.ClientSession:
+        if self._session is None or self._session.closed:
+            self._session = aiohttp.ClientSession(timeout=self.timeout)
+        return self._session
+
+    async def close(self) -> None:
+        if self._session and not self._session.closed:
+            await self._session.close()
+            self._session = None
+
+    async def __aenter__(self) -> VertexAIClient:
+        return self
+
+    async def __aexit__(self, *args: object) -> None:
+        await self.close()
 
     def _resolve_model(self, model: str) -> str:
         if model.startswith("projects/"):
@@ -385,13 +419,13 @@ class VertexAIClient:
         headers = {"Authorization": f"Bearer {token}"}
 
         try:
-            async with aiohttp.ClientSession(timeout=self.timeout) as session:
-                async with session.get(url, headers=headers) as resp:
-                    if resp.status != 200:
-                        logger.error("Vertex list_models failed: HTTP %s", resp.status)
-                        return []
-                    data = await resp.json()
-                    return [m.get("name", "") for m in data.get("models", []) if m.get("name")]
+            session = await self._get_session()
+            async with session.get(url, headers=headers) as resp:
+                if resp.status != 200:
+                    logger.error("Vertex list_models failed: HTTP %s", resp.status)
+                    return []
+                data = await resp.json()
+                return [m.get("name", "") for m in data.get("models", []) if m.get("name")]
         except Exception as exc:
             logger.error("Vertex list_models error: %s", exc)
             return []
@@ -449,33 +483,33 @@ class VertexAIClient:
         headers = {"Authorization": f"Bearer {token}"}
 
         try:
-            async with aiohttp.ClientSession(timeout=self.timeout) as session:
-                async with session.post(url, headers=headers, json=payload) as resp:
-                    if resp.status != 200:
-                        error_text = await resp.text()
-                        return ModelResponse(
-                            text="",
-                            model=model,
-                            prompt=prompt,
-                            latency_ms=(time.perf_counter() - start_time) * 1000,
-                            error=f"HTTP {resp.status}: {error_text}",
-                        )
-
-                    data = await resp.json()
-                    latency = (time.perf_counter() - start_time) * 1000
-                    text = _extract_text(data)
-                    usage = _extract_usage(data)
-                    tokens = usage["candidates"]
-                    tps = tokens / (latency / 1000) if tokens and latency > 0 else 0.0
+            session = await self._get_session()
+            async with session.post(url, headers=headers, json=payload) as resp:
+                if resp.status != 200:
+                    error_text = await resp.text()
                     return ModelResponse(
-                        text=text,
+                        text="",
                         model=model,
                         prompt=prompt,
-                        latency_ms=latency,
-                        tokens_generated=tokens,
-                        tokens_per_second=tps,
-                        done=True,
+                        latency_ms=(time.perf_counter() - start_time) * 1000,
+                        error=f"HTTP {resp.status}: {error_text}",
                     )
+
+                data = await resp.json()
+                latency = (time.perf_counter() - start_time) * 1000
+                text = _extract_text(data)
+                usage = _extract_usage(data)
+                tokens = usage["candidates"]
+                tps = tokens / (latency / 1000) if tokens and latency > 0 else 0.0
+                return ModelResponse(
+                    text=text,
+                    model=model,
+                    prompt=prompt,
+                    latency_ms=latency,
+                    tokens_generated=tokens,
+                    tokens_per_second=tps,
+                    done=True,
+                )
         except asyncio.TimeoutError:
             return ModelResponse(
                 text="",
@@ -547,33 +581,33 @@ class VertexAIClient:
         headers = {"Authorization": f"Bearer {token}"}
 
         try:
-            async with aiohttp.ClientSession(timeout=self.timeout) as session:
-                async with session.post(url, headers=headers, json=payload) as resp:
-                    if resp.status != 200:
-                        error_text = await resp.text()
-                        return ModelResponse(
-                            text="",
-                            model=model,
-                            prompt=prompt,
-                            latency_ms=(time.perf_counter() - start_time) * 1000,
-                            error=f"HTTP {resp.status}: {error_text}",
-                        )
-
-                    data = await resp.json()
-                    latency = (time.perf_counter() - start_time) * 1000
-                    text = _extract_text(data)
-                    usage = _extract_usage(data)
-                    tokens = usage["candidates"]
-                    tps = tokens / (latency / 1000) if tokens and latency > 0 else 0.0
+            session = await self._get_session()
+            async with session.post(url, headers=headers, json=payload) as resp:
+                if resp.status != 200:
+                    error_text = await resp.text()
                     return ModelResponse(
-                        text=text,
+                        text="",
                         model=model,
                         prompt=prompt,
-                        latency_ms=latency,
-                        tokens_generated=tokens,
-                        tokens_per_second=tps,
-                        done=True,
+                        latency_ms=(time.perf_counter() - start_time) * 1000,
+                        error=f"HTTP {resp.status}: {error_text}",
                     )
+
+                data = await resp.json()
+                latency = (time.perf_counter() - start_time) * 1000
+                text = _extract_text(data)
+                usage = _extract_usage(data)
+                tokens = usage["candidates"]
+                tps = tokens / (latency / 1000) if tokens and latency > 0 else 0.0
+                return ModelResponse(
+                    text=text,
+                    model=model,
+                    prompt=prompt,
+                    latency_ms=latency,
+                    tokens_generated=tokens,
+                    tokens_per_second=tps,
+                    done=True,
+                )
         except asyncio.TimeoutError:
             return ModelResponse(
                 text="",
