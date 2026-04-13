@@ -1,6 +1,6 @@
 # Model Portfolio
 
-Last updated: 2026-02-28
+Last updated: 2026-04-12
 Source of truth for all model families, their roles, training status, and how they connect.
 
 ---
@@ -59,7 +59,8 @@ Routing: keyword-based, default → Veran.
 | **Hylia** | 3B | OOS development history and lore. Timeline context, design rationale. |
 | **Majora** | 7B | OOS codebase architecture. Bank map, item/overworld/sprite systems, common bugs (ZSOW desyncs, color math persistence). |
 | **Agahnim** | 3B | Build/integration. asar patches, pushpc/pullpc hooks, JSL trampolines, namespace bridging Oracle↔ZScream. |
-| **Oracle-Tools** | 7B Coder | Structured tool-calling for emulator workflows. JSON calls for yaze-mcp, Mesen2 socket CLI, memory inspection. |
+| **Oracle-Tools** | 7B Coder | Legacy tool-calling precursor for emulator workflows. JSON calls for yaze-mcp, Mesen2 socket CLI, memory inspection. |
+| **Switchhook** | 27B Qwen3.5 (planned) | Hybrid ASM + tool specialist. Successor lane to Oracle-Tools with stronger patch reasoning, canonical tool surfaces, and LM Studio plan/act presets. |
 | **IQuest-Coder-40B** | 40B | Primary ASM coding model. Trained on ASAR-validated gold + OOS source + correction samples (~15k records). Q3_K_M on Mac, served remotely for production. |
 | **Sahasrahla-3B** | 3B | Nintendo/ALTTP historian. 10k+ records from legacy hacks (Gigaleak, Poltergeist, ZScreamDungeon). Q4_K_M, llama-server. |
 

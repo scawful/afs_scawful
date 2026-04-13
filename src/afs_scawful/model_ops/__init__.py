@@ -1,0 +1,81 @@
+"""Shared model operations helpers."""
+
+from .active_runs import (
+    apply_run_overrides,
+    heading_for_output,
+    load_active_runs_config,
+    probe_remote_run,
+    render_active_runs_note,
+    render_run_section,
+    write_active_runs_note,
+)
+from .bundles import BundleSpecError, build_bundle, normalize_bundle_spec, validate_bundle_paths
+from .finalize import (
+    FinalizeResult,
+    RemoteRunTarget,
+    download_remote_artifacts,
+    ensure_remote_phase_started,
+    finalize_remote_run,
+    get_remote_log_tail,
+    resolve_remote_target,
+    unique_local_run_dir,
+    wait_for_remote_completion,
+)
+from .manifests import (
+    build_path_record,
+    build_training_run_manifest,
+    count_jsonl_rows,
+    load_run_manifest,
+    mark_manifest_completed,
+    mark_manifest_failed,
+    now_utc,
+    sha256_file,
+    write_run_manifest,
+)
+from .tracks import (
+    TrackSpecError,
+    apply_track_overrides,
+    get_phase_order,
+    get_phase_spec,
+    validate_track_spec,
+)
+from .trainer_manifests import build_trainer_run_manifest, tracked_input_record
+
+__all__ = [
+    "BundleSpecError",
+    "FinalizeResult",
+    "RemoteRunTarget",
+    "TrackSpecError",
+    "apply_run_overrides",
+    "apply_track_overrides",
+    "build_bundle",
+    "build_path_record",
+    "build_trainer_run_manifest",
+    "build_training_run_manifest",
+    "count_jsonl_rows",
+    "download_remote_artifacts",
+    "ensure_remote_phase_started",
+    "finalize_remote_run",
+    "get_phase_order",
+    "get_phase_spec",
+    "get_remote_log_tail",
+    "heading_for_output",
+    "load_active_runs_config",
+    "load_run_manifest",
+    "mark_manifest_completed",
+    "mark_manifest_failed",
+    "normalize_bundle_spec",
+    "now_utc",
+    "probe_remote_run",
+    "render_active_runs_note",
+    "render_run_section",
+    "resolve_remote_target",
+    "sha256_file",
+    "tracked_input_record",
+    "unique_local_run_dir",
+    "validate_bundle_paths",
+    "validate_track_spec",
+    "wait_for_remote_completion",
+    "write_active_runs_note",
+    "write_run_manifest",
+]

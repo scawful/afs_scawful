@@ -59,6 +59,7 @@ from .vast import (
     send_alerts,
     write_status_json,
 )
+from .oracle_training_cli import register_parser as register_oracle_training_parser
 
 
 def _datasets_index_command(args: argparse.Namespace) -> int:
@@ -1683,6 +1684,8 @@ def build_parser() -> argparse.ArgumentParser:
     eval_dataset.add_argument("--skip-semantic", action="store_true", help="Skip semantic analysis.")
     eval_dataset.set_defaults(func=_eval_dataset_command)
 
+    register_oracle_training_parser(subparsers)
+
     return parser
 
 
@@ -1726,6 +1729,9 @@ def main(argv: Iterable[str] | None = None) -> int:
         parser.print_help()
         return 1
     if args.command == "eval" and not getattr(args, "eval_command", None):
+        parser.print_help()
+        return 1
+    if args.command == "oracle-training" and not getattr(args, "oracle_training_command", None):
         parser.print_help()
         return 1
     # Dashboard command doesn't have subcommands

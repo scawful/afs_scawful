@@ -12,7 +12,7 @@ from pathlib import Path
 from typing import Dict, Iterable, List
 
 
-REQUIRED_FIELDS = ("instruction", "output")
+INSTRUCTION_FIELDS = ("instruction", "output")
 
 
 def iter_jsonl(path: Path) -> Iterable[dict]:
@@ -33,6 +33,7 @@ def summarize_dataset(path: Path) -> dict:
     missing_fields = Counter()
     domain_counts = Counter()
     source_counts = Counter()
+    format_counts = Counter()
     input_chars = 0
     output_chars = 0
     instruction_chars = 0
@@ -41,16 +42,16 @@ def summarize_dataset(path: Path) -> dict:
     input_code_blocks = 0
     max_output_chars = 0
     max_input_chars = 0
+    message_chars = 0
+    message_samples = 0
+    message_count_total = 0
+    assistant_tool_calls = 0
 
     for record in iter_jsonl(path):
         total += 1
         if record.get("_parse_error"):
             parse_errors += 1
             continue
-
-        for field in REQUIRED_FIELDS:
-            if not record.get(field):
-                missing_fields[field] += 1
 
         domain = record.get("domain", "").strip()
         if domain:
@@ -59,6 +60,43 @@ def summarize_dataset(path: Path) -> dict:
         source = record.get("source", "").strip()
         if source:
             source_counts[source] += 1
+
+        messages = record.get("messages")
+        if isinstance(messages, list) and messages:
+            format_counts["sharegpt"] += 1
+            saw_user = False
+            saw_assistant = False
+            sample_chars = 0
+            sample_messages = 0
+            for message in messages:
+                if not isinstance(message, dict):
+                    continue
+                role = str(message.get("role", "")).strip()
+                content = message.get("content")
+                if role == "user":
+                    saw_user = True
+                if role == "assistant":
+                    saw_assistant = True
+                    tool_calls = message.get("tool_calls")
+                    if isinstance(tool_calls, list):
+                        assistant_tool_calls += len(tool_calls)
+                if isinstance(content, str):
+                    sample_chars += len(content)
+                sample_messages += 1
+            if not saw_user:
+                missing_fields["messages.user"] += 1
+            if not saw_assistant:
+                missing_fields["messages.assistant"] += 1
+            message_chars += sample_chars
+            message_count_total += sample_messages
+            message_samples += 1
+            continue
+
+        format_counts["instruction"] += 1
+
+        for field in INSTRUCTION_FIELDS:
+            if not record.get(field):
+                missing_fields[field] += 1
 
         instruction = record.get("instruction", "") or ""
         inp = record.get("input", "") or ""
@@ -80,6 +118,8 @@ def summarize_dataset(path: Path) -> dict:
     avg_instruction = instruction_chars / total if total else 0.0
     avg_input = input_chars / total if total else 0.0
     avg_output = output_chars / total if total else 0.0
+    avg_message_chars = message_chars / message_samples if message_samples else 0.0
+    avg_messages_per_sample = message_count_total / message_samples if message_samples else 0.0
 
     return {
         "path": str(path),
@@ -88,14 +128,18 @@ def summarize_dataset(path: Path) -> dict:
         "missing_fields": dict(missing_fields),
         "domains": dict(domain_counts),
         "sources": dict(source_counts),
+        "formats": dict(format_counts),
         "avg_instruction_chars": round(avg_instruction, 2),
         "avg_input_chars": round(avg_input, 2),
         "avg_output_chars": round(avg_output, 2),
+        "avg_message_chars": round(avg_message_chars, 2),
+        "avg_messages_per_sample": round(avg_messages_per_sample, 2),
         "input_present": input_present,
         "output_code_blocks": output_code_blocks,
         "input_code_blocks": input_code_blocks,
         "max_output_chars": max_output_chars,
         "max_input_chars": max_input_chars,
+        "assistant_tool_calls": assistant_tool_calls,
     }
 
 
@@ -124,14 +168,20 @@ def render_markdown(summaries: List[dict]) -> str:
             top_sources = list(summary["sources"].items())[:5]
             sources = ", ".join(f"{k}={v}" for k, v in top_sources)
             lines.append(f"- sources(top5): {sources}")
+        if summary["formats"]:
+            formats = ", ".join(f"{k}={v}" for k, v in summary["formats"].items())
+            lines.append(f"- formats: {formats}")
         lines.append(f"- avg_instruction_chars: {summary['avg_instruction_chars']}")
         lines.append(f"- avg_input_chars: {summary['avg_input_chars']}")
         lines.append(f"- avg_output_chars: {summary['avg_output_chars']}")
+        lines.append(f"- avg_message_chars: {summary['avg_message_chars']}")
+        lines.append(f"- avg_messages_per_sample: {summary['avg_messages_per_sample']}")
         lines.append(f"- input_present: {summary['input_present']}")
         lines.append(f"- input_code_blocks: {summary['input_code_blocks']}")
         lines.append(f"- output_code_blocks: {summary['output_code_blocks']}")
         lines.append(f"- max_input_chars: {summary['max_input_chars']}")
         lines.append(f"- max_output_chars: {summary['max_output_chars']}")
+        lines.append(f"- assistant_tool_calls: {summary['assistant_tool_calls']}")
         lines.append("")
 
     return "\n".join(lines).rstrip() + "\n"
