@@ -93,6 +93,55 @@ def test_zelda_16b_bundle_spec_requires_repo_owned_train_wrapper(tmp_path: Path)
     assert "datasets/zelda_16b_mix_v1/train.jsonl" in validated["all_paths"]
 
 
+@pytest.mark.parametrize(
+    ("track_name", "persona"),
+    [
+        ("nayru_qwen35_thinker_v1", "nayru"),
+        ("sahasrahla_qwen35_thinker_v1", "sahasrahla"),
+    ],
+)
+def test_qwen35_thinker_bundle_spec_uses_shared_wrapper_and_dataset_convention(
+    tmp_path: Path,
+    track_name: str,
+    persona: str,
+) -> None:
+    repo_root = tmp_path / "repo"
+    training_root = tmp_path / "training"
+    datasets_root = tmp_path / "datasets"
+
+    _write(repo_root / "docs" / "VAST_SETUP.md")
+    _write(repo_root / "docs" / "MODEL_PORTFOLIO.md")
+    _write(repo_root / "config" / "chat_registry.toml")
+    _write(repo_root / "scripts" / "train_oracle_qwen35_thinker.py")
+    _write(training_root / "scripts" / "eval_iquest_zelda.py")
+    _write(training_root / "evals" / "iquest_zelda_golden_v1.jsonl")
+    _write(datasets_root / "oracle_qwen35_thinkers" / persona / "train.jsonl")
+    _write(datasets_root / "oracle_qwen35_thinkers" / persona / "val.jsonl")
+    _write(datasets_root / "oracle_qwen35_thinkers" / persona / "metadata.json", "{}\n")
+
+    validated = validate_zelda_bundle_spec(
+        track_name,
+        repo_root=repo_root,
+        training_root=training_root,
+        datasets_root=datasets_root,
+    )
+    output = tmp_path / f"{persona}-thinker.tgz"
+    build_zelda_bundle(
+        track_name,
+        output,
+        repo_root=repo_root,
+        training_root=training_root,
+        datasets_root=datasets_root,
+    )
+
+    assert "scripts/train_oracle_qwen35_thinker.py" in validated["all_paths"]
+    assert f"datasets/oracle_qwen35_thinkers/{persona}/train.jsonl" in validated["all_paths"]
+    with tarfile.open(output, "r:gz") as archive:
+        names = archive.getnames()
+    assert "scripts/train_oracle_qwen35_thinker.py" in names
+    assert f"datasets/oracle_qwen35_thinkers/{persona}/metadata.json" in names
+
+
 def test_unknown_zelda_bundle_spec_raises() -> None:
     with pytest.raises(KeyError):
         get_zelda_bundle_spec("unknown-track")

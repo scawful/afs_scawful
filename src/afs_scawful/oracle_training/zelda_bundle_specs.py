@@ -6,6 +6,7 @@ from pathlib import Path
 
 from ..model_ops.bundles import BundleSelection, build_bundle, validate_bundle_paths
 from ..paths import resolve_datasets_root, resolve_training_root
+from .zelda_tracks import ORACLE_QWEN35_THINKER_PERSONAS, get_zelda_track_spec
 
 
 REPO_ROOT = Path(__file__).resolve().parents[3]
@@ -84,6 +85,35 @@ def _zelda_16b_bundle_spec(repo_root: Path, training_root: Path, datasets_root: 
     }
 
 
+def _oracle_qwen35_thinker_bundle_spec(
+    track_name: str,
+    repo_root: Path,
+    training_root: Path,
+    datasets_root: Path,
+) -> BundleSpec:
+    track = get_zelda_track_spec(track_name)
+    dataset_dir = Path(str(track["metadata"]["dataset_dir"]))
+    arc_root = Path("datasets") / dataset_dir
+    return {
+        "required_paths": [
+            _repo_entry("docs/VAST_SETUP.md"),
+            _repo_entry("docs/MODEL_PORTFOLIO.md"),
+            _repo_entry("config/chat_registry.toml"),
+            _repo_entry("scripts/train_oracle_qwen35_thinker.py"),
+            _external_entry(training_root / "scripts" / "eval_iquest_zelda.py", "scripts/eval_iquest_zelda.py"),
+            _external_entry(training_root / "evals" / "iquest_zelda_golden_v1.jsonl", "evals/iquest_zelda_golden_v1.jsonl"),
+            _external_entry(datasets_root / dataset_dir / "train.jsonl", str(arc_root / "train.jsonl")),
+            _external_entry(datasets_root / dataset_dir / "val.jsonl", str(arc_root / "val.jsonl")),
+            _external_entry(datasets_root / dataset_dir / "metadata.json", str(arc_root / "metadata.json")),
+        ],
+        "optional_paths": [
+            _external_entry(datasets_root / dataset_dir / "eval.jsonl", str(arc_root / "eval.jsonl")),
+            _external_entry(training_root / "scripts" / "push_vast_hf_token.sh", "scripts/push_vast_hf_token.sh"),
+            _external_entry(training_root / "scripts" / "run_vast_training_with_watch.sh", "scripts/run_vast_training_with_watch.sh"),
+        ],
+    }
+
+
 def get_zelda_bundle_spec(
     track_name: str,
     *,
@@ -101,6 +131,13 @@ def get_zelda_bundle_spec(
         "iquest_40b_v3": _iquest_bundle_spec,
         "zelda_16b_v1": _zelda_16b_bundle_spec,
     }
+    if track_name in ORACLE_QWEN35_THINKER_PERSONAS:
+        return _oracle_qwen35_thinker_bundle_spec(
+            track_name,
+            resolved_repo_root,
+            resolved_training_root,
+            resolved_datasets_root,
+        )
     try:
         builder = builders[track_name]
     except KeyError as exc:

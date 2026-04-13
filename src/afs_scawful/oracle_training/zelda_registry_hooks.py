@@ -31,28 +31,22 @@ def default_model_mgr_path() -> Path:
 
     return Path.home() / "src" / "tools" / "model-mgr" / "model-mgr"
 
-
-REGISTRY_SPECS = {
-    "switchhook_27b_v1": {
-        "model_name": "switchhook-27b-v1",
-        "base_model": "Qwen/Qwen3.5-27B",
-        "chat_registry_models": ["switchhook-plan", "switchhook-act"],
-    },
-    "iquest_40b_v3": {
-        "model_name": "iquest-40b-v3",
-        "base_model": "IQuestLab/IQuest-Coder-V1-40B-Loop-Instruct",
-        "chat_registry_models": [],
-    },
-    "zelda_16b_v1": {
-        "model_name": "zelda-16b-v1",
-        "base_model": "deepseek-ai/DeepSeek-Coder-V2-Lite-Instruct",
-        "chat_registry_models": [],
-    },
-}
-
-
 def _looks_like_adapter_dir(path: Path) -> bool:
     return path.is_dir() and any(path.glob("adapter*.safetensors"))
+
+
+def _registry_spec_for_track(track_name: str) -> dict[str, Any]:
+    track = get_zelda_track_spec(track_name)
+    metadata = track.get("metadata", {})
+    model_name = metadata.get("registry_model_name")
+    if not model_name:
+        raise KeyError(f"unknown Zelda registry hook: {track_name}")
+    return {
+        "model_name": str(model_name),
+        "base_model": track["model_name"],
+        "chat_registry_models": [str(item) for item in metadata.get("chat_registry_models", [])],
+        "track": track,
+    }
 
 
 def build_zelda_registry_plan(
@@ -68,10 +62,8 @@ def build_zelda_registry_plan(
 ) -> dict[str, Any]:
     """Build a registry/model-mgr execution plan for a finished Zelda track."""
 
-    if track_name not in REGISTRY_SPECS:
-        raise KeyError(f"unknown Zelda registry hook: {track_name}")
-    spec = REGISTRY_SPECS[track_name]
-    track = get_zelda_track_spec(track_name)
+    spec = _registry_spec_for_track(track_name)
+    track = spec["track"]
     resolved_artifact = artifact_path.expanduser().resolve()
     resolved_training_root = (training_root or resolve_training_root()).expanduser().resolve()
     resolved_models_root = (training_models_root or (resolved_training_root / "models")).expanduser().resolve()

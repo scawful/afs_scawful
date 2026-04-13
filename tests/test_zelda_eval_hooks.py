@@ -48,6 +48,33 @@ def test_zelda_16b_eval_plan_builds_local_eval_command(tmp_path: Path) -> None:
     assert str(adapter) in plan[0]["command"]
 
 
+def test_nayru_thinker_eval_plan_builds_local_eval_command(tmp_path: Path) -> None:
+    adapter = tmp_path / "adapter_final"
+    adapter.mkdir()
+
+    plan = build_zelda_eval_plan("nayru_qwen35_thinker_v1", local_run_dir=tmp_path, adapter_path=adapter)
+
+    assert plan[0]["name"] == "nayru_qwen35_thinker_v1_golden_eval"
+    assert plan[0]["command"][0] == "python3"
+    assert "eval_iquest_zelda.py" in plan[0]["command"][1]
+    assert str(adapter) in plan[0]["command"]
+
+
+def test_nayru_thinker_eval_plan_preserves_custom_eval_pack_path(tmp_path: Path) -> None:
+    adapter = tmp_path / "adapter_final"
+    adapter.mkdir()
+    eval_pack = tmp_path / "custom.pack"
+
+    plan = build_zelda_eval_plan(
+        "nayru_qwen35_thinker_v1",
+        local_run_dir=tmp_path,
+        adapter_path=adapter,
+        eval_pack_path=eval_pack,
+    )
+
+    assert str(eval_pack.resolve()) in plan[0]["command"]
+
+
 def test_run_zelda_eval_hooks_skips_manual_entries() -> None:
     results = run_zelda_eval_hooks([{"name": "manual_eval_setup", "manual": True}])
 

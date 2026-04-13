@@ -28,6 +28,70 @@ def _default_switchhook_remote_adapter_dir(track_spec: dict[str, Any], remote_ta
     return f"{normalize_remote_dir(remote_target.remote_dir)}/{artifact_rel}"
 
 
+def _resolve_eval_pack_path(
+    *,
+    training_root: Path,
+    default_pack: str,
+    override_path: Path | None,
+) -> Path:
+    if override_path is not None:
+        return override_path.expanduser().resolve()
+
+    eval_pack = training_root / "evals" / default_pack
+    if eval_pack.suffix:
+        return eval_pack.expanduser().resolve()
+    return eval_pack.with_suffix(".jsonl").expanduser().resolve()
+
+
+def _build_local_golden_eval_plan(
+    track_name: str,
+    *,
+    spec: dict[str, Any],
+    local_run_dir: Path,
+    adapter_path: Path | None,
+    training_root: Path | None,
+    eval_pack_path: Path | None,
+) -> list[dict[str, Any]]:
+    resolved_training_root = (training_root or resolve_training_root()).expanduser().resolve()
+    resolved_adapter = (adapter_path or (local_run_dir / "adapter_final")).expanduser().resolve()
+    resolved_eval_pack = _resolve_eval_pack_path(
+        training_root=resolved_training_root,
+        default_pack=str(spec.get("metadata", {}).get("eval_pack", "iquest_zelda_golden_v1")),
+        override_path=eval_pack_path,
+    )
+    eval_dir = _default_eval_dir(local_run_dir)
+    output_name = f"{track_name}_eval.jsonl"
+    hook_name = {
+        "iquest_40b_v3": "iquest_zelda_golden_eval",
+        "zelda_16b_v1": "zelda_16b_golden_eval",
+    }.get(track_name, f"{track_name}_golden_eval")
+    eval_output = eval_dir / output_name
+    command = [
+        "python3",
+        str(resolved_training_root / "scripts" / "eval_iquest_zelda.py"),
+        "--model",
+        spec["model_name"],
+        "--adapter",
+        str(resolved_adapter),
+        "--prompt-pack",
+        str(resolved_eval_pack),
+        "--out",
+        str(eval_output),
+        "--temperature",
+        "0.0",
+        "--top-p",
+        "1.0",
+    ]
+    return [
+        {
+            "name": hook_name,
+            "description": "Local CUDA eval against the golden Zelda prompt pack.",
+            "command": command,
+            "outputs": [str(eval_output)],
+        }
+    ]
+
+
 def build_zelda_eval_plan(
     track_name: str,
     *,
@@ -77,66 +141,34 @@ def build_zelda_eval_plan(
         ]
 
     if track_name == "iquest_40b_v3":
-        resolved_adapter = (adapter_path or (local_run_dir / "adapter_final")).expanduser().resolve()
-        resolved_eval_pack = (
-            eval_pack_path or resolved_training_root / "evals" / "iquest_zelda_golden_v1.jsonl"
-        ).expanduser().resolve()
-        eval_output = eval_dir / "iquest_zelda_eval.jsonl"
-        command = [
-            "python3",
-            str(resolved_training_root / "scripts" / "eval_iquest_zelda.py"),
-            "--model",
-            spec["model_name"],
-            "--adapter",
-            str(resolved_adapter),
-            "--prompt-pack",
-            str(resolved_eval_pack),
-            "--out",
-            str(eval_output),
-            "--temperature",
-            "0.0",
-            "--top-p",
-            "1.0",
-        ]
-        return [
-            {
-                "name": "iquest_zelda_golden_eval",
-                "description": "Local CUDA eval against the golden Zelda prompt pack.",
-                "command": command,
-                "outputs": [str(eval_output)],
-            }
-        ]
+        return _build_local_golden_eval_plan(
+            track_name,
+            spec=spec,
+            local_run_dir=local_run_dir,
+            adapter_path=adapter_path,
+            training_root=training_root,
+            eval_pack_path=eval_pack_path,
+        )
 
     if track_name == "zelda_16b_v1":
-        resolved_adapter = (adapter_path or (local_run_dir / "adapter_final")).expanduser().resolve()
-        resolved_eval_pack = (
-            eval_pack_path or resolved_training_root / "evals" / "iquest_zelda_golden_v1.jsonl"
-        ).expanduser().resolve()
-        eval_output = eval_dir / "zelda_16b_eval.jsonl"
-        command = [
-            "python3",
-            str(resolved_training_root / "scripts" / "eval_iquest_zelda.py"),
-            "--model",
-            spec["model_name"],
-            "--adapter",
-            str(resolved_adapter),
-            "--prompt-pack",
-            str(resolved_eval_pack),
-            "--out",
-            str(eval_output),
-            "--temperature",
-            "0.0",
-            "--top-p",
-            "1.0",
-        ]
-        return [
-            {
-                "name": "zelda_16b_golden_eval",
-                "description": "Local CUDA eval for the Zelda 16B lane against the golden prompt pack.",
-                "command": command,
-                "outputs": [str(eval_output)],
-            }
-        ]
+        return _build_local_golden_eval_plan(
+            track_name,
+            spec=spec,
+            local_run_dir=local_run_dir,
+            adapter_path=adapter_path,
+            training_root=training_root,
+            eval_pack_path=eval_pack_path,
+        )
+
+    if spec.get("metadata", {}).get("thinking_tier") == "high" and spec.get("metadata", {}).get("eval_pack"):
+        return _build_local_golden_eval_plan(
+            track_name,
+            spec=spec,
+            local_run_dir=local_run_dir,
+            adapter_path=adapter_path,
+            training_root=training_root,
+            eval_pack_path=eval_pack_path,
+        )
 
     return [
         {
