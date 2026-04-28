@@ -6,7 +6,7 @@ from pathlib import Path
 
 from ..model_ops.bundles import BundleSelection, build_bundle, validate_bundle_paths
 from ..paths import resolve_datasets_root, resolve_training_root
-from .zelda_tracks import ORACLE_QWEN35_THINKER_PERSONAS, get_zelda_track_spec
+from .zelda_tracks import ORACLE_MAIN_TRACK_NAME, ORACLE_QWEN35_THINKER_PERSONAS, get_zelda_track_spec, resolve_zelda_track_name
 
 
 REPO_ROOT = Path(__file__).resolve().parents[3]
@@ -21,11 +21,13 @@ def _external_entry(path: Path, arcname: str) -> dict[str, str]:
     return {"path": str(path), "arcname": arcname}
 
 
-def _switchhook_bundle_spec(repo_root: Path, training_root: Path, datasets_root: Path) -> BundleSpec:
+def _oracle_main_bundle_spec(repo_root: Path, training_root: Path, datasets_root: Path) -> BundleSpec:
     return {
         "required_paths": [
             _repo_entry("docs/VAST_SETUP.md"),
             _repo_entry("docs/MODEL_PORTFOLIO.md"),
+            _repo_entry("docs/eval/ORACLE_EVAL_MATRIX_V1_20260415.md"),
+            _repo_entry("docs/eval/oracle_boundary_effort_matrix_v1.jsonl"),
             _repo_entry("config/chat_registry.toml"),
             _external_entry(training_root / "scripts" / "train_switchhook_27b_vast.py", "scripts/train_switchhook_27b_vast.py"),
             _external_entry(training_root / "scripts" / "eval_iquest_zelda.py", "scripts/eval_iquest_zelda.py"),
@@ -126,20 +128,21 @@ def get_zelda_bundle_spec(
     resolved_repo_root = (repo_root or REPO_ROOT).expanduser().resolve()
     resolved_training_root = (training_root or resolve_training_root()).expanduser().resolve()
     resolved_datasets_root = (datasets_root or resolve_datasets_root()).expanduser().resolve()
+    resolved_track_name = resolve_zelda_track_name(track_name)
     builders = {
-        "switchhook_27b_v1": _switchhook_bundle_spec,
+        ORACLE_MAIN_TRACK_NAME: _oracle_main_bundle_spec,
         "iquest_40b_v3": _iquest_bundle_spec,
         "zelda_16b_v1": _zelda_16b_bundle_spec,
     }
-    if track_name in ORACLE_QWEN35_THINKER_PERSONAS:
+    if resolved_track_name in ORACLE_QWEN35_THINKER_PERSONAS:
         return _oracle_qwen35_thinker_bundle_spec(
-            track_name,
+            resolved_track_name,
             resolved_repo_root,
             resolved_training_root,
             resolved_datasets_root,
         )
     try:
-        builder = builders[track_name]
+        builder = builders[resolved_track_name]
     except KeyError as exc:
         raise KeyError(f"unknown Zelda bundle spec: {track_name}") from exc
     return builder(resolved_repo_root, resolved_training_root, resolved_datasets_root)

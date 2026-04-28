@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import os
+import shutil
 import subprocess
 from pathlib import Path
 from typing import Any
@@ -30,6 +31,19 @@ def default_model_mgr_path() -> Path:
     """Return the default model-mgr executable path."""
 
     return Path.home() / "src" / "tools" / "model-mgr" / "model-mgr"
+
+
+def default_registry_python() -> str:
+    """Return the preferred python interpreter for merge and model-mgr hooks."""
+
+    explicit = os.environ.get("ORACLE_TRAINING_PYTHON") or os.environ.get("MODEL_MGR_PYTHON")
+    if explicit:
+        return str(Path(explicit).expanduser())
+    for name in ("python3.11", "python3"):
+        resolved = shutil.which(name)
+        if resolved:
+            return resolved
+    return "python3"
 
 def _looks_like_adapter_dir(path: Path) -> bool:
     return path.is_dir() and any(path.glob("adapter*.safetensors"))
@@ -69,6 +83,7 @@ def build_zelda_registry_plan(
     resolved_models_root = (training_models_root or (resolved_training_root / "models")).expanduser().resolve()
     resolved_model_mgr = (model_mgr_path or default_model_mgr_path()).expanduser().resolve()
     resolved_quantizations = quantizations or ["q4km"]
+    resolved_python = default_registry_python()
 
     model_name = spec["model_name"]
     gguf_outdir = Path.home() / "models" / "gguf" / "zelda"
@@ -76,14 +91,17 @@ def build_zelda_registry_plan(
     staged_model_dir = resolved_models_root / model_name
     model_arg = model_name
     commands: list[dict[str, Any]] = []
-    env = {"MODELS_DIR": str(resolved_models_root)}
+    env = {
+        "MODELS_DIR": str(resolved_models_root),
+        "MODEL_MGR_PYTHON": resolved_python,
+    }
 
     if _looks_like_adapter_dir(resolved_artifact):
         commands.append(
             {
                 "name": "merge_adapter",
                 "command": [
-                    "python3",
+                    resolved_python,
                     str(resolved_training_root / "scripts" / "merge_peft_adapter.py"),
                     "--base-model",
                     spec["base_model"],
@@ -96,7 +114,10 @@ def build_zelda_registry_plan(
         )
     else:
         model_arg = resolved_artifact.name
-        env = {"MODELS_DIR": str(resolved_artifact.parent)}
+        env = {
+            "MODELS_DIR": str(resolved_artifact.parent),
+            "MODEL_MGR_PYTHON": resolved_python,
+        }
         staged_model_dir = resolved_artifact
 
     for quantize in resolved_quantizations:

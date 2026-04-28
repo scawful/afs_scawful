@@ -7,6 +7,11 @@ from copy import deepcopy
 from ..model_ops.tracks import validate_track_spec
 
 QWEN35_THINKER_BASE_MODEL = "Qwen/Qwen3.5-9B"
+ORACLE_MAIN_TRACK_NAME = "oracle_main_27b_v1"
+LEGACY_TRACK_ALIASES = {
+    "switchhook_27b_v1": ORACLE_MAIN_TRACK_NAME,
+    "oracle_tools_qwen35_thinker_v1": ORACLE_MAIN_TRACK_NAME,
+}
 
 ORACLE_QWEN35_THINKER_PERSONAS = {
     "din_qwen35_thinker_v1": {
@@ -19,33 +24,7 @@ ORACLE_QWEN35_THINKER_PERSONAS = {
     },
     "farore_qwen35_thinker_v1": {
         "persona": "farore",
-        "role": "Autocomplete, debugging, quick patches, and FIM-oriented completions.",
-    },
-    "veran_qwen35_thinker_v1": {
-        "persona": "veran",
-        "role": "Deep context analysis, subsystem tracing, and edge-case reasoning.",
-    },
-    "majora_qwen35_thinker_v1": {
-        "persona": "majora",
-        "role": "Architecture mapping, subsystem interactions, and system-level bug triage.",
-    },
-    "hylia_qwen35_thinker_v1": {
-        "persona": "hylia",
-        "role": "Oracle of Secrets history, lore, and design-rationale recall.",
-    },
-    "agahnim_qwen35_thinker_v1": {
-        "persona": "agahnim",
-        "role": "Patch authoring, hook scaffolds, build integration, and asar workflows.",
-        "chat_registry_models": [],
-    },
-    "sahasrahla_qwen35_thinker_v1": {
-        "persona": "sahasrahla",
-        "role": "ALTTP history, legacy hack provenance, Nintendo references, and historian recall.",
-        "chat_registry_models": [],
-    },
-    "oracle_tools_qwen35_thinker_v1": {
-        "persona": "oracle-tools",
-        "role": "Tool-calling, emulator workflows, and structured action planning.",
+        "role": "Debugging, quick repair plans, room inspection, and evidence-first diagnostics.",
     },
 }
 
@@ -127,9 +106,9 @@ def _oracle_qwen35_thinker_track(
 
 
 ZELDA_TRACK_SPECS = {
-    "switchhook_27b_v1": _single_phase_train_track(
-        description="Switchhook 27B hybrid ASM + tool LoRA training on Vast.",
-        bundle_name="switchhook_27b_v1",
+    ORACLE_MAIN_TRACK_NAME: _single_phase_train_track(
+        description="Oracle-Main 27B hybrid ASM + tool LoRA training on Vast.",
+        bundle_name=ORACLE_MAIN_TRACK_NAME,
         model_name="Qwen/Qwen3.5-27B",
         remote_root="/workspace/training",
         artifact_path="output/switchhook-27b-v1/final",
@@ -143,10 +122,23 @@ ZELDA_TRACK_SPECS = {
         metadata={
             "family": "oracle",
             "eval_pack": "switchhook_live_smoke_v1",
+            "eval_matrix_pack": "oracle_boundary_effort_matrix_v1",
+            "eval_matrix_doc": "docs/eval/ORACLE_EVAL_MATRIX_V1_20260415.md",
             "registry_model_name": "switchhook-27b-v1",
-            "chat_registry_models": ["switchhook-plan", "switchhook-act"],
+            "canonical_registry_name": "oracle-main-27b-v1",
+            "chat_registry_models": ["oracle"],
+            "legacy_registry_aliases": [
+                "oracle-main-plan",
+                "oracle-main-act",
+                "switchhook-plan",
+                "switchhook-act",
+                "oracle-tools",
+            ],
+            "deprecated_track_aliases": sorted(LEGACY_TRACK_ALIASES),
             "notes": [
                 "Use the Switchhook live smoke pack after training.",
+                "Public contract consolidates to `oracle` with effort tiers; legacy plan/act and switchhook names remain compatibility aliases.",
+                "The current shipped artifact still uses the switchhook-27b-v1 identifier until the next retrain/export cycle.",
                 "This track assumes /workspace-style Vast nodes used by the current Zelda scripts.",
             ],
         },
@@ -213,11 +205,24 @@ def list_zelda_tracks() -> list[str]:
     return sorted(ZELDA_TRACK_SPECS)
 
 
+def resolve_zelda_track_name(track_name: str) -> str:
+    """Resolve deprecated track aliases to their canonical Zelda/oracle track names."""
+
+    return LEGACY_TRACK_ALIASES.get(track_name, track_name)
+
+
 def get_zelda_track_spec(track_name: str) -> dict:
     """Return a validated Zelda/oracle training track spec."""
 
+    resolved_name = resolve_zelda_track_name(track_name)
     try:
-        spec = ZELDA_TRACK_SPECS[track_name]
+        spec = deepcopy(ZELDA_TRACK_SPECS[resolved_name])
     except KeyError as exc:
         raise KeyError(f"unknown Zelda track: {track_name}") from exc
-    return deepcopy(spec)
+    if resolved_name != track_name:
+        metadata = spec.setdefault("metadata", {})
+        notes = list(metadata.get("notes", []))
+        notes.append(f"Legacy alias `{track_name}` now resolves to `{resolved_name}`.")
+        metadata["notes"] = notes
+        metadata["resolved_from_alias"] = track_name
+    return spec

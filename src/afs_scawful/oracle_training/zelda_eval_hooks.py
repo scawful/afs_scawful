@@ -10,7 +10,7 @@ from typing import Any
 from ..model_ops.active_runs import normalize_remote_dir
 from ..model_ops.finalize import RemoteRunTarget
 from ..paths import resolve_training_root
-from .zelda_tracks import get_zelda_track_spec
+from .zelda_tracks import ORACLE_MAIN_TRACK_NAME, get_zelda_track_spec, resolve_zelda_track_name
 
 
 def run(command: list[str], *, check: bool = True) -> subprocess.CompletedProcess[str]:
@@ -103,13 +103,14 @@ def build_zelda_eval_plan(
 ) -> list[dict[str, Any]]:
     """Build the post-run eval hook plan for a Zelda/oracle track."""
 
+    resolved_track_name = resolve_zelda_track_name(track_name)
     spec = get_zelda_track_spec(track_name)
     resolved_training_root = (training_root or resolve_training_root()).expanduser().resolve()
     eval_dir = _default_eval_dir(local_run_dir)
 
-    if track_name == "switchhook_27b_v1":
+    if resolved_track_name == ORACLE_MAIN_TRACK_NAME:
         if remote_target is None:
-            raise ValueError("switchhook_27b_v1 eval hooks require a remote target")
+            raise ValueError(f"{ORACLE_MAIN_TRACK_NAME} eval hooks require a remote target")
         eval_copy = eval_dir / "switchhook_live_smoke.jsonl"
         summary_copy = eval_dir / "switchhook_live_smoke.summary.json"
         details_copy = eval_dir / "switchhook_live_smoke.scored.jsonl"
@@ -134,7 +135,7 @@ def build_zelda_eval_plan(
         return [
             {
                 "name": "switchhook_live_smoke",
-                "description": "Remote live smoke eval for Switchhook on the Vast box.",
+                "description": "Remote live smoke eval for Oracle-Main on the Vast box.",
                 "command": command,
                 "outputs": [str(eval_copy), str(summary_copy), str(details_copy)],
             }

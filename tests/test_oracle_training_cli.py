@@ -19,6 +19,8 @@ def test_oracle_training_cli_validate_bundle(tmp_path: Path) -> None:
 
     _write(repo_root / "docs" / "VAST_SETUP.md")
     _write(repo_root / "docs" / "MODEL_PORTFOLIO.md")
+    _write(repo_root / "docs" / "eval" / "ORACLE_EVAL_MATRIX_V1_20260415.md")
+    _write(repo_root / "docs" / "eval" / "oracle_boundary_effort_matrix_v1.jsonl")
     _write(repo_root / "config" / "chat_registry.toml")
     _write(training_root / "scripts" / "train_switchhook_27b_vast.py")
     _write(training_root / "scripts" / "eval_iquest_zelda.py")
@@ -32,7 +34,7 @@ def test_oracle_training_cli_validate_bundle(tmp_path: Path) -> None:
         [
             "validate-bundle",
             "--track",
-            "switchhook_27b_v1",
+            "oracle_main_27b_v1",
             "--repo-root",
             str(repo_root),
             "--training-root",
@@ -54,7 +56,7 @@ def test_oracle_training_cli_registry_plan(tmp_path: Path) -> None:
         [
             "registry-hooks",
             "--track",
-            "switchhook_27b_v1",
+            "oracle_main_27b_v1",
             "--artifact-path",
             str(artifact),
             "--training-root",
