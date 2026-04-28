@@ -40,3 +40,18 @@ models/
 venv/
 venv_testing/
 data/
+
+# Agent scratch / local coordination state
+.claude/
+
+# Personal/persona cores and generated training bundles live outside the public repo.
+cores/
+skills/personal-context/
+
+# Local registry backups and generated eval/research artifacts.
+*.bak.*
+docs/CLAUDIA_*.md
+docs/EMOTIONAL_FRAMING_RESEARCH.md
+docs/LATENT_SPACE_EXPLORATION.md
+docs/eval/claudia_*.md
+docs/eval/*_report_*.json

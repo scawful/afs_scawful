@@ -39,7 +39,6 @@ fi
 for file in "$WINDOWS_SRC"/*; do
   [[ -f "$file" ]] || continue
   name="$(basename "$file")"
-  b64="$(base64 < "$file" | tr -d '\n')"
-  ssh "$HOST" "powershell -NoProfile -Command \"[IO.Directory]::CreateDirectory('${WIN_DIR}'); [IO.File]::WriteAllBytes('${WIN_DIR}\\\\${name}', [Convert]::FromBase64String('${b64}'))\""
+  ssh "$HOST" "powershell -NoProfile -Command \"[IO.Directory]::CreateDirectory('${WIN_DIR}') | Out-Null; \$content = [Console]::In.ReadToEnd(); Set-Content -Path '${WIN_DIR}\\\\${name}' -Value \$content -Encoding ascii\"" < "$file"
   echo "Installed ${name} -> ${WIN_DIR}"
 done
