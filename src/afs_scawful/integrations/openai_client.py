@@ -56,6 +56,46 @@ def _extract_text_from_chat(payload: dict[str, Any]) -> str:
     return content or ""
 
 
+def _coerce_reasoning_text(value: Any) -> str:
+    if isinstance(value, str):
+        return value.strip()
+    if isinstance(value, list):
+        parts: list[str] = []
+        for item in value:
+            if isinstance(item, str):
+                text = item.strip()
+            elif isinstance(item, dict):
+                text = str(item.get("text") or item.get("content") or "").strip()
+            else:
+                text = ""
+            if text:
+                parts.append(text)
+        return "\n\n".join(parts)
+    if isinstance(value, dict):
+        for key in ("text", "content"):
+            text = _coerce_reasoning_text(value.get(key))
+            if text:
+                return text
+        summary = _coerce_reasoning_text(value.get("summary"))
+        if summary:
+            return summary
+    return ""
+
+
+def _extract_reasoning_from_chat(payload: dict[str, Any]) -> str:
+    choices = payload.get("choices", [])
+    if not choices:
+        return ""
+    message = choices[0].get("message", {})
+    if not isinstance(message, dict):
+        return ""
+    for key in ("reasoning_content", "reasoning", "thinking"):
+        text = _coerce_reasoning_text(message.get(key))
+        if text:
+            return text
+    return ""
+
+
 def _extract_text_from_responses(payload: dict[str, Any]) -> str:
     output_text = payload.get("output_text")
     if isinstance(output_text, str):
@@ -67,6 +107,22 @@ def _extract_text_from_responses(payload: dict[str, Any]) -> str:
             part_type = part.get("type")
             if part_type in {"output_text", "text"}:
                 return part.get("text", "") or ""
+    return ""
+
+
+def _extract_reasoning_from_responses(payload: dict[str, Any]) -> str:
+    for item in payload.get("output", []) or []:
+        if not isinstance(item, dict):
+            continue
+        item_type = str(item.get("type", ""))
+        if "reasoning" not in item_type and "summary" not in item_type:
+            continue
+        text = _coerce_reasoning_text(item.get("summary"))
+        if text:
+            return text
+        text = _coerce_reasoning_text(item.get("content"))
+        if text:
+            return text
     return ""
 
 
@@ -83,6 +139,7 @@ class OpenAIClient:
         timeout: int = 60,
         api_mode: str | None = None,
         organization: str | None = None,
+        send_authorization: bool | None = None,
     ):
         self.api_key_env = api_key_env
         self.api_key = api_key or os.environ.get(api_key_env)
@@ -91,6 +148,9 @@ class OpenAIClient:
         self.api_mode = _normalize_mode(api_mode or os.environ.get("OPENAI_API_MODE"))
         if os.environ.get("OPENAI_USE_RESPONSES"):
             self.api_mode = _MODE_RESPONSES
+        self.send_authorization = (
+            send_authorization if send_authorization is not None else bool(self.api_key)
+        )
         self.organization = (
             organization
             or os.environ.get("OPENAI_ORG_ID")
@@ -99,9 +159,10 @@ class OpenAIClient:
 
     def _headers(self, extra_headers: dict[str, str] | None = None) -> dict[str, str]:
         headers = {
-            "Authorization": f"Bearer {self.api_key}",
             "Content-Type": "application/json",
         }
+        if self.send_authorization and self.api_key:
+            headers["Authorization"] = f"Bearer {self.api_key}"
         if self.organization:
             headers["OpenAI-Organization"] = self.organization
         if extra_headers:
@@ -134,13 +195,15 @@ class OpenAIClient:
             if key == "headers" and isinstance(value, dict):
                 extra_headers = {str(k): str(v) for k, v in value.items()}
                 continue
+            if key == "api_mode":
+                continue
             if key in reserved:
                 continue
             payload[key] = value
         return payload, extra_headers
 
     async def list_models(self) -> list[str]:
-        if not self.api_key:
+        if self.send_authorization and not self.api_key:
             logger.warning("OpenAI API key missing (%s).", self.api_key_env)
             return []
         url = f"{self.base_url}/models"
@@ -166,8 +229,8 @@ class OpenAIClient:
         self,
         model: str,
         messages: list[dict[str, str]],
-        temperature: float = 0.7,
-        top_p: float = 0.8,
+        temperature: float | None = 0.7,
+        top_p: float | None = 0.8,
         max_tokens: int = 512,
         system: str = "",
         thinking_tier: str | None = None,
@@ -176,7 +239,7 @@ class OpenAIClient:
         start_time = time.perf_counter()
         prompt = str(messages)
 
-        if not self.api_key:
+        if self.send_authorization and not self.api_key:
             return ModelResponse(
                 text="",
                 model=model,
@@ -193,10 +256,12 @@ class OpenAIClient:
             payload: dict[str, Any] = {
                 "model": model,
                 "input": payload_messages,
-                "temperature": temperature,
-                "top_p": top_p,
                 "max_output_tokens": max_tokens,
             }
+            if temperature is not None:
+                payload["temperature"] = temperature
+            if top_p is not None:
+                payload["top_p"] = top_p
             if thinking:
                 payload.setdefault("reasoning", {"effort": _THINKING_EFFORT[thinking]})
             payload, extra_headers = self._apply_options(payload, options, {"model", "input"})
@@ -205,10 +270,12 @@ class OpenAIClient:
             payload = {
                 "model": model,
                 "messages": payload_messages,
-                "temperature": temperature,
-                "top_p": top_p,
                 "max_tokens": max_tokens,
             }
+            if temperature is not None:
+                payload["temperature"] = temperature
+            if top_p is not None:
+                payload["top_p"] = top_p
             if thinking:
                 payload.setdefault("reasoning_effort", _THINKING_EFFORT[thinking])
             payload, extra_headers = self._apply_options(payload, options, {"model", "messages"})
@@ -231,10 +298,12 @@ class OpenAIClient:
                     latency = (time.perf_counter() - start_time) * 1000
                     if mode == _MODE_RESPONSES:
                         text = _extract_text_from_responses(data)
+                        reasoning = _extract_reasoning_from_responses(data)
                         usage = data.get("usage", {})
                         tokens = int(usage.get("output_tokens", 0) or 0)
                     else:
                         text = _extract_text_from_chat(data)
+                        reasoning = _extract_reasoning_from_chat(data)
                         usage = data.get("usage", {})
                         tokens = int(usage.get("completion_tokens", 0) or 0)
                     tps = tokens / (latency / 1000) if tokens and latency > 0 else 0.0
@@ -246,6 +315,7 @@ class OpenAIClient:
                         tokens_generated=tokens,
                         tokens_per_second=tps,
                         done=True,
+                        reasoning_content=reasoning or None,
                     )
         except asyncio.TimeoutError:
             return ModelResponse(

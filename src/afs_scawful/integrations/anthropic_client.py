@@ -145,7 +145,7 @@ class AnthropicClient:
         model: str,
         messages: list[dict[str, str]],
         temperature: float = 0.7,
-        top_p: float = 0.8,
+        top_p: float | None = 0.8,
         max_tokens: int = 512,
         system: str = "",
         thinking_tier: str | None = None,
@@ -169,8 +169,9 @@ class AnthropicClient:
             "messages": payload_messages,
             "max_tokens": max_tokens,
             "temperature": temperature,
-            "top_p": top_p,
         }
+        if top_p is not None:
+            payload["top_p"] = top_p
         if system_text:
             payload["system"] = system_text
 

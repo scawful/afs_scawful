@@ -9,6 +9,22 @@ def test_agent_model_presets_export_domain_configs() -> None:
     assert config.model_id.endswith(".gguf")
 
 
+def test_agent_model_presets_oracle_legacy_aliases_share_oracle_contract() -> None:
+    canonical = build_preset("oracle_lmstudio")
+    legacy_aliases = (
+        "oracle_main_plan_lmstudio",
+        "oracle_main_act_lmstudio",
+        "switchhook_plan_lmstudio",
+        "switchhook_act_lmstudio",
+    )
+
+    for alias in legacy_aliases:
+        preset = build_preset(alias)
+        assert preset.provider == canonical.provider
+        assert preset.model_id == canonical.model_id
+        assert "Oracle" in preset.system_prompt
+
+
 def test_agent_tools_register_extension_bundle() -> None:
     tools = create_triforce_tools()
     names = {tool.name for tool in tools}

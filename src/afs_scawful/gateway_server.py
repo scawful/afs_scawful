@@ -15,6 +15,7 @@ from fastapi.responses import StreamingResponse
 from afs.history import log_event
 from afs_scawful.moe.router import MoERouter, RouterConfig
 from afs.gateway.backends import BackendManager
+from pydantic import BaseModel, Field
 from afs.gateway.models import (
     ChatChoice,
     ChatRequest,
@@ -350,6 +351,66 @@ async def stream_chat(
                 "response": "".join(chunks),
             },
         )
+
+
+# === Feedback endpoints ===
+
+class FeedbackRequest(BaseModel):
+    """Feedback on an inference response."""
+    prompt: str
+    response: str
+    score: int  # 1 (good), -1 (bad), 0 (neutral)
+    model: str = ""
+    text: str = ""
+    metadata: dict = Field(default_factory=dict)
+
+
+class FeedbackStatsResponse(BaseModel):
+    total: int
+    positive: int
+    negative: int
+    neutral: int
+    by_model: dict = Field(default_factory=dict)
+    days_covered: int
+
+
+@app.post("/v1/feedback")
+async def submit_feedback(request: FeedbackRequest):
+    """Submit feedback on a model response for alignment training."""
+    from .feedback import log_feedback
+
+    if request.score not in (-1, 0, 1):
+        raise HTTPException(400, "score must be -1, 0, or 1")
+
+    record = log_feedback(
+        prompt=request.prompt,
+        response=request.response,
+        score=request.score,
+        model=request.model,
+        text=request.text,
+        metadata={**request.metadata, "source": "gateway_api"},
+    )
+
+    log_event(
+        "feedback",
+        "afs.gateway",
+        op="submit",
+        metadata={
+            "model": request.model,
+            "score": request.score,
+            "feedback_id": record["id"],
+        },
+    )
+
+    return {"status": "ok", "id": record["id"]}
+
+
+@app.get("/v1/feedback/stats")
+async def get_feedback_stats(days: int = 30) -> FeedbackStatsResponse:
+    """Get feedback statistics."""
+    from .feedback import feedback_stats
+    stats = feedback_stats(days)
+    return FeedbackStatsResponse(**stats)
 
 
 # Backend management endpoints

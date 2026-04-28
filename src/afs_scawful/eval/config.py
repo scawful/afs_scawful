@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import os
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Literal
@@ -40,21 +41,27 @@ class ValidationConfig:
         "memory_qa",
         "documentation",
         "code_explanation",
+        "thinking",
+        "domain",
+        "chain",
+        "tool_format",
     ])
 
 
 @dataclass
 class ModelConfig:
     """Configuration for model inference."""
-    provider: Literal["ollama", "studio", "vertex"] = "ollama"
+    provider: Literal["ollama", "studio", "gemini", "vertex"] = "ollama"
     name: str = "nayru-7b-v1:latest"
     base_url: str = "http://localhost:11434"
+    studio_base_url: str = os.environ.get("LMSTUDIO_BASE_URL", "http://127.0.0.1:1234/v1")
     timeout_seconds: int = 60
     temperature: float = 0.7
     top_p: float = 0.8
     max_tokens: int = 512
     system_prompt: str = ""
-    studio_api_key_env: str = "GEMINI_API_KEY"
+    studio_api_key_env: str = "LMSTUDIO_API_KEY"
+    gemini_api_key_env: str = "GEMINI_API_KEY"
     vertex_project: str | None = None
     vertex_location: str = "us-east1"
     gcloud_path: str = "gcloud"
@@ -118,12 +125,14 @@ class EvalConfig:
                 "provider": self.model.provider,
                 "name": self.model.name,
                 "base_url": self.model.base_url,
+                "studio_base_url": self.model.studio_base_url,
                 "timeout_seconds": self.model.timeout_seconds,
                 "temperature": self.model.temperature,
                 "top_p": self.model.top_p,
                 "max_tokens": self.model.max_tokens,
                 "system_prompt": self.model.system_prompt,
                 "studio_api_key_env": self.model.studio_api_key_env,
+                "gemini_api_key_env": self.model.gemini_api_key_env,
                 "vertex_project": self.model.vertex_project,
                 "vertex_location": self.model.vertex_location,
                 "gcloud_path": self.model.gcloud_path,

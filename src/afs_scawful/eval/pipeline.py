@@ -5,6 +5,7 @@ from __future__ import annotations
 import asyncio
 import json
 import logging
+import os
 import re
 from dataclasses import dataclass, field
 from datetime import datetime
@@ -13,12 +14,21 @@ from typing import Any
 
 from ..integrations.ollama_client import ModelResponse, OllamaClient, Prompt
 from ..integrations.google_genai_client import GoogleAIStudioClient, VertexAIClient
+from ..integrations.openai_client import OpenAIClient
 from ..sample import TrainingSample
 from ..validators import AsmValidator, ValidationResult
 from ..validators.asar_validator_v2 import AsarValidatorV2
 from .config import EvalConfig
 
 logger = logging.getLogger(__name__)
+_LMSTUDIO_BASE_URL = "http://127.0.0.1:1234/v1"
+
+
+def _normalize_dimension(value: Any) -> str:
+    if value is None:
+        return ""
+    text = str(value).strip()
+    return text
 
 
 # Patterns for detecting prompt category
@@ -127,6 +137,12 @@ class EvalResult:
                 "instruction": self.prompt.instruction,
                 "input": self.prompt.input,
                 "category": self.prompt.category,
+                "surface": self.prompt.surface,
+                "domain": self.prompt.domain,
+                "mode": self.prompt.mode,
+                "effort": self.prompt.effort,
+                "tags": list(self.prompt.tags),
+                "metadata": dict(self.prompt.metadata),
             },
             "response": self.response.to_dict(),
             "validation": self.validation.to_dict(),
@@ -193,8 +209,11 @@ class EvalReport:
 
     def category_stats(self) -> dict[str, dict[str, Any]]:
         """Get statistics per category."""
+        return self._stats_for_group(self.by_category())
+
+    def _stats_for_group(self, groups: dict[str, list[EvalResult]]) -> dict[str, dict[str, Any]]:
         stats = {}
-        for category, results in self.by_category().items():
+        for category, results in groups.items():
             passed = sum(1 for r in results if r.success)
             scores = [r.score for r in results]
             stats[category] = {
@@ -205,6 +224,28 @@ class EvalReport:
                 "avg_score": sum(scores) / len(scores) if scores else 0.0,
             }
         return stats
+
+    def _group_by_dimension(self, key: str) -> dict[str, list[EvalResult]]:
+        groups: dict[str, list[EvalResult]] = {}
+        for result in self.results:
+            value = _normalize_dimension(getattr(result.prompt, key, "")) or "unspecified"
+            groups.setdefault(value, []).append(result)
+        return groups
+
+    def dimension_stats(self, key: str) -> dict[str, dict[str, Any]]:
+        return self._stats_for_group(self._group_by_dimension(key))
+
+    def surface_stats(self) -> dict[str, dict[str, Any]]:
+        return self.dimension_stats("surface")
+
+    def domain_stats(self) -> dict[str, dict[str, Any]]:
+        return self.dimension_stats("domain")
+
+    def mode_stats(self) -> dict[str, dict[str, Any]]:
+        return self.dimension_stats("mode")
+
+    def effort_stats(self) -> dict[str, dict[str, Any]]:
+        return self.dimension_stats("effort")
 
     def to_dict(self) -> dict[str, Any]:
         return {
@@ -222,6 +263,10 @@ class EvalReport:
                 "avg_tokens_per_second": self.avg_tokens_per_second,
             },
             "by_category": self.category_stats(),
+            "by_surface": self.surface_stats(),
+            "by_domain": self.domain_stats(),
+            "by_mode": self.mode_stats(),
+            "by_effort": self.effort_stats(),
             "results": [r.to_dict() for r in self.results],
         }
 
@@ -265,6 +310,28 @@ class EvalReport:
                 )
             lines.append("")
 
+        for title, stats in [
+            ("By Surface", self.surface_stats()),
+            ("By Domain", self.domain_stats()),
+            ("By Mode", self.mode_stats()),
+            ("By Effort", self.effort_stats()),
+        ]:
+            visible = {name: values for name, values in stats.items() if name != "unspecified"}
+            if not visible:
+                continue
+            lines.extend([
+                f"## {title}",
+                "",
+                "| Name | Total | Passed | Pass Rate | Avg Score |",
+                "|------|-------|--------|-----------|-----------|",
+            ])
+            for name, values in sorted(visible.items()):
+                lines.append(
+                    f"| {name} | {values['total']} | {values['passed']} | "
+                    f"{values['pass_rate']:.1%} | {values['avg_score']:.2f} |"
+                )
+            lines.append("")
+
         # Failed samples
         failed = [r for r in self.results if not r.success]
         if failed and include_samples:
@@ -303,7 +370,7 @@ class EvalPipeline:
 
     def __init__(self, config: EvalConfig | None = None):
         self.config = config or EvalConfig()
-        self.client = self._build_client()
+        self.client: Any = self._build_client()
         self._init_validators()
 
     def _build_client(self):
@@ -314,8 +381,19 @@ class EvalPipeline:
                 timeout=self.config.model.timeout_seconds,
             )
         if provider == "studio":
-            return GoogleAIStudioClient(
+            base_url = self.config.model.base_url
+            if not base_url or base_url == "http://localhost:11434":
+                base_url = self.config.model.studio_base_url
+            return OpenAIClient(
                 api_key_env=self.config.model.studio_api_key_env,
+                api_key=os.environ.get(self.config.model.studio_api_key_env),
+                base_url=base_url or _LMSTUDIO_BASE_URL,
+                timeout=self.config.model.timeout_seconds,
+                api_mode="chat",
+            )
+        if provider == "gemini":
+            return GoogleAIStudioClient(
+                api_key_env=self.config.model.gemini_api_key_env,
                 timeout=self.config.model.timeout_seconds,
             )
         if provider == "vertex":
@@ -396,16 +474,31 @@ class EvalPipeline:
             details=all_details,
         )
 
-    async def eval_single(self, prompt: Prompt) -> EvalResult:
-        """Evaluate a single prompt."""
-        response = await self.client.generate(
+    async def _generate_response(self, prompt: Prompt) -> ModelResponse:
+        client: Any = self.client
+        if hasattr(client, "generate"):
+            return await client.generate(
+                model=self.config.model.name,
+                prompt=prompt.full_prompt,
+                system=self.config.model.system_prompt,
+                temperature=self.config.model.temperature,
+                top_p=self.config.model.top_p,
+                max_tokens=self.config.model.max_tokens,
+            )
+
+        messages = [{"role": "user", "content": prompt.full_prompt}]
+        return await client.chat(
             model=self.config.model.name,
-            prompt=prompt.full_prompt,
-            system=self.config.model.system_prompt,
+            messages=messages,
             temperature=self.config.model.temperature,
             top_p=self.config.model.top_p,
             max_tokens=self.config.model.max_tokens,
+            system=self.config.model.system_prompt,
         )
+
+    async def eval_single(self, prompt: Prompt) -> EvalResult:
+        """Evaluate a single prompt."""
+        response = await self._generate_response(prompt)
 
         # Use provided category or auto-detect from prompt
         category = prompt.category or detect_category(prompt.instruction)
@@ -422,7 +515,7 @@ class EvalPipeline:
     async def eval_batch(
         self,
         prompts: list[Prompt],
-        progress_callback: callable | None = None,
+        progress_callback: Any = None,
     ) -> EvalReport:
         """Evaluate a batch of prompts."""
         start_time = datetime.now()
@@ -468,9 +561,9 @@ class EvalPipeline:
         prompt = Prompt(instruction=prompt_text, category="")
         return await self.eval_single(prompt)
 
-    async def eval_file(self, path: Path) -> EvalReport:
-        """Evaluate prompts from a JSONL file."""
-        prompts = []
+    @staticmethod
+    def load_prompts_from_jsonl(path: Path) -> list[Prompt]:
+        prompts: list[Prompt] = []
         with open(path, "r") as f:
             for line in f:
                 line = line.strip()
@@ -478,13 +571,41 @@ class EvalPipeline:
                     continue
                 try:
                     data = json.loads(line)
-                    prompts.append(Prompt(
-                        instruction=data.get("instruction", data.get("prompt", "")),
-                        input=data.get("input", ""),
-                        category=data.get("category", ""),
-                        expected_keywords=data.get("expected_keywords", []),
-                    ))
                 except json.JSONDecodeError:
                     logger.warning("Skipping invalid JSON line: %s", line[:50])
+                    continue
 
+                raw_meta = data.get("_metadata", {}) or {}
+                meta = raw_meta if isinstance(raw_meta, dict) else {}
+                raw_tags = data.get("tags", meta.get("tags", [])) or []
+                if isinstance(raw_tags, str):
+                    tags = [raw_tags]
+                elif isinstance(raw_tags, list):
+                    tags = [str(tag) for tag in raw_tags if str(tag).strip()]
+                else:
+                    tags = []
+                prompt = Prompt(
+                    instruction=data.get("instruction", data.get("prompt", "")),
+                    input=data.get("input", ""),
+                    category=(
+                        data.get("category")
+                        or meta.get("category")
+                        or data.get("section")
+                        or meta.get("section")
+                        or ""
+                    ),
+                    surface=data.get("surface", data.get("section", meta.get("section", ""))),
+                    domain=data.get("domain", meta.get("domain", "")),
+                    mode=data.get("mode", meta.get("mode", "")),
+                    effort=data.get("effort", meta.get("effort", "")),
+                    expected_keywords=data.get("expected_keywords", []),
+                    tags=tags,
+                    metadata=dict(meta),
+                )
+                prompts.append(prompt)
+        return prompts
+
+    async def eval_file(self, path: Path) -> EvalReport:
+        """Evaluate prompts from a JSONL file."""
+        prompts = self.load_prompts_from_jsonl(path)
         return await self.eval_batch(prompts)

@@ -443,6 +443,8 @@ def _chat_run_command(args: argparse.Namespace) -> int:
         top_p=args.top_p,
         max_tokens=args.max_tokens,
         thinking_tier=args.thinking_tier,
+        domain=args.domain,
+        mode=args.mode,
         ollama_host=args.ollama_host,
         registry_path=registry_path,
         enable_tools=args.tools,
@@ -824,6 +826,8 @@ def _apply_model_overrides(config: EvalConfig, args: argparse.Namespace) -> None
         config.model.base_url = args.base_url
     if getattr(args, "studio_key_env", None):
         config.model.studio_api_key_env = args.studio_key_env
+    if getattr(args, "gemini_key_env", None):
+        config.model.gemini_api_key_env = args.gemini_key_env
     if getattr(args, "vertex_project", None):
         config.model.vertex_project = args.vertex_project
     if getattr(args, "vertex_location", None):
@@ -897,6 +901,20 @@ def _eval_batch_command(args: argparse.Namespace) -> int:
         print(f"Avg Latency: {report.avg_latency_ms:.0f}ms")
         print(f"Duration: {report.duration_seconds:.1f}s")
 
+        print("\nPer-category:")
+        for category, stats in sorted(report.category_stats().items()):
+            print(
+                f"  {category:18s} "
+                f"pass={stats['passed']:>3}/{stats['total']:<3} "
+                f"rate={stats['pass_rate']:.1%} "
+                f"score={stats['avg_score']:.3f}"
+            )
+
+        _print_eval_dimension_stats("Per-surface", report.surface_stats())
+        _print_eval_dimension_stats("Per-domain", report.domain_stats())
+        _print_eval_dimension_stats("Per-mode", report.mode_stats())
+        _print_eval_dimension_stats("Per-effort", report.effort_stats())
+
         # Write report
         if args.report:
             report_path = Path(args.report).expanduser().resolve()
@@ -933,6 +951,20 @@ def _extract_semantic_score(eval_result) -> float | None:
     if isinstance(score, (int, float)):
         return float(score)
     return None
+
+
+def _print_eval_dimension_stats(title: str, stats: dict[str, dict[str, object]]) -> None:
+    visible = {name: values for name, values in stats.items() if name != "unspecified"}
+    if not visible:
+        return
+    print(f"\n{title}:")
+    for name, values in sorted(visible.items()):
+        print(
+            f"  {name:18s} "
+            f"pass={values['passed']:>3}/{values['total']:<3} "
+            f"rate={values['pass_rate']:.1%} "
+            f"score={values['avg_score']:.3f}"
+        )
 
 
 def _eval_asar_command(args: argparse.Namespace) -> int:
@@ -979,6 +1011,11 @@ def _eval_asar_command(args: argparse.Namespace) -> int:
                 f"rate={stats['pass_rate']:.1%} "
                 f"score={stats['avg_score']:.3f}"
             )
+
+        _print_eval_dimension_stats("Per-surface", report.surface_stats())
+        _print_eval_dimension_stats("Per-domain", report.domain_stats())
+        _print_eval_dimension_stats("Per-mode", report.mode_stats())
+        _print_eval_dimension_stats("Per-effort", report.effort_stats())
 
         if args.report:
             report_path = Path(args.report).expanduser().resolve()
@@ -1345,7 +1382,7 @@ def build_parser() -> argparse.ArgumentParser:
     chat_run.add_argument("--router", help="Router name (from registry)")
     chat_run.add_argument(
         "--provider",
-        choices=["ollama", "studio", "vertex", "openai", "anthropic"],
+        choices=["ollama", "studio", "gemini", "vertex", "openai", "anthropic"],
         help="Provider for direct model chat",
     )
     chat_run.add_argument("--system", help="System prompt override")
@@ -1358,6 +1395,14 @@ def build_parser() -> argparse.ArgumentParser:
         choices=["none", "low", "medium", "high", "max"],
         help="Reasoning/thinking tier override (provider dependent)",
     )
+    chat_run.add_argument(
+        "--domain",
+        help="Internal domain profile override (for example: oos, alttp-vanilla, xref).",
+    )
+    chat_run.add_argument(
+        "--mode",
+        help="Internal mode profile override (for example: trace, debug, author).",
+    )
     chat_run.add_argument("--ollama-host", help="Ollama host override")
     chat_run.add_argument("--registry-path", help="Chat registry TOML path")
     chat_run.add_argument("--tools", action="store_true", help="Enable AFS tools")
@@ -1366,7 +1411,7 @@ def build_parser() -> argparse.ArgumentParser:
     chat_list_models = chat_sub.add_parser("list-models", help="List chat models.")
     chat_list_models.add_argument(
         "--provider",
-        choices=["ollama", "studio", "vertex", "openai", "anthropic"],
+        choices=["ollama", "studio", "gemini", "vertex", "openai", "anthropic"],
         help="Provider to query",
     )
     chat_list_models.add_argument(
@@ -1591,9 +1636,10 @@ def build_parser() -> argparse.ArgumentParser:
     eval_test = eval_sub.add_parser("test", help="Run a single evaluation test.")
     eval_test.add_argument("--prompt", "-p", required=True, help="Prompt to evaluate.")
     eval_test.add_argument("--model", "-m", help="Model name (default: nayru-7b-v1:latest)")
-    eval_test.add_argument("--provider", choices=["ollama", "studio", "vertex"], help="Model provider")
+    eval_test.add_argument("--provider", choices=["ollama", "studio", "gemini", "vertex"], help="Model provider")
     eval_test.add_argument("--base-url", help="Ollama base URL override")
-    eval_test.add_argument("--studio-key-env", help="Env var for AI Studio API key")
+    eval_test.add_argument("--studio-key-env", help="Env var for LM Studio auth key (usually not needed)")
+    eval_test.add_argument("--gemini-key-env", help="Env var for Gemini API key")
     eval_test.add_argument("--vertex-project", help="Vertex AI project id")
     eval_test.add_argument("--vertex-location", help="Vertex AI location")
     eval_test.add_argument("--gcloud-path", help="Path to gcloud binary")
@@ -1606,9 +1652,10 @@ def build_parser() -> argparse.ArgumentParser:
     eval_batch.add_argument("--format", "-f", choices=["markdown", "json"], default="markdown")
     eval_batch.add_argument("--model", "-m", help="Model name override.")
     eval_batch.add_argument("--config", "-c", help="YAML config file.")
-    eval_batch.add_argument("--provider", choices=["ollama", "studio", "vertex"], help="Model provider")
+    eval_batch.add_argument("--provider", choices=["ollama", "studio", "gemini", "vertex"], help="Model provider")
     eval_batch.add_argument("--base-url", help="Ollama base URL override")
-    eval_batch.add_argument("--studio-key-env", help="Env var for AI Studio API key")
+    eval_batch.add_argument("--studio-key-env", help="Env var for LM Studio auth key (usually not needed)")
+    eval_batch.add_argument("--gemini-key-env", help="Env var for Gemini API key")
     eval_batch.add_argument("--vertex-project", help="Vertex AI project id")
     eval_batch.add_argument("--vertex-location", help="Vertex AI location")
     eval_batch.add_argument("--gcloud-path", help="Path to gcloud binary")
@@ -1633,11 +1680,12 @@ def build_parser() -> argparse.ArgumentParser:
     eval_asar.add_argument("--config", "-c", help="YAML config file.")
     eval_asar.add_argument(
         "--provider",
-        choices=["ollama", "studio", "vertex"],
+        choices=["ollama", "studio", "gemini", "vertex"],
         help="Model provider",
     )
     eval_asar.add_argument("--base-url", help="Ollama base URL override")
-    eval_asar.add_argument("--studio-key-env", help="Env var for AI Studio API key")
+    eval_asar.add_argument("--studio-key-env", help="Env var for LM Studio auth key (usually not needed)")
+    eval_asar.add_argument("--gemini-key-env", help="Env var for Gemini API key")
     eval_asar.add_argument("--vertex-project", help="Vertex AI project id")
     eval_asar.add_argument("--vertex-location", help="Vertex AI location")
     eval_asar.add_argument("--gcloud-path", help="Path to gcloud binary")
@@ -1657,9 +1705,10 @@ def build_parser() -> argparse.ArgumentParser:
     # afs eval live
     eval_live = eval_sub.add_parser("live", help="Interactive evaluation REPL.")
     eval_live.add_argument("--model", "-m", help="Model name (default: nayru-7b-v1:latest)")
-    eval_live.add_argument("--provider", choices=["ollama", "studio", "vertex"], help="Model provider")
+    eval_live.add_argument("--provider", choices=["ollama", "studio", "gemini", "vertex"], help="Model provider")
     eval_live.add_argument("--base-url", help="Ollama base URL override")
-    eval_live.add_argument("--studio-key-env", help="Env var for AI Studio API key")
+    eval_live.add_argument("--studio-key-env", help="Env var for LM Studio auth key (usually not needed)")
+    eval_live.add_argument("--gemini-key-env", help="Env var for Gemini API key")
     eval_live.add_argument("--vertex-project", help="Vertex AI project id")
     eval_live.add_argument("--vertex-location", help="Vertex AI location")
     eval_live.add_argument("--gcloud-path", help="Path to gcloud binary")
@@ -1667,9 +1716,10 @@ def build_parser() -> argparse.ArgumentParser:
 
     # afs eval list-models
     eval_list = eval_sub.add_parser("list-models", help="List models for a provider.")
-    eval_list.add_argument("--provider", choices=["ollama", "studio", "vertex"], help="Model provider")
+    eval_list.add_argument("--provider", choices=["ollama", "studio", "gemini", "vertex"], help="Model provider")
     eval_list.add_argument("--base-url", help="Ollama base URL override")
-    eval_list.add_argument("--studio-key-env", help="Env var for AI Studio API key")
+    eval_list.add_argument("--studio-key-env", help="Env var for LM Studio auth key (usually not needed)")
+    eval_list.add_argument("--gemini-key-env", help="Env var for Gemini API key")
     eval_list.add_argument("--vertex-project", help="Vertex AI project id")
     eval_list.add_argument("--vertex-location", help="Vertex AI location")
     eval_list.add_argument("--gcloud-path", help="Path to gcloud binary")
@@ -1691,7 +1741,8 @@ def build_parser() -> argparse.ArgumentParser:
 
 def main(argv: Iterable[str] | None = None) -> int:
     parser = build_parser()
-    args = parser.parse_args(argv)
+    parsed_argv = list(argv) if argv is not None else None
+    args = parser.parse_args(parsed_argv)
     if not getattr(args, "command", None):
         parser.print_help()
         return 1

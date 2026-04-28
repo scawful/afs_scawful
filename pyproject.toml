@@ -12,13 +12,17 @@ authors = [
 test = [
   "pytest>=7.4"
 ]
+gateway = [
+  "aiohttp>=3.10",
+  "fastapi>=0.110",
+  "uvicorn>=0.30"
+]
 research = [
   "pypdf>=4.0"
 ]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
-asyncio_default_fixture_loop_scope = "function"
 
 [build-system]
 requires = ["setuptools>=68"]

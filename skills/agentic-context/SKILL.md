@@ -15,11 +15,14 @@ description: Use the Agentic File System (AFS) context model for discovery, moun
 2. Ensure context scaffolding exists.
    - Use `~/src/lab/afs/scripts/afs context ensure-all --path ~/src`.
 3. Read and write via AFS, not ad-hoc paths.
+   - For MCP clients, prefer `context.read`, `context.write`, `context.list`, `context.move`, and `context.delete`.
+   - Treat `fs.*` MCP tool names as compatibility aliases.
    - Read: `afs fs read scratchpad state.md --path ~/src`.
    - Write: `afs fs write scratchpad notes.md --path ~/src --content "..."`.
    - List: `afs fs list knowledge --path ~/src --glob "*.md"`.
 4. Keep memory and knowledge read-only.
    - Write only to `scratchpad` unless explicitly asked.
+   - Treat `session pack` as an explicit handoff/export step, not routine startup.
 5. Use workspace navigation tools.
    - Use `ws list`, `ws find`, and `ws status` for project discovery.
 6. Use the AFS CLI wrapper for non-interactive agents.

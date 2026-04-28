@@ -16,5 +16,6 @@ Response Contract
 - Known limitations or next actions
 
 Reference Material
+- Shared harness contract: `~/src/docs/guides/ai-coder/AGENT_HARNESS_CONTRACT.md`.
 - Full legacy guidance: `.context/knowledge/agent-reference.md`.
 - Use repository docs as source of truth for implementation details.

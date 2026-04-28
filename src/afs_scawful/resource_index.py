@@ -125,7 +125,6 @@ class ResourceIndexer:
 
         for root in self.resource_roots:
             if not root.exists():
-                self._errors.append(f"missing root: {root}")
                 continue
             for pattern in self.search_patterns:
                 for path in root.rglob(pattern):

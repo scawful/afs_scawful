@@ -26,6 +26,7 @@ class ModelResponse:
     done: bool = True
     context: list[int] = field(default_factory=list)
     error: str | None = None
+    reasoning_content: str | None = None
 
     def to_dict(self) -> dict[str, Any]:
         return {
@@ -37,6 +38,7 @@ class ModelResponse:
             "tokens_per_second": self.tokens_per_second,
             "done": self.done,
             "error": self.error,
+            "reasoning_content": self.reasoning_content,
         }
 
 
@@ -46,7 +48,13 @@ class Prompt:
     instruction: str
     input: str = ""
     category: str = ""
+    surface: str = ""
+    domain: str = ""
+    mode: str = ""
+    effort: str = ""
     expected_keywords: list[str] = field(default_factory=list)
+    tags: list[str] = field(default_factory=list)
+    metadata: dict[str, Any] = field(default_factory=dict)
 
     @property
     def full_prompt(self) -> str:
