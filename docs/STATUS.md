@@ -1,7 +1,23 @@
 # STATUS
 
-Last updated: 2026-02-28
+Last updated: 2026-04-19
 Stage: Alpha
+
+## Current top-level snapshot
+
+- avatar/persona baseline in this repo remains active, but Oracle/Zelda work is now a major parallel track
+- current Oracle training + catalog status lives in `docs/ORACLE_STATUS_20260416.md`
+- current Oracle public contract is:
+  - `oracle-fast` first
+  - `oracle` second
+  - `oracle-pro` only if a larger model clearly earns it
+- current Oracle active runs at last sync:
+  - `veran-9b` finished; teacher-gate decision still pending
+  - `qwen3-oracle-8b-v1-corrective2` remains the measured shared-floor result
+  - `qwen3-oracle-14b-v1-r3` is the active 14B retry on a fresh 4090 host after the earlier OOM and lost retry-2 seed host
+  - `qwen25-oracle-coder-7b-v2` has been recovered/finalized, but remains a mixed result rather than a promotion
+  - `qwen25-oracle-coder-7b-v3` is prepared as the next corrective
+  - `qwen35-oracle-fast-v2` remains staged, while the old `qwen35_oracle_14b_v1` prep path is stale because `Qwen/Qwen3.5-14B` is not a public base id
 
 ## Model Status
 
@@ -40,9 +56,15 @@ Source of truth for model routing and paths: `config/chat_registry.toml`
 
 ## Infrastructure
 
-- medical-mechanica (Windows RTX 5060 Ti 16GB): primary local training node.
-- Mac M5: control plane, local eval/serving support.
-- Vast.ai: heavy training when needed.
+- medical-mechanica (Windows + WSL2 RTX `5090`): primary local mixed-use training and inference node.
+- Mac M5: control plane and fallback local eval/serving support.
+- Vast.ai: fallback for oversized, parallel, or conflict-heavy training when local runtime is not good enough.
+
+## Oracle / Zelda note
+
+- use `docs/ORACLE_STATUS_20260416.md` for the current Oracle wave instead of relying on this generic status page
+- use `docs/ORACLE_CATALOG_CONSOLIDATION_PLAN_20260415.md` for the stable public naming contract
+- use `docs/ORACLE_TEACHER_DISTILLATION_PLAN_20260416.md` for the current teacher/distill policy
 
 ## Current Focus
 
@@ -58,4 +80,4 @@ Source of truth for model routing and paths: `config/chat_registry.toml`
 
 - Persona behavior is strongly system-prompt dependent at current sample sizes.
 - Formal eval pack for Avatar-Mix sub-roles is not yet implemented.
-- `docs/CURRENT_STATE.md` and session handoff docs must remain synchronized after each training push.
+- `docs/CURRENT_STATE.md`, `docs/ORACLE_STATUS_20260416.md`, and session handoff docs must remain synchronized after each training push.

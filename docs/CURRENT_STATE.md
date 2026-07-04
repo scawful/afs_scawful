@@ -1,6 +1,25 @@
-# Current State (2026-02-28)
+# Current State (2026-04-19)
 
-Scope: avatar/persona training continuity for `afs-scawful`.
+Scope: avatar/persona continuity plus current Oracle/Zelda status pointers for `afs-scawful`.
+
+## Current Oracle snapshot
+
+- Oracle/Zelda status now has its own current note: `docs/ORACLE_STATUS_20260416.md`
+- public Oracle rollout order is:
+  1. `oracle-fast`
+  2. `oracle`
+  3. `oracle-pro` only if a `27B` model clearly earns it
+- current active Oracle work at last sync:
+  - `veran-9b` finished; teacher-gate decision still pending
+  - `qwen3-oracle-8b-v1-corrective2` remains the measured shared-floor result
+  - `qwen3-oracle-14b-v1-r3` is the active 14B retry on a fresh 4090 host after the earlier OOM / host-loss sequence
+  - `qwen25-oracle-coder-7b-v2` has been recovered/finalized, but its eval outcome is mixed and not promotable
+  - `qwen25-oracle-coder-7b-v3` is prepared as the next corrective
+  - `qwen35-oracle-fast-v2` remains staged, but the old `qwen35_oracle_14b_v1` prep path is now stale because `Qwen/Qwen3.5-14B` is not a public base model id
+  - platform policy is now local-first on `medical-mechanica` WSL2 + `5090`, with Vast as fallback rather than default
+- current Oracle catalog and teacher docs:
+  - `docs/ORACLE_CATALOG_CONSOLIDATION_PLAN_20260415.md`
+  - `docs/ORACLE_TEACHER_DISTILLATION_PLAN_20260416.md`
 
 ## Production Baseline
 

@@ -62,3 +62,34 @@ local_log_dir = "infra/logs"
 
 # Retention
 max_log_age_days = 30
+
+# =============================================================================
+# Compute Hosts
+# =============================================================================
+# Inventory of named compute nodes. Currently documentary — InfraConfig.from_toml
+# does not yet parse [hosts.*]; routing code resolves hosts via SSH alias.
+# Extend src/afs_scawful/infra_config.py with a HostConfig dataclass when a
+# consumer needs structured access.
+
+[hosts.medical-mechanica]
+ssh_alias = "medical-mechanica"
+ssh_alternate_aliases = ["medicalmechanica", "mm", "mm-ts", "medical-mechanica-lan", "mm-lan"]
+tailscale_ip = "100.104.53.21"
+lan_ip = "192.168.1.190"
+fqdn = "medical-mechanica.tail23ff5d.ts.net"
+user = "starw"
+roles = ["training", "inference"]
+os = "Windows 11 Pro Insider Preview"
+os_build = "26220.8271"
+cpu = "AMD Ryzen 9 9950X3D"
+gpu = "NVIDIA GeForce RTX 5090"
+gpu_vram_gb = 32
+cuda_version = "12.8"
+cuda_versions_installed = ["11.2", "12.6", "12.8"]
+training_root = "D:/src/training"
+data_drive = "D:"
+data_drive_label = "Chiptek Hyperdrive"
+lmstudio_endpoint = "http://127.0.0.1:1234/v1"
+lmstudio_external_endpoint = "http://medical-mechanica:1234/v1"  # LM Studio binds 0.0.0.0:1234 — reachable over Tailscale
+afs_hostd_endpoint = "http://127.0.0.1:8766"  # localhost-only; requires SSH tunnel for cross-host calls
+notes = "Hardware swap completed 2026-04-28 (Ryzen 9 9950X3D, ASUS ROG X870E Hero, RTX 5090). WSL launch broken pending Windows reboot."

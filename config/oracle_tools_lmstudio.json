@@ -1,0 +1,76 @@
+{
+  "$schema": "../config/registry.schema.json",
+  "version": "0.1.0",
+  "description": "Oracle Tools LM Studio configuration. Tool-calling model for emulator and MCP workflows.",
+  "id": "oracle-tools",
+  "name": "Oracle Tools",
+  "description_long": "Specialized 7B tool-calling model for 65816 ASM development. Drives yaze-mcp, hyrule-historian, book-of-mudora, and Mesen2 socket CLI. Optimized for structured JSON output and MCP integration.",
+  "base_model": "qwen2.5-coder-7b-instruct",
+  "system_prompt_path": null,
+  "runtime_model_id": "oracle-tools-7b",
+  "status": "active",
+  "tags": ["oracle", "tools", "local", "daily"],
+  "parameters": {
+    "temperature": 0.3,
+    "max_tokens": 2048,
+    "top_p": 0.85,
+    "top_k": 30,
+    "repeat_penalty": 1.05
+  },
+  "lmstudio": {
+    "preferred_model_id": "oracle-tools-7b",
+    "load": {
+      "context_length": 16384,
+      "parallel": 1,
+      "gpu_offload": 1.0,
+      "flash_attention": true,
+      "cpu_threads": 7,
+      "ttl": 1800
+    },
+    "profiles": {
+      "tool_calling": {
+        "description": "Primary profile for MCP tool invocation. Low temperature for deterministic structured output.",
+        "generation": {
+          "temperature": 0.2,
+          "max_tokens": 2048,
+          "top_p": 0.85,
+          "top_k": 30,
+          "repeat_penalty": 1.05
+        },
+        "load": {
+          "context_length": 16384,
+          "parallel": 1,
+          "gpu_offload": 1.0,
+          "flash_attention": true,
+          "cpu_threads": 7,
+          "ttl": 1800
+        }
+      },
+      "analysis": {
+        "description": "Higher temperature for open-ended code analysis and routine explanation.",
+        "generation": {
+          "temperature": 0.4,
+          "max_tokens": 4096,
+          "top_p": 0.9,
+          "top_k": 40,
+          "repeat_penalty": 1.08
+        },
+        "load": {
+          "context_length": 32768,
+          "parallel": 1,
+          "gpu_offload": 1.0,
+          "flash_attention": true,
+          "cpu_threads": 7,
+          "ttl": 3600
+        }
+      }
+    }
+  },
+  "mcp_servers": [
+    "yaze-debugger",
+    "hyrule-historian",
+    "book-of-mudora"
+  ],
+  "created_at": "2026-04-12",
+  "updated_at": "2026-04-12"
+}
