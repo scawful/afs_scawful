@@ -324,3 +324,40 @@ def test_oracle_router_response_label_hides_internal_target_name() -> None:
     assert _response_label(router, target) == "oracle"
     assert _response_label(ChatRouter(name="avatar"), target) == "nayru"
     assert _response_label(None, target) == ""
+
+
+def test_oracle_teacher_router_defaults_to_v5_and_escalates_weak_families() -> None:
+    registry = load_chat_registry()
+
+    v5 = registry.resolve_model("oracle-9b-v5")
+    assert v5.model_id == "gguf/zelda/oracle-9b-candidate-v5-q4km.gguf"
+    assert registry.resolve_model("oracle-9b-candidate-v5").name == "oracle-9b-v5"
+
+    teacher = registry.resolve_model("oracle-14b-teacher")
+    assert teacher.model_id == "gguf/zelda/qwen3-oracle-14b-v8-q4km.gguf"
+    assert registry.resolve_model("qwen3-oracle-14b-v8").name == "oracle-14b-teacher"
+
+    router = registry.resolve_router("oracle-teacher")
+    assert router is not None
+    assert router.default_model == "oracle-9b-v5"
+
+    teacher_prompts = [
+        "Why does the songbank swap cause a music blackout after the boss?",
+        "The hook stub overwrote the original logic - what displaced instruction is missing?",
+        "Explain the jsr/rtl return contract for this bank $02 routine.",
+        "This asar patch fails to assemble, fix the compile error.",
+    ]
+    for prompt in teacher_prompts:
+        assert registry.route_prompt(router, prompt) == ["oracle-14b-teacher"], prompt
+
+    default_prompts = [
+        "Walk me through how the overworld overlay animation loads.",
+        "Where does OOS store the mask form state in SRAM?",
+    ]
+    for prompt in default_prompts:
+        assert registry.route_prompt(router, prompt) == ["oracle-9b-v5"], prompt
+
+    # Provenance: teacher-routed responses must be labeled with the answering
+    # model, so the router name must not use the label-hiding "oracle" name.
+    assert _response_label(router, teacher) == "oracle-14b-teacher"
+    assert _response_label(router, v5) == "oracle-9b-v5"

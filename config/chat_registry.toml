@@ -205,6 +205,51 @@ system_prompt = """You are scawful-echo. You are the Ghost in the Shell.
 - If the code is garbage, say so."""
 
 [[models]]
+name = "oracle-9b-v5"
+provider = "studio"
+model_id = "gguf/zelda/oracle-9b-candidate-v5-q4km.gguf"
+role = "current-best 9B Oracle candidate and default lane for the oracle-teacher router"
+description = "9B candidate v5 · q4km · safe rollback point (2026-05-01)"
+tags = ["oracle", "tools", "asm", "local", "provisional", "qwen35"]
+domain = "adaptive"
+mode = "adaptive"
+effort = "medium"
+thinking_tier = "medium"
+aliases = [
+  "oracle-9b-candidate-v5",
+  "oracle-9b",
+]
+options = { temperature = 0.15, max_tokens = 1280 }
+system_prompt = """You are Oracle, the mainline Zelda ROM hacking specialist for 65816 ASM, Oracle of Secrets, vanilla ALTTP disassembly, and structured tool use.
+
+Prefer canonical tool surfaces when available.
+Do not invent symbols, addresses, or tool names.
+Keep vanilla ALTTP and Oracle-specific conventions separate.
+When the task is primarily trace or debug work, gather evidence before proposing a fix."""
+
+[[models]]
+name = "oracle-14b-teacher"
+provider = "studio"
+model_id = "gguf/zelda/qwen3-oracle-14b-v8-q4km.gguf"
+role = "teacher/verifier for measured 9B weak families (Oracle-main and compile-hard)"
+description = "14B Oracle v8 · q4km · critical-safe gate-cleared candidate (23/24, critical 12/12)"
+tags = ["oracle", "tools", "asm", "local", "teacher", "qwen3"]
+domain = "adaptive"
+mode = "adaptive"
+effort = "high"
+thinking_tier = "medium"
+aliases = [
+  "qwen3-oracle-14b-v8",
+]
+options = { temperature = 0.15, max_tokens = 1280 }
+system_prompt = """You are Oracle, the mainline Zelda ROM hacking specialist for 65816 ASM, Oracle of Secrets, vanilla ALTTP disassembly, and structured tool use.
+
+Prefer canonical tool surfaces when available.
+Do not invent symbols, addresses, or tool names.
+Keep vanilla ALTTP and Oracle-specific conventions separate.
+When the task is primarily trace or debug work, gather evidence before proposing a fix."""
+
+[[models]]
 name = "muse"
 provider = "studio"
 model_id = "gguf/ollama/muse-v2.gguf"
@@ -560,3 +605,29 @@ name = "cloud"
 description = "Cloud providers (Gemini, OpenAI, Anthropic)."
 strategy = "keyword"
 default_model = "gemini-3-flash-preview"
+
+[[routers]]
+name = "oracle-teacher"
+description = "Outside-weights teacher router (docs/ORACLE_9B_V5_TEACHER_ROUTER_20260502.md): oracle-9b-v5 stays default; qwen3-oracle-14b-v8 answers only the measured weak families. Do not mutate v5 weights; response labels carry the answering model for provenance."
+strategy = "keyword"
+default_model = "oracle-9b-v5"
+
+# Oracle-main weak family: songbank blackout (teacher passed, v5 failed)
+[[routers.rules]]
+keywords = ["songbank", "song bank", "music blackout", "audio blackout", "spc blackout"]
+model = "oracle-14b-teacher"
+
+# Oracle-main weak family: hook stub overwritten logic
+[[routers.rules]]
+keywords = ["hook stub", "overwritten logic", "displaced instruction", "clobbered logic", "stub overwrote"]
+model = "oracle-14b-teacher"
+
+# Oracle-main weak family: jsr/rtl return contract
+[[routers.rules]]
+keywords = ["jsr/rtl", "jsr to rtl", "rtl contract", "return contract", "jsl/rtl", "rts vs rtl"]
+model = "oracle-14b-teacher"
+
+# Compile-hard lane: ASAR patch synthesis (routed eval improved 1/6 -> 4/6)
+[[routers.rules]]
+keywords = ["asar patch", "asar error", "compile error", "compile fix", "make it compile", "fails to assemble", "assembler error"]
+model = "oracle-14b-teacher"
