@@ -330,7 +330,7 @@ def test_oracle_teacher_router_defaults_to_v5_and_escalates_weak_families() -> N
     registry = load_chat_registry()
 
     v5 = registry.resolve_model("oracle-9b-v5")
-    assert v5.model_id == "gguf/zelda/oracle-9b-candidate-v5-q4km.gguf"
+    assert v5.model_id == "gguf/zelda/oracle-9b-candidate-v5-nothink-q4km.gguf"
     assert registry.resolve_model("oracle-9b-candidate-v5").name == "oracle-9b-v5"
 
     teacher = registry.resolve_model("oracle-14b-teacher")

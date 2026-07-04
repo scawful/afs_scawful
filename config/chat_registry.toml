@@ -207,7 +207,7 @@ system_prompt = """You are scawful-echo. You are the Ghost in the Shell.
 [[models]]
 name = "oracle-9b-v5"
 provider = "studio"
-model_id = "gguf/zelda/oracle-9b-candidate-v5-q4km.gguf"
+model_id = "gguf/zelda/oracle-9b-candidate-v5-nothink-q4km.gguf"
 role = "current-best 9B Oracle candidate and default lane for the oracle-teacher router"
 description = "9B candidate v5 · q4km · safe rollback point (2026-05-01)"
 tags = ["oracle", "tools", "asm", "local", "provisional", "qwen35"]
