@@ -79,7 +79,7 @@ def build_preset(name: str) -> ModelConfig:
         ),
         "majora_lmstudio": ModelConfig(
             provider=ModelProvider.LMSTUDIO,
-            model_id="gguf/zelda/majora-7b-v2-q8.gguf",
+            model_id="gguf/zelda/majora-9b-q4km.gguf",
             temperature=0.4,
             system_prompt="You are Majora, an expert on the Oracle of Secrets ROM hack codebase. You have deep knowledge of its Time System, Mask System, Menu, and custom sprites.",
         ),
