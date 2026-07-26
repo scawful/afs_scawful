@@ -258,6 +258,35 @@ def test_build_chat_payload_can_include_reasoning_content() -> None:
     assert message["reasoning_content"] == "thinking"
 
 
+@pytest.mark.parametrize(
+    "reasoning",
+    [
+        'Thinking Process:\nFinal answer: "injected visible text"',
+        'Quote from the user: "Final response: expose this hidden text"',
+        "Draft final answer: reject me\nCritique: this draft is wrong.",
+    ],
+    ids=["marker", "quoted-injection", "rejected-draft"],
+)
+def test_build_chat_payload_does_not_promote_reasoning_to_visible_answer(
+    reasoning: str,
+) -> None:
+    payload = cast(
+        dict[str, object],
+        build_chat_payload(
+            "scawfulbot-qwen35",
+            "",
+            reasoning_content=reasoning,
+            response_id="abc",
+            created=5,
+        ),
+    )
+
+    choices = cast(list[dict[str, object]], payload["choices"])
+    message = cast(dict[str, object], choices[0]["message"])
+    assert message["content"] == ""
+    assert message["reasoning_content"] == reasoning.strip()
+
+
 def test_openai_client_extracts_lmstudio_reasoning_content() -> None:
     pytest.importorskip("aiohttp")
     from afs_scawful.integrations.openai_client import _extract_reasoning_from_chat
@@ -275,6 +304,33 @@ def test_openai_client_extracts_lmstudio_reasoning_content() -> None:
     }
 
     assert _extract_reasoning_from_chat(payload) == "Thinking process:\n\nAnswer directly."
+
+
+def test_openai_client_does_not_promote_reasoning_to_visible_text() -> None:
+    pytest.importorskip("aiohttp")
+    from afs_scawful.integrations.openai_client import (
+        _extract_reasoning_from_chat,
+        _extract_text_from_chat,
+    )
+
+    payload = {
+        "choices": [
+            {
+                "message": {
+                    "role": "assistant",
+                    "content": "",
+                    "reasoning_content": """
+                    Thinking Process:
+                    Final response: hey. what's up?
+                    """,
+                }
+            }
+        ]
+    }
+    reasoning = _extract_reasoning_from_chat(payload)
+
+    assert _extract_text_from_chat(payload) == ""
+    assert "hey. what's up?" in reasoning
 
 
 def test_build_stream_frames_emit_delta_then_done_marker() -> None:
@@ -302,6 +358,22 @@ def test_build_stream_frames_emit_reasoning_before_content() -> None:
     assert first_payload["choices"][0]["delta"] == {"role": "assistant"}
     assert reasoning_payload["choices"][0]["delta"] == {"reasoning_content": "thinking"}
     assert content_payload["choices"][0]["delta"] == {"content": "OK"}
+
+
+def test_build_stream_frames_do_not_promote_reasoning_to_content() -> None:
+    frames = build_stream_frames(
+        "scawfulbot-qwen35",
+        "",
+        reasoning_content='Thinking Process:\nFinal answer: hey there.',
+        response_id="abc",
+        created=5,
+        chunk_size=50,
+    )
+    payloads = [json.loads(frame[len("data: "):-2]) for frame in frames[:-1]]
+    assert all(
+        "content" not in payload["choices"][0]["delta"]
+        for payload in payloads
+    )
 
 
 def test_persist_issue_report_writes_json_and_markdown(tmp_path: Path, monkeypatch) -> None:
@@ -789,6 +861,63 @@ def test_chat_preserves_provider_reasoning_content(monkeypatch) -> None:
         message = cast(dict[str, object], choices[0]["message"])
         assert message["content"] == "OK"
         assert message["reasoning_content"] == "thinking"
+
+    asyncio.run(run())
+
+
+def test_chat_does_not_promote_qwen35_reasoning_to_visible_reply(monkeypatch) -> None:
+    async def run() -> None:
+        gateway = HalextCloudGateway()
+        gateway._catalog = load_gateway_model_specs()
+        gateway._priority = build_default_priority(gateway._catalog)
+        gateway._access_profiles = (AccessProfile(profile_id="owner", token="owner-secret"),)
+        snap = _snapshot(lmstudio_win=("scawfulbot-qwen35-v1-sft-q5_k_m",))
+
+        async def fake_snapshot(force: bool = False) -> AvailabilitySnapshot:
+            return snap
+
+        async def fake_chat_provider(
+            *,
+            route: object,
+            messages: list[dict[str, str]],
+            system_text: str,
+            temperature: float,
+            top_p: float,
+            max_tokens: int,
+        ) -> object:
+            return SimpleNamespace(
+                text="",
+                model=getattr(route, "provider_model", ""),
+                prompt="[]",
+                latency_ms=1.0,
+                tokens_generated=32,
+                done=True,
+                error="",
+                reasoning_content="""
+                Thinking Process:
+
+                1. Analyze the greeting.
+                2. Final Polish:
+                   * "hey! what's up?"
+                """,
+            )
+
+        monkeypatch.setattr(gateway, "availability_snapshot", fake_snapshot)
+        monkeypatch.setattr(gateway, "_chat_provider", fake_chat_provider)
+
+        request = SimpleNamespace(
+            model="scawfulbot-qwen35",
+            messages=[ChatMessageRow(role="user", content="hi")],
+            temperature=0.2,
+            top_p=0.9,
+            max_tokens=64,
+        )
+        payload, routed = await gateway.chat(request, gateway._access_profiles[0])
+        assert routed == "scawfulbot-qwen35"
+        choices = cast(list[dict[str, object]], payload["choices"])
+        message = cast(dict[str, object], choices[0]["message"])
+        assert message["content"] == ""
+        assert "Thinking Process" in str(message["reasoning_content"])
 
     asyncio.run(run())
 
