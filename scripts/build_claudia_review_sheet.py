@@ -358,6 +358,16 @@ def write_private_jsonl(
     write_jsonl(path, records, overwrite=overwrite)
 
 
+def neutralize_csv_formula(value: object) -> object:
+    """Keep untrusted text from becoming a spreadsheet formula."""
+    if not isinstance(value, str):
+        return value
+    stripped = value.lstrip(" \t\r\n")
+    if stripped.startswith(("=", "+", "-", "@")):
+        return f"'{value}"
+    return value
+
+
 def write_csv(
     path: Path,
     rows: Iterable[dict],
@@ -372,7 +382,12 @@ def write_csv(
         writer = csv.DictWriter(handle, fieldnames=fieldnames)
         writer.writeheader()
         for row in rows:
-            writer.writerow(row)
+            writer.writerow(
+                {
+                    key: neutralize_csv_formula(value)
+                    for key, value in row.items()
+                }
+            )
         handle.flush()
         os.fsync(handle.fileno())
 

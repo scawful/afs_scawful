@@ -689,6 +689,7 @@ def test_ambiguous_credentials_fail_closed_until_explicitly_redacted(
     for natural_but_ambiguous in (
         "The secret: communication is what failed.",
         "My password: vulnerability is hard to admit.",
+        "My password was correcthorsebatterystaple.",
     ):
         try:
             module.ensure_no_ambiguous_credentials(natural_but_ambiguous)
@@ -1262,6 +1263,7 @@ def test_distilled_uniqueness_uses_source_fingerprint_without_rejecting_raw_mate
         record["_metadata"] = {
             "distilled": True,
             "source_pair_fingerprint": raw_fingerprint,
+            "source_sample_id": raw["sample_id"],
         }
         record["_metadata"]["pair_fingerprint"] = module.pair_fingerprint(record)
         return record
@@ -1289,6 +1291,44 @@ def test_distilled_uniqueness_uses_source_fingerprint_without_rejecting_raw_mate
         assert "duplicate pair content fingerprint" in str(error)
     else:
         raise AssertionError("distilled variants for one raw source were accepted")
+
+
+def test_contrast_rejects_forged_distilled_provenance(
+    tmp_path: Path,
+    capsys,
+) -> None:
+    module = _load_module()
+    raw = _pair()
+    raw["messages"][1]["content"] = "Prompt A must stay paired with source A."
+    forged = _pair()
+    forged["sample_id"] = "forged-distilled"
+    forged["messages"][1]["content"] = "Unrelated prompt B."
+    forged["messages"][2]["content"] = "Unrelated chosen response B."
+    forged["_metadata"] = {
+        "distilled": True,
+        "source_sample_id": raw["sample_id"],
+        "source_pair_fingerprint": module.pair_fingerprint(raw),
+    }
+    forged["_metadata"]["pair_fingerprint"] = module.pair_fingerprint(forged)
+    raw_path = tmp_path / "raw.jsonl"
+    distilled_path = tmp_path / "distilled.jsonl"
+    output_path = tmp_path / "contrast.jsonl"
+    raw_path.write_text(module.json.dumps(raw) + "\n", encoding="utf-8")
+    distilled_path.write_text(module.json.dumps(forged) + "\n", encoding="utf-8")
+
+    result = module.cmd_contrast(
+        argparse.Namespace(
+            input=None,
+            raw_input=str(raw_path),
+            distilled_input=str(distilled_path),
+            output=str(output_path),
+            limit=1,
+        )
+    )
+
+    assert result == 1
+    assert "provenance does not match" in capsys.readouterr().err
+    assert not output_path.exists()
 
 
 def test_append_rejects_duplicate_fingerprints_already_on_disk(
