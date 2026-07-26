@@ -50,6 +50,9 @@ skills/personal-context/
 
 # Local registry backups and generated eval/research artifacts.
 *.bak.*
+*.key.jsonl
+*.review.jsonl
+*.review.csv
 docs/CLAUDIA_*.md
 docs/EMOTIONAL_FRAMING_RESEARCH.md
 docs/LATENT_SPACE_EXPLORATION.md
