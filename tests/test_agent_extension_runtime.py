@@ -6,7 +6,7 @@ from afs_scawful.agent_tools import create_triforce_tools
 
 def test_agent_model_presets_export_domain_configs() -> None:
     config = build_preset("majora_lmstudio")
-    assert config.model_id.endswith(".gguf")
+    assert config.model_id == "gguf/zelda/majora-9b-q4km.gguf"
 
 
 def test_agent_model_presets_oracle_legacy_aliases_share_oracle_contract() -> None:

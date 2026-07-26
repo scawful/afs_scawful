@@ -231,7 +231,7 @@ async def run_interactive(
 ) -> None:
     """Run an interactive session with the orchestrator."""
     print("Claude Orchestrator with Local Expert Models")
-    print("Available experts: nayru, veran, farore, majora")
+    print(f"Available experts: {', '.join(EXPERT_MODELS)}")
     if enable_mcp:
         print("MCP tools enabled: yaze-debugger")
     print("Type 'quit' or 'exit' to end session.\n")

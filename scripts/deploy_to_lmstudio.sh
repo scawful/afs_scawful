@@ -16,12 +16,12 @@ LOCALHOST_PORT="${LOCALHOST_PORT:-8000}"
 # Models to deploy (name -> path)
 declare -A MODELS=(
     ["scawful-echo"]="$MODELS_DIR/ollama/scawful-echo.gguf"
-    ["scawful-memory"]="$MODELS_DIR/ollama/memory-v1.gguf"
+    ["scawful-memory"]="$MODELS_DIR/scawful/memory-1.5b-v1-q8.gguf"
     ["scawful-muse"]="$MODELS_DIR/ollama/muse-v2.gguf"
     ["zelda-din"]="$MODELS_DIR/zelda/din-7b-v4-q4km.gguf"
     ["zelda-farore"]="$MODELS_DIR/zelda/farore-7b-v5-q8.gguf"
     ["zelda-hylia"]="$MODELS_DIR/zelda/hylia-v3-q8_0.gguf"
-    ["zelda-majora"]="$MODELS_DIR/zelda/majora-7b-v2-q8.gguf"
+    ["zelda-majora"]="$MODELS_DIR/zelda/majora-9b-q4km.gguf"
     ["zelda-scribe"]="$MODELS_DIR/zelda/scribe-3b-v2-q4km.gguf"
     ["zelda-veran"]="$MODELS_DIR/zelda/veran-7b-v4-q8.gguf"
 )

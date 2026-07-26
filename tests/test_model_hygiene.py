@@ -49,3 +49,13 @@ def test_annotate_groups_marks_unregistered_stale_files_for_archive(tmp_path: Pa
     assert len(annotated) == 1
     assert annotated[0].tier == "archive"
     assert "archive/" in annotated[0].reason
+
+
+def test_lmstudio_deploy_script_uses_current_model_paths() -> None:
+    script_path = Path(__file__).resolve().parent.parent / "scripts" / "deploy_to_lmstudio.sh"
+    script = script_path.read_text(encoding="utf-8")
+
+    assert "$MODELS_DIR/scawful/memory-1.5b-v1-q8.gguf" in script
+    assert "$MODELS_DIR/zelda/majora-9b-q4km.gguf" in script
+    assert "$MODELS_DIR/ollama/memory-v1.gguf" not in script
+    assert "$MODELS_DIR/zelda/majora-7b-v2-q8.gguf" not in script
