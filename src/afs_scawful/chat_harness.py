@@ -704,7 +704,7 @@ def run_chat(
                     score = -1
                 else:
                     score = 0
-                record = log_feedback(
+                log_feedback(
                     prompt=last_user_prompt,
                     response=last_assistant_response,
                     score=score,
