@@ -137,20 +137,31 @@ providers. Use OpenRouter (or another OpenAI-compatible proxy) for those models.
 
 ### Cloud Providers via LiteLLM
 
-When `ANTHROPIC_API_KEY` or `GEMINI_API_KEY` is present, `chat-service.sh` starts
-LiteLLM (OpenAI-compatible proxy) and appends its base URL to
-`OPENAI_API_BASE_URLS` so Open WebUI can list those models.
+In `simple` mode, `chat-service.sh` starts LiteLLM (OpenAI-compatible proxy)
+when an Anthropic, Gemini, or explicit LiteLLM key is present and appends its
+base URL to `OPENAI_API_BASE_URLS` so Open WebUI can list those models. An
+OpenAI key alone continues to use OpenAI directly and does not expose a second
+proxy endpoint.
 
 Generated files:
 
 - `~/.config/afs/litellm.env` (secrets for LiteLLM)
-- `~/.config/afs/litellm.yaml` (model list template)
+- `~/.config/afs/litellm.yaml` (generated model list when absent; marked
+  generated files refresh atomically on each `simple`-mode start)
 
 LiteLLM runs only when at least one of `ANTHROPIC_API_KEY`, `GEMINI_API_KEY`,
 `LITELLM_MASTER_KEY`, or `LITELLM_API_KEY` is set.
 
-**Unknown / needs verification:** the default model IDs in `litellm.yaml` are
-best-guess placeholders. Verify with LiteLLM docs and adjust as needed.
+The generated proxy catalog uses current provider IDs for Anthropic and Gemini,
+including the current Gemini 3.1 Pro preview and stable Gemini 3.5 Flash.
+OpenAI remains on Open WebUI's direct route rather than being redundantly
+exposed through the generated LiteLLM catalog. Files with the generated header
+are owned by `chat-service.sh`. Existing unmarked configurations are preserved
+(and tightened to mode `0600`) so local additions are never overwritten
+silently.
+If a generated catalog changes while LiteLLM is already running, the script
+leaves that service uninterrupted and tells you to run `restart simple` when
+convenient.
 
 Example `~/.config/afs/secrets.env`:
 

@@ -8,7 +8,7 @@ Registry defaults live in `config/chat_registry.toml`.
 ```bash
 afs chat run --model scawful-echo
 afs chat run --router oracle
-afs chat run --provider studio --model gemini-3-flash-preview
+afs chat run --provider gemini --model gemini-3-flash-preview
 afs chat run --provider openai --model gpt-5.2
 afs chat run --provider anthropic --model opus-4.5
 afs chat run --router cloud
