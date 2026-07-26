@@ -20,6 +20,11 @@ gateway = [
 research = [
   "pypdf>=4.0"
 ]
+claudia = [
+  "anthropic>=0.40",
+  "google-genai>=1.0",
+  "python-dotenv>=1.0"
+]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
