@@ -73,7 +73,7 @@ def test_handle_models_list():
     assert "nayru" in models
     assert "veran" in models
     assert "farore" in models
-    assert "majora" in models
+    assert "majora" not in models
     for name, info in models.items():
         assert "ollama_tag" in info
         assert "description" in info

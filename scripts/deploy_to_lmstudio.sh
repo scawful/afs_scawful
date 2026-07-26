@@ -97,8 +97,18 @@ for model_name in "${!MODELS[@]}"; do
         continue
     fi
 
-    if [ -f "$gguf_dest" ]; then
-        echo "  ✓ $model_name: already deployed"
+    if [ -e "$gguf_dest" ] || [ -L "$gguf_dest" ]; then
+        if [ "$model_path" -ef "$gguf_dest" ]; then
+            echo "  ✓ $model_name: already deployed"
+            continue
+        fi
+
+        echo "  → Updating $model_name (source changed)..."
+        replacement="$(mktemp "$LMSTUDIO_MODEL_DIR/.${model_name}.gguf.XXXXXX")"
+        rm "$replacement"
+        ln "$model_path" "$replacement"
+        mv -f "$replacement" "$gguf_dest"
+        echo "  ✓ $model_name: updated"
     else
         echo "  → Linking $model_name (hardlink)..."
         ln "$model_path" "$gguf_dest"
