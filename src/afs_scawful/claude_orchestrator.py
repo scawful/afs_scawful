@@ -66,12 +66,6 @@ EXPERT_MODELS = {
         description="65816 debugging and diagnosis",
         domains=["debug", "diagnosis", "bugs"],
     ),
-    "majora": ExpertModel(
-        name="majora",
-        ollama_tag="majora-v2:latest",
-        description="Oracle of Secrets architecture specialist",
-        domains=["oos", "oracle", "custom"],
-    ),
 }
 
 _YAZE_MCP_ROOT = os.environ.get("YAZE_MCP_PATH", "/Users/scawful/Code/yaze-mcp")

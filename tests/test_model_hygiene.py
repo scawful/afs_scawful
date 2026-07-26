@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import importlib.util
+import os
+import subprocess
 import sys
 from pathlib import Path
 
@@ -52,10 +54,64 @@ def test_annotate_groups_marks_unregistered_stale_files_for_archive(tmp_path: Pa
 
 
 def test_lmstudio_deploy_script_uses_current_model_paths() -> None:
-    script_path = Path(__file__).resolve().parent.parent / "scripts" / "deploy_to_lmstudio.sh"
+    repo_root = Path(__file__).resolve().parent.parent
+    script_path = repo_root / "scripts" / "deploy_to_lmstudio.sh"
     script = script_path.read_text(encoding="utf-8")
+    registry = (repo_root / "config" / "chat_registry.toml").read_text(encoding="utf-8")
 
     assert "$MODELS_DIR/scawful/memory-1.5b-v1-q8.gguf" in script
     assert "$MODELS_DIR/zelda/majora-9b-q4km.gguf" in script
     assert "$MODELS_DIR/ollama/memory-v1.gguf" not in script
     assert "$MODELS_DIR/zelda/majora-7b-v2-q8.gguf" not in script
+    assert 'model_id = "gguf/scawful/memory-1.5b-v1-q8.gguf"' in registry
+    assert 'model_id = "gguf/zelda/majora-9b-q4km.gguf"' in registry
+    assert 'model_id = "gguf/ollama/memory-v1.gguf"' not in registry
+    assert 'model_id = "gguf/zelda/majora-7b-v2-q8.gguf"' not in registry
+
+
+def test_lmstudio_deploy_script_relinks_stale_destinations(tmp_path: Path) -> None:
+    repo_root = Path(__file__).resolve().parent.parent
+    script_path = repo_root / "scripts" / "deploy_to_lmstudio.sh"
+    models_dir = tmp_path / "models" / "gguf"
+    lmstudio_dir = tmp_path / "lmstudio"
+    output_dir = tmp_path / "output"
+    mlx_dir = tmp_path / "mlx"
+
+    current_memory = models_dir / "scawful" / "memory-1.5b-v1-q8.gguf"
+    current_majora = models_dir / "zelda" / "majora-9b-q4km.gguf"
+    current_memory.parent.mkdir(parents=True)
+    current_majora.parent.mkdir(parents=True)
+    current_memory.write_bytes(b"current-memory")
+    current_majora.write_bytes(b"current-majora")
+
+    lmstudio_dir.mkdir()
+    stale_memory = tmp_path / "stale-memory.gguf"
+    stale_majora = tmp_path / "stale-majora.gguf"
+    stale_memory.write_bytes(b"stale-memory")
+    stale_majora.write_bytes(b"stale-majora")
+    (lmstudio_dir / "scawful-memory.gguf").hardlink_to(stale_memory)
+    (lmstudio_dir / "zelda-majora.gguf").hardlink_to(stale_majora)
+
+    env = os.environ.copy()
+    env.update(
+        {
+            "MODELS_DIR": str(models_dir),
+            "LMSTUDIO_MODEL_DIR": str(lmstudio_dir),
+            "OUTPUT_DIR": str(output_dir),
+            "MLX_DIR": str(mlx_dir),
+        }
+    )
+    result = subprocess.run(
+        ["bash", str(script_path)],
+        cwd=repo_root,
+        env=env,
+        text=True,
+        capture_output=True,
+        check=False,
+    )
+
+    assert result.returncode == 0, result.stderr
+    assert (lmstudio_dir / "scawful-memory.gguf").samefile(current_memory)
+    assert (lmstudio_dir / "zelda-majora.gguf").samefile(current_majora)
+    assert stale_memory.exists()
+    assert stale_majora.exists()
