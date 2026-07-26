@@ -426,9 +426,9 @@ cd /d "$TrainRoot"
             $candidatePids = @($candidatePids | Where-Object { $_ } | Sort-Object -Unique)
 
             $stopped = @()
-            foreach ($pid in $candidatePids) {
-                & taskkill /PID $pid /T /F *> $null
-                if ($LASTEXITCODE -eq 0) { $stopped += $pid }
+            foreach ($evalPid in $candidatePids) {
+                & taskkill /PID $evalPid /T /F *> $null
+                if ($LASTEXITCODE -eq 0) { $stopped += $evalPid }
             }
 
             if (Test-Path $pidFile) { Remove-Item -Force $pidFile }
