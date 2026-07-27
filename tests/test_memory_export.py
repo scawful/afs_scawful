@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import json
 
-from afs.training.memory_export import export_memory_to_dataset
+from afs_scawful.training.memory_export import export_memory_to_dataset
 
 
 def test_memory_export_quality_filter(tmp_path) -> None:

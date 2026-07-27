@@ -7,9 +7,9 @@ import json
 
 import pytest
 
-from afs.generators.base import TrainingSample
-from afs.training.pipeline import DataPipeline, PipelineConfig
-from afs.training.rehearsal import RehearsalBuffer, RehearsalBufferConfig
+from afs_scawful.generators.base import TrainingSample
+from afs_scawful.training.pipeline import DataPipeline, PipelineConfig
+from afs_scawful.training.rehearsal import RehearsalBuffer, RehearsalBufferConfig
 
 
 @pytest.fixture
@@ -30,6 +30,7 @@ class TestTrainingSample:
     def test_create_sample(self):
         sample = TrainingSample(
             instruction="Test question",
+            input="",
             output="Test answer",
             thinking="Test reasoning",
             domain="test",
@@ -43,6 +44,7 @@ class TestTrainingSample:
     def test_to_dict(self):
         sample = TrainingSample(
             instruction="Q",
+            input="",
             output="A",
             thinking="T",
             domain="d",
@@ -57,6 +59,7 @@ class TestTrainingSample:
     def test_quality_score_default(self):
         sample = TrainingSample(
             instruction="Q",
+            input="",
             output="A",
             thinking="T",
             domain="d",
@@ -106,6 +109,7 @@ class TestRehearsalBuffer:
         for i in range(10):
             buffer.samples.append(TrainingSample(
                 instruction=f"Q{i}",
+                input="",
                 output=f"A{i}",
                 thinking="T",
                 domain="d",
@@ -127,6 +131,7 @@ class TestRehearsalBuffer:
         for i in range(5):
             buffer.samples.append(TrainingSample(
                 instruction=f"Old{i}",
+                input="",
                 output=f"A{i}",
                 thinking="T",
                 domain="d",
@@ -138,6 +143,7 @@ class TestRehearsalBuffer:
         new_samples = [
             TrainingSample(
                 instruction=f"New{i}",
+                input="",
                 output=f"A{i}",
                 thinking="T",
                 domain="d",
@@ -162,6 +168,7 @@ class TestRehearsalBuffer:
         buffer1.samples = [
             TrainingSample(
                 instruction="Q",
+                input="",
                 output="A",
                 thinking="T",
                 domain="d",
@@ -240,6 +247,7 @@ class TestIntegration:
         samples = [
             TrainingSample(
                 instruction=f"Question {i}",
+                input="",
                 output=f"Answer {i}",
                 thinking="Reasoning",
                 domain="test",
@@ -285,6 +293,7 @@ class TestIntegration:
         v1_samples = [
             TrainingSample(
                 instruction=f"V1 Q{i}",
+                input="",
                 output=f"V1 A{i}",
                 thinking="T",
                 domain="d",
@@ -311,6 +320,7 @@ class TestIntegration:
         v2_samples = [
             TrainingSample(
                 instruction=f"V2 Q{i}",
+                input="",
                 output=f"V2 A{i}",
                 thinking="T",
                 domain="d",
@@ -362,6 +372,7 @@ class TestProperties:
         for _ in range(100):
             sample = TrainingSample(
                 instruction="Q",
+                input="",
                 output="A",
                 thinking="T",
                 domain="d",

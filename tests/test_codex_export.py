@@ -1,6 +1,6 @@
 import json
 
-from afs.training.codex_export import export_codex_logs_to_dataset
+from afs_scawful.training.codex_export import export_codex_logs_to_dataset
 
 
 def test_codex_export(tmp_path) -> None:

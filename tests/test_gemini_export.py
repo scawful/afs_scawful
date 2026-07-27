@@ -1,6 +1,6 @@
 import json
 
-from afs.training.gemini_export import export_gemini_logs_to_dataset
+from afs_scawful.training.gemini_export import export_gemini_logs_to_dataset
 
 
 def test_gemini_export(tmp_path) -> None:

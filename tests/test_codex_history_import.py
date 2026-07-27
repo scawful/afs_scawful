@@ -3,7 +3,7 @@ import json
 import pytest
 
 from afs.history import iter_history_events
-from afs.training.codex_export import import_codex_logs_to_history
+from afs_scawful.training.codex_export import import_codex_logs_to_history
 
 
 @pytest.mark.skip(reason="payload schema drift between afs core and test expectations")

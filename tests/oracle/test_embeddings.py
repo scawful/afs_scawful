@@ -8,7 +8,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent.parent.parent / "src"))
 
-from afs.oracle.embeddings import (
+from afs_scawful.oracle.embeddings import (
     EmbeddingChunk,
     OracleEmbeddingGenerator,
     OracleEmbeddingStats,
@@ -225,7 +225,7 @@ class TestEmbeddingFunctionCreation(unittest.TestCase):
 
     def test_create_none_embedding_fn(self):
         """Test creating null embedding function."""
-        from afs.oracle.embeddings import create_embedding_fn
+        from afs_scawful.oracle.embeddings import create_embedding_fn
 
         fn = create_embedding_fn("none")
         self.assertIsNone(fn)

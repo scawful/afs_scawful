@@ -9,11 +9,9 @@ def register_parsers(subparsers: argparse._SubParsersAction) -> None:
     """Register command groups that no longer ship in core AFS by default."""
     try:
         from afs.cli import (
-            active_learning,
             benchmark,
             claude,
             comparison,
-            distillation,
             encoder,
             entity,
             generator,
@@ -35,11 +33,9 @@ def register_parsers(subparsers: argparse._SubParsersAction) -> None:
         encoder,
         entity,
         pipeline,
-        active_learning,
         generator,
         gateway_cli,
         benchmark,
-        distillation,
         comparison,
         claude,
     ):

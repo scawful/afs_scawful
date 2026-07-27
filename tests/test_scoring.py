@@ -4,8 +4,8 @@ from __future__ import annotations
 
 import pytest
 
-from afs.generators.base import TrainingSample
-from afs.training.scoring import (
+from afs_scawful.generators.base import TrainingSample
+from afs_scawful.training.scoring import (
     QualityScore,
     QualityScorer,
     ScoringConfig,
@@ -54,6 +54,7 @@ class TestQualityScorer:
         """A simple valid assembly sample."""
         return TrainingSample(
             instruction="Write a routine to load health",
+            input="",
             output="""; Load Link's health
 LDA $7EF36C   ; Current health
 STA $00       ; Store in scratch
@@ -67,6 +68,7 @@ RTS
         """A very short sample that should get low length score."""
         return TrainingSample(
             instruction="NOP",
+            input="",
             output="NOP",
             domain="asm",
         )
@@ -118,6 +120,7 @@ RTS
     def test_score_batch_without_update(self, scorer, simple_sample) -> None:
         sample = TrainingSample(
             instruction="Test",
+            input="",
             output="LDA $00\nSTA $01\nRTS",
             domain="asm",
         )
