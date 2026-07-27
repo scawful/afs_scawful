@@ -1,7 +1,16 @@
 # Model Portfolio
 
-Last updated: 2026-04-12
-Source of truth for all model families, their roles, training status, and how they connect.
+Snapshot last updated: 2026-04-12
+Operational caveat reviewed: 2026-07-27
+
+This is a portfolio and design-history snapshot, not the live deployment source
+of truth. Before acting on a model name or status:
+
+1. Read `config/chat_registry.toml` for current runtime names, aliases, and routes.
+2. Read `~/src/training/INDEX.md` plus the target run and evaluation artifacts
+   for current training state.
+3. Use `model-mgr list`, `model-mgr working-set-report`, and the serving endpoint
+   for installed-artifact truth.
 
 ---
 

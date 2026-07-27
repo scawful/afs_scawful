@@ -4,11 +4,13 @@ Use these paths for detailed planning and verification.
 
 - `/Users/scawful/src/training/INDEX.md` - Dataset inventory and scripts overview.
 - `/Users/scawful/src/training/README.md` - Training workspace layout.
-- `/Users/scawful/src/training/docs/IQUEST_40B.md` - 40B training run details.
-- `/Users/scawful/src/training/docs/SAHASRAHLA_3B.md` - Historian model details.
-- `/Users/scawful/src/training/docs/MODEL_SELECTION_AND_PRACTICES.md` - Base model and hardware criteria.
-- `/Users/scawful/src/lab/afs-scawful/docs/ZELDA_16B_TRAINING_PLAN.md` - Zelda 16B plan and dataset mix.
-- `/Users/scawful/src/lab/afs-scawful/docs/MODEL_PORTFOLIO.md` - Model families and status.
+- `/Users/scawful/src/training/docs/TRAINING_OVERVIEW.md` - Architecture, placement, and operating workflow.
+- `/Users/scawful/src/training/docs/HOME_GPU_LAB_HARDWARE_TOPOLOGY.md` - Current local hardware roles.
+- `/Users/scawful/src/training/docs/ORACLE_FAMILY_SLOT_PLAN_20260420.md` - Public role and promotion gates.
+- `/Users/scawful/src/training/docs/ORACLE_MULTI_INTENT_READINESS_20260501.md` - Current readiness loop and eval matrix.
+- `/Users/scawful/src/training/docs/ORACLE_9B_ROLLBACK_STATUS_20260501.md` - 9B rollback and quarantine evidence.
+- `/Users/scawful/src/training/docs/ORACLE_9B_V5_TEACHER_ROUTER_20260502.md` - Current teacher-router evidence.
+- `/Users/scawful/src/lab/afs-scawful/docs/MODEL_PORTFOLIO.md` - Dated model-family context; verify against the registry.
+- `/Users/scawful/src/lab/afs-scawful/config/chat_registry.toml` - Live runtime names, aliases, and routes.
 - `/Users/scawful/src/docs/NAMING_CONVENTIONS.md` - Naming conventions and codenames.
-- `/Users/scawful/src/lab/afs/docs/REGISTRY.md` - Model registry usage.
 - `/Users/scawful/src/tools/model-mgr/model-mgr` - Model management CLI.
