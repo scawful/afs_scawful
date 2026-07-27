@@ -6,7 +6,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent.parent.parent / "src"))
 
-from afs.oracle.orchestrator import (
+from afs_scawful.oracle.orchestrator import (
     Expert,
     ExpertResult,
     TaskAnalysis,

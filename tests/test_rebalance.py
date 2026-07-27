@@ -1,6 +1,6 @@
 import json
 
-from afs.training.rebalance import rebalance_dataset
+from afs_scawful.training.rebalance import rebalance_dataset
 
 
 def _write_samples(path, samples):

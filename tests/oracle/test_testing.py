@@ -8,12 +8,12 @@ from unittest.mock import patch
 
 sys.path.insert(0, str(Path(__file__).parent.parent.parent / "src"))
 
-from afs.oracle.testing import (
+from afs_scawful.oracle.testing import (
     AgenticTestLoop,
     AssertionResult,
     OracleTodo,
     PatchTestResult,
-    TestStatus,
+    TestStatus as OracleTestStatus,
     YazeMCPClient,
     load_oracle_todos,
 )
@@ -80,7 +80,7 @@ class TestPatchTestResult(unittest.TestCase):
     def test_success_property_all_passing(self):
         """Test success property when all conditions pass."""
         result = PatchTestResult(
-            status=TestStatus.PASSED,
+            status=OracleTestStatus.PASSED,
             patch_valid=True,
             build_success=True,
             crashed=False,
@@ -95,7 +95,7 @@ class TestPatchTestResult(unittest.TestCase):
     def test_success_property_failed_assertion(self):
         """Test success property when assertion fails."""
         result = PatchTestResult(
-            status=TestStatus.PASSED,
+            status=OracleTestStatus.PASSED,
             patch_valid=True,
             build_success=True,
             crashed=False,
@@ -110,7 +110,7 @@ class TestPatchTestResult(unittest.TestCase):
     def test_success_property_crashed(self):
         """Test success property when crashed."""
         result = PatchTestResult(
-            status=TestStatus.FAILED,
+            status=OracleTestStatus.FAILED,
             patch_valid=True,
             build_success=True,
             crashed=True,
@@ -121,7 +121,7 @@ class TestPatchTestResult(unittest.TestCase):
     def test_success_property_build_failed(self):
         """Test success property when build failed."""
         result = PatchTestResult(
-            status=TestStatus.FAILED,
+            status=OracleTestStatus.FAILED,
             patch_valid=True,
             build_success=False,
         )

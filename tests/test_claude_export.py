@@ -1,6 +1,6 @@
 import json
 
-from afs.training.claude_export import export_claude_logs_to_dataset
+from afs_scawful.training.claude_export import export_claude_logs_to_dataset
 
 
 def test_claude_export(tmp_path) -> None:

@@ -28,6 +28,10 @@ claudia = [
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+markers = [
+  "integration: cross-component integration coverage",
+  "slow: slower training-pipeline or property coverage"
+]
 
 [build-system]
 requires = ["setuptools>=68"]
