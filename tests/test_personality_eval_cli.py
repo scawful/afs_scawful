@@ -138,3 +138,15 @@ options = { temperature = 0.91, max_tokens = 777 }
     assert payload["system_prompt_enabled"] is False
     assert payload["temperature"] == 0.91
     assert payload["max_tokens"] == 777
+
+
+def test_case_sensitive_signals_survive_ignorecase_matching() -> None:
+    sys.path.insert(0, str(SCRIPT_PATH.parent))
+    from personality_eval import score_personality
+
+    lowercase = score_personality("honestly the problem is the cache. i mean, drop it.", "scawfulbot")
+    formal = score_personality("Honestly the problem is the cache. i mean, drop it.", "scawfulbot")
+    assert "(?-i:^[a-z])" in lowercase["positive_hits"]
+    assert "(?-i:^[a-z])" not in formal["positive_hits"]
+    assert "(?-i:^[A-Z][a-z]+ [a-z])" in formal["negative_hits"]
+    assert "(?-i:^[A-Z][a-z]+ [a-z])" not in lowercase["negative_hits"]
