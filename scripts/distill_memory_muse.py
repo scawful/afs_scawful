@@ -3,7 +3,7 @@
 distill_memory_muse.py - Distill Memory and Muse training data using cloud teachers.
 
 Teacher models: Gemini 3.1 Pro (deep rationale), Gemini 3 Flash (variations)
-Fallback:       Claude Sonnet (if Gemini quota exhausted)
+Fallback:       OpenAI (if Gemini quota exhausted)
 
 Usage:
   distill_memory_muse.py run [--prompts FILE] [--limit N] [--output FILE]
@@ -25,10 +25,9 @@ sys.path.insert(0, str(_Path(__file__).parent))
 from models import (
     GEMINI_PRO,
     GEMINI_FLASH,
-    ANTHROPIC_SONNET,
-    ANTHROPIC_OPUS,
     OPENAI_CODEX,
     missing_teacher_env,
+    resolve_teacher_model,
     teacher_choices,
     use,
 )
@@ -54,7 +53,6 @@ _gkey = os.environ.get("GOOGLE_API_KEY") or os.environ.get("GEMINI_API_KEY")
 if _gkey and os.environ.get("GEMINI_API_KEY") and os.environ.get("GOOGLE_API_KEY"):
     os.environ.pop("GEMINI_API_KEY", None)  # avoid duplicate-key warning from google-genai
 GOOGLE_API_KEY = _gkey
-ANTHROPIC_API_KEY = os.environ.get("ANTHROPIC_API_KEY")
 
 PROMPTS_DEFAULT = (
     Path(__file__).resolve().parents[1]
@@ -131,28 +129,6 @@ async def query_gemini(prompt_text: str, model: str = GEMINI_PRO,
         return "", str(e)
 
 
-async def query_claude(prompt_text: str, model: str = ANTHROPIC_SONNET,
-                       temperature: float = 0.7) -> tuple[str, str | None]:
-    if not ANTHROPIC_API_KEY:
-        return "", (
-            "ANTHROPIC_API_KEY not set.\n"
-            "Fix: add ANTHROPIC_API_KEY=sk-ant-... to .env in afs-scawful root, or:\n"
-            "  export ANTHROPIC_API_KEY=sk-ant-..."
-        )
-    try:
-        import anthropic
-        client = anthropic.Anthropic(api_key=ANTHROPIC_API_KEY)
-        msg = client.messages.create(
-            model=model,
-            max_tokens=2048,
-            temperature=temperature,
-            messages=[{"role": "user", "content": prompt_text}],
-        )
-        return msg.content[0].text, None  # type: ignore[attr-defined]
-    except Exception as e:
-        return "", str(e)
-
-
 async def query_openai(prompt_text: str, model: str = OPENAI_CODEX,
                        temperature: float = 0.7) -> tuple[str, str | None]:
     api_key = os.environ.get("OPENAI_API_KEY")
@@ -182,15 +158,10 @@ async def query_teacher(prompt_text: str, teacher: str,
     elif teacher == "gemini_flash":
         text, err = await query_gemini(prompt_text, GEMINI_FLASH, temp)
         return text, GEMINI_FLASH, err
-    elif teacher == "claude":
-        text, err = await query_claude(prompt_text, ANTHROPIC_SONNET, temp)
-        return text, ANTHROPIC_SONNET, err
-    elif teacher == "claude_opus":
-        text, err = await query_claude(prompt_text, ANTHROPIC_OPUS, temp)
-        return text, ANTHROPIC_OPUS, err
-    elif teacher == "openai" or teacher == "codex":
-        text, err = await query_openai(prompt_text, OPENAI_CODEX, temp)
-        return text, OPENAI_CODEX, err
+    elif teacher in ("openai", "openai_hard", "openai_fast", "codex"):
+        model = resolve_teacher_model(teacher)
+        text, err = await query_openai(prompt_text, model, temp)
+        return text, model, err
     else:
         return "", teacher, f"Unknown teacher: {teacher}"
 

@@ -16,14 +16,22 @@ import re
 GEMINI_PRO     = "gemini-3.1-pro-preview"   # Deep reasoning / thinking
 GEMINI_FLASH   = "gemini-3-flash-preview"   # Fast generation / variation
 
-OPENAI_CODEX   = "gpt-5.2"                 # Code generation / synthesis
+OPENAI_TEACHER      = "gpt-5.6-sol"         # Default training-data teacher
+OPENAI_TEACHER_HARD = "gpt-6-astra"         # Hard rows: ASM repair, long reasoning
+OPENAI_TEACHER_FAST = "gpt-5.6-terra"       # Bulk variation / cheap rewrites
+OPENAI_CODEX        = OPENAI_TEACHER        # Legacy name kept for existing imports
 
-ANTHROPIC_SONNET  = "claude-sonnet-4-6"
-ANTHROPIC_OPUS    = "claude-opus-4-6"
-ANTHROPIC_DEFAULT = ANTHROPIC_SONNET        # Alias
+# Claude models are judges/verifiers only. Anthropic's Usage Policy bars training
+# models on Claude outputs without authorization, so they are deliberately absent
+# from TEACHER_ALIASES below. Use them to score, verify, or write eval rules.
+ANTHROPIC_SONNET  = "claude-sonnet-5"
+ANTHROPIC_OPUS    = "claude-opus-5"
+ANTHROPIC_FABLE   = "claude-fable-5-1"
+ANTHROPIC_DEFAULT = ANTHROPIC_OPUS
 
 # ── Teacher alias registry (single source of truth) ─────────────────────────
 # Add new cloud teachers here, then scripts can consume aliases automatically.
+# Outputs from these models may become SFT/DPO rows; keep Anthropic models out.
 TEACHER_ALIASES: dict[str, dict[str, object]] = {
     "gemini": {
         "model": GEMINI_FLASH,
@@ -37,20 +45,20 @@ TEACHER_ALIASES: dict[str, dict[str, object]] = {
         "model": GEMINI_PRO,
         "env": ("GOOGLE_API_KEY", "GEMINI_API_KEY"),
     },
-    "claude": {
-        "model": ANTHROPIC_SONNET,
-        "env": ("ANTHROPIC_API_KEY",),
-    },
-    "claude_opus": {
-        "model": ANTHROPIC_OPUS,
-        "env": ("ANTHROPIC_API_KEY",),
-    },
     "openai": {
-        "model": OPENAI_CODEX,
+        "model": OPENAI_TEACHER,
+        "env": ("OPENAI_API_KEY",),
+    },
+    "openai_hard": {
+        "model": OPENAI_TEACHER_HARD,
+        "env": ("OPENAI_API_KEY",),
+    },
+    "openai_fast": {
+        "model": OPENAI_TEACHER_FAST,
         "env": ("OPENAI_API_KEY",),
     },
     "codex": {
-        "model": OPENAI_CODEX,
+        "model": OPENAI_TEACHER,
         "env": ("OPENAI_API_KEY",),
     },
 }
@@ -66,6 +74,8 @@ _DEPRECATED: dict[str, str] = {
     "gpt-4":              "use OPENAI_CODEX or ANTHROPIC_DEFAULT",
     "gpt-4o":             "use OPENAI_CODEX or ANTHROPIC_DEFAULT",
     "gpt-4o-mini":        "use OPENAI_CODEX or ANTHROPIC_DEFAULT",
+    "claude-sonnet-4-20250514": "use ANTHROPIC_SONNET (judge only)",
+    "claude-opus-4-20250514":   "use ANTHROPIC_OPUS (judge only)",
     "gemini-1.0-pro":        "use GEMINI_PRO",
     "gemini-1.5-pro":        "use GEMINI_PRO",
     "gemini-1.5-flash":      "use GEMINI_FLASH",

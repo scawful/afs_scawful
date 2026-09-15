@@ -1048,7 +1048,7 @@ Output ONLY the refined assistant response, nothing else."""
 SUPPORTED_EXTERNAL_TEACHERS = tuple(
     alias
     for alias in teacher_choices(include_internal=True)
-    if alias.startswith(("claude", "gemini"))
+    if alias.startswith(("gemini", "openai"))
 )
 
 _EXTERNAL_REDACTIONS = (
@@ -1306,8 +1306,14 @@ def teacher_provider(teacher: str) -> str:
     """Return the implemented provider for an advertised teacher alias."""
     if teacher.startswith("gemini"):
         return "gemini"
-    if teacher.startswith("claude"):
-        return "anthropic"
+    if teacher.startswith("openai"):
+        return "openai"
+    if teacher.startswith(("claude", "anthropic")):
+        # Refined responses become training rows; Anthropic's usage policy bars training on Claude outputs.
+        raise ValueError(
+            f"Teacher '{teacher}' is an Anthropic model: Claude may judge distilled rows but "
+            "never write them. Use an OpenAI teacher (openai, openai_hard, openai_fast)."
+        )
     raise ValueError(f"Unsupported external teacher alias: {teacher}")
 
 
@@ -1316,7 +1322,7 @@ def teacher_api_key(teacher: str) -> str:
     provider = teacher_provider(teacher)
     if provider == "gemini":
         return os.environ.get("GOOGLE_API_KEY") or os.environ.get("GEMINI_API_KEY") or ""
-    return os.environ.get("ANTHROPIC_API_KEY") or ""
+    return os.environ.get("OPENAI_API_KEY") or ""
 
 
 def require_provider_text(value: object, provider: str) -> str:
@@ -1408,29 +1414,24 @@ async def call_external_teacher(prompt: str, teacher: str, model_name: str) -> s
                 )
         return require_provider_text(getattr(response, "text", None), "Gemini")
 
-    import anthropic
+    import openai
 
-    client = anthropic.Anthropic(api_key=teacher_api_key(teacher))
+    client = openai.OpenAI(api_key=teacher_api_key(teacher))
     response = await asyncio.to_thread(
-        client.messages.create,
+        client.responses.create,
         model=model_name,
-        max_tokens=1024,
-        messages=[{"role": "user", "content": prompt}],
+        input=prompt,
+        # Reasoning models spend part of this budget before any visible text.
+        max_output_tokens=4096,
     )
-    content = getattr(response, "content", None)
-    if not isinstance(content, (list, tuple)) or not content:
-        raise RuntimeError("Anthropic teacher returned no content blocks")
-    stop_reason = str(getattr(response, "stop_reason", "") or "").lower()
-    if stop_reason not in {"end_turn", "stop_sequence"}:
+    status = str(getattr(response, "status", "") or "").lower()
+    if status != "completed":
+        reason = getattr(getattr(response, "incomplete_details", None), "reason", None)
         raise RuntimeError(
-            f"Anthropic teacher did not complete normally: "
-            f"{stop_reason or 'unknown'}"
+            f"OpenAI teacher did not complete normally: {status or 'unknown'}"
+            + (f" ({reason})" if reason else "")
         )
-    text_blocks = [
-        require_provider_text(getattr(block, "text", None), "Anthropic")
-        for block in content
-    ]
-    return "\n\n".join(text_blocks)
+    return require_provider_text(getattr(response, "output_text", None), "OpenAI")
 
 
 async def distill_pair(

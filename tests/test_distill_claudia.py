@@ -9,6 +9,8 @@ import sys
 from pathlib import Path
 from types import SimpleNamespace
 
+import pytest
+
 
 FAKE_SECRET = "sk-" + "abcdefghijklmnop"
 FAKE_PASSWORD = "sample-password-value"
@@ -244,11 +246,12 @@ def test_every_advertised_teacher_resolves_and_has_provider() -> None:
     parser = module.build_arg_parser()
 
     assert set(module.SUPPORTED_EXTERNAL_TEACHERS) == {
-        "claude",
-        "claude_opus",
         "gemini",
         "gemini_flash",
         "gemini_pro",
+        "openai",
+        "openai_fast",
+        "openai_hard",
     }
     for alias in module.SUPPORTED_EXTERNAL_TEACHERS:
         args = parser.parse_args(
@@ -264,7 +267,7 @@ def test_every_advertised_teacher_resolves_and_has_provider() -> None:
         )
         assert args.teacher == alias
         assert module.resolve_teacher_model(alias)
-        assert module.teacher_provider(alias) in {"anthropic", "gemini"}
+        assert module.teacher_provider(alias) in {"gemini", "openai"}
 
 
 def test_every_advertised_teacher_reaches_an_implemented_provider(monkeypatch) -> None:
@@ -285,20 +288,17 @@ def test_every_advertised_teacher_reaches_an_implemented_provider(monkeypatch) -
             assert api_key == "gemini-key"
             self.models = FakeGeminiModels()
 
-    class FakeAnthropicMessages:
-        def create(self, *, model: str, max_tokens: int, messages: list[dict]) -> SimpleNamespace:
-            calls.append(("anthropic", model))
-            assert max_tokens == 1024
-            assert messages == [{"role": "user", "content": "prompt"}]
-            return SimpleNamespace(
-                content=[SimpleNamespace(text="anthropic response")],
-                stop_reason="end_turn",
-            )
+    class FakeOpenAIResponses:
+        def create(self, *, model: str, input: str, max_output_tokens: int) -> SimpleNamespace:
+            calls.append(("openai", model))
+            assert input == "prompt"
+            assert max_output_tokens == 4096
+            return SimpleNamespace(status="completed", output_text="openai response")
 
-    class FakeAnthropicClient:
+    class FakeOpenAIClient:
         def __init__(self, *, api_key: str) -> None:
-            assert api_key == "anthropic-key"
-            self.messages = FakeAnthropicMessages()
+            assert api_key == "openai-key"
+            self.responses = FakeOpenAIResponses()
 
     monkeypatch.setitem(
         sys.modules,
@@ -307,11 +307,11 @@ def test_every_advertised_teacher_reaches_an_implemented_provider(monkeypatch) -
     )
     monkeypatch.setitem(
         sys.modules,
-        "anthropic",
-        SimpleNamespace(Anthropic=FakeAnthropicClient),
+        "openai",
+        SimpleNamespace(OpenAI=FakeOpenAIClient),
     )
     monkeypatch.setenv("GOOGLE_API_KEY", "gemini-key")
-    monkeypatch.setenv("ANTHROPIC_API_KEY", "anthropic-key")
+    monkeypatch.setenv("OPENAI_API_KEY", "openai-key")
 
     for alias in module.SUPPORTED_EXTERNAL_TEACHERS:
         response = asyncio.run(
@@ -390,15 +390,13 @@ def test_external_teacher_rejects_truncated_provider_results(monkeypatch) -> Non
                 )
             )
 
-    class TruncatedAnthropicClient:
+    class TruncatedOpenAIClient:
         def __init__(self, *, api_key: str) -> None:
-            self.messages = SimpleNamespace(
+            self.responses = SimpleNamespace(
                 create=lambda **kwargs: SimpleNamespace(
-                    content=[
-                        SimpleNamespace(text="first partial block"),
-                        SimpleNamespace(text="second partial block"),
-                    ],
-                    stop_reason="max_tokens",
+                    status="incomplete",
+                    incomplete_details=SimpleNamespace(reason="max_output_tokens"),
+                    output_text="partial response",
                 )
             )
 
@@ -409,13 +407,13 @@ def test_external_teacher_rejects_truncated_provider_results(monkeypatch) -> Non
     )
     monkeypatch.setitem(
         sys.modules,
-        "anthropic",
-        SimpleNamespace(Anthropic=TruncatedAnthropicClient),
+        "openai",
+        SimpleNamespace(OpenAI=TruncatedOpenAIClient),
     )
     monkeypatch.setenv("GOOGLE_API_KEY", "gemini-key")
-    monkeypatch.setenv("ANTHROPIC_API_KEY", "anthropic-key")
+    monkeypatch.setenv("OPENAI_API_KEY", "openai-key")
 
-    for alias in ("gemini", "claude"):
+    for alias in ("gemini", "openai"):
         try:
             asyncio.run(
                 module.call_external_teacher(
@@ -1426,3 +1424,12 @@ def test_provider_failure_makes_batch_fail_nonzero(
     assert module.cmd_distill(args) == 1
     assert not output_path.exists()
     assert "Distillation batch failed" in capsys.readouterr().err
+
+
+def test_claude_is_never_a_training_data_teacher() -> None:
+    """Distilled rows become training data; Claude may judge them but never write them."""
+    module = _load_module()
+    assert not any(alias.startswith("claude") for alias in module.SUPPORTED_EXTERNAL_TEACHERS)
+    for alias in ("claude", "claude_opus", "claude_sonnet"):
+        with pytest.raises(ValueError, match="judge"):
+            module.teacher_provider(alias)

@@ -10,7 +10,7 @@ This trains Ockham: a model that receives sloppy code and returns minimal, direc
 Usage:
   antislop_dataset.py scan [--source barista|yaze|all]
   antislop_dataset.py generate [--source barista]
-                                [--teacher gemini|claude|claude_opus|openai|codex]
+                                [--teacher gemini|openai|openai_hard|openai_fast|codex]
                                 [--max-files 20] [--output FILE]
   antislop_dataset.py stats [--input FILE]
 """
@@ -27,10 +27,8 @@ from dataclasses import dataclass
 sys.path.insert(0, str(Path(__file__).parent))
 from models import (
     GEMINI_PRO,
-    ANTHROPIC_SONNET,
-    ANTHROPIC_OPUS,
-    OPENAI_CODEX,
     missing_teacher_env,
+    resolve_teacher_model,
     teacher_choices,
     use,
 )
@@ -219,31 +217,13 @@ async def slopify_with_gemini(code: str, filename: str) -> Optional[str]:
         return None
 
 
-async def slopify_with_claude(code: str, filename: str,
-                              model: str = ANTHROPIC_SONNET) -> Optional[str]:
-    """Generate a bloated version using Claude (Anthropic API)."""
-    try:
-        import anthropic
-        client = anthropic.Anthropic(api_key=os.environ.get("ANTHROPIC_API_KEY"))
-        msg = client.messages.create(
-            model=model,
-            max_tokens=4096,
-            system=SLOPIFY_SYSTEM,
-            messages=[{"role": "user", "content": f"File: {filename}\n\n```\n{code}\n```"}],
-        )
-        return msg.content[0].text
-    except Exception as e:
-        print(f"[error] Claude slopify failed: {e}", file=sys.stderr)
-        return None
-
-
-async def slopify_with_openai(code: str, filename: str) -> Optional[str]:
-    """Generate a bloated version using OpenAI Codex."""
+async def slopify_with_openai(code: str, filename: str, model: str) -> Optional[str]:
+    """Generate a bloated version using an OpenAI teacher."""
     try:
         import openai
         client = openai.AsyncOpenAI(api_key=os.environ.get("OPENAI_API_KEY"))
         resp = await client.chat.completions.create(
-            model=use(OPENAI_CODEX),
+            model=use(model),
             messages=[
                 {"role": "system", "content": SLOPIFY_SYSTEM},
                 {"role": "user", "content": f"File: {filename}\n\n```\n{code}\n```"},
@@ -260,12 +240,8 @@ async def slopify_with_openai(code: str, filename: str) -> Optional[str]:
 async def slopify(code: str, filename: str, teacher: str) -> Optional[str]:
     if teacher == "gemini":
         return await slopify_with_gemini(code, filename)
-    elif teacher == "claude":
-        return await slopify_with_claude(code, filename, ANTHROPIC_SONNET)
-    elif teacher == "claude_opus":
-        return await slopify_with_claude(code, filename, ANTHROPIC_OPUS)
-    elif teacher == "openai" or teacher == "codex":
-        return await slopify_with_openai(code, filename)
+    elif teacher in ("openai", "openai_hard", "openai_fast", "codex"):
+        return await slopify_with_openai(code, filename, resolve_teacher_model(teacher))
     else:
         raise ValueError(f"Unknown teacher: {teacher}")
 
