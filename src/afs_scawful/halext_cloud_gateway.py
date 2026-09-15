@@ -49,6 +49,25 @@ DEFAULT_COMPANION_ALLOWED_MODELS: tuple[str, ...] = (
 )
 
 
+class ModelUnavailableError(RuntimeError):
+    """An explicitly requested catalog model has no live backend (served as HTTP 503)."""
+
+
+def _backend_status_summary(spec: Any, snapshot: Any) -> str:
+    """Why each backend of a model is not serving it, e.g. "lmstudio: no models; lmstudio_win: model not listed"."""
+    parts = []
+    for backend in spec.backends():
+        state = snapshot.providers.get(backend.provider)
+        if state is None:
+            detail = "not configured"
+        elif not state.healthy:
+            detail = state.error or "unhealthy"
+        else:
+            detail = "model not listed"
+        parts.append(f"{backend.provider}: {detail}")
+    return "; ".join(parts)
+
+
 @dataclass(frozen=True)
 class ChatMessageRow:
     role: str
@@ -348,6 +367,11 @@ class HalextCloudGateway:
             raise PermissionError(f"Model '{requested_spec.public_id}' is not available for this token")
         snapshot = await self.availability_snapshot()
         route = choose_route(request.model, snapshot, catalog=filtered_catalog, priority=filtered_priority)
+        if requested_spec is not None and (route is None or route.public_id != requested_spec.public_id):
+            # A named model with no live backend is an outage to report, not a cue to answer as a different model.
+            raise ModelUnavailableError(
+                f"Model '{requested_spec.public_id}' is unavailable: {_backend_status_summary(requested_spec, snapshot)}"
+            )
         if route is None:
             raise RuntimeError("No cloud models available")
 
