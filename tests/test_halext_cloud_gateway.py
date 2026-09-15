@@ -15,6 +15,7 @@ except ModuleNotFoundError:  # pragma: no cover - local test env may not have Fa
 from afs_scawful.halext_cloud_gateway import AccessProfile
 from afs_scawful.halext_cloud_gateway import ChatMessageRow
 from afs_scawful.halext_cloud_gateway import HalextCloudGateway
+from afs_scawful.halext_cloud_gateway import ModelUnavailableError
 from afs_scawful.halext_cloud_gateway import _persist_issue_report
 from afs_scawful.halext_cloud_gateway import create_app
 from afs_scawful.halext_cloud_gateway import load_access_profiles
@@ -949,3 +950,51 @@ def test_companion_profile_rejects_disallowed_explicit_model() -> None:
             await gateway.chat(request, companion)
 
     asyncio.run(run())
+
+
+def _recording_gateway(monkeypatch, snap: AvailabilitySnapshot) -> tuple[HalextCloudGateway, list[str]]:
+    gateway = HalextCloudGateway()
+    gateway._catalog = load_gateway_model_specs()
+    gateway._priority = build_default_priority(gateway._catalog)
+    gateway._access_profiles = (AccessProfile(profile_id="owner", token="owner-secret"),)
+    calls: list[str] = []
+
+    async def fake_snapshot(force: bool = False) -> AvailabilitySnapshot:
+        return snap
+
+    async def fake_chat_provider(*, route: object, **_: object) -> object:
+        calls.append(f"{getattr(route, 'provider', '')}:{getattr(route, 'public_id', '')}")
+        return SimpleNamespace(text="ok", model="m", prompt="[]", latency_ms=1.0, tokens_generated=1, done=True, error="")
+
+    monkeypatch.setattr(gateway, "availability_snapshot", fake_snapshot)
+    monkeypatch.setattr(gateway, "_chat_provider", fake_chat_provider)
+    return gateway, calls
+
+
+def _chat_request(model: str) -> SimpleNamespace:
+    return SimpleNamespace(
+        model=model, messages=[ChatMessageRow(role="user", content="hi")], temperature=0.2, top_p=0.9, max_tokens=24,
+    )
+
+
+def test_chat_refuses_to_answer_unavailable_explicit_model_with_another_model(monkeypatch) -> None:
+    snap = _snapshot(google=("models/gemini-3.1-pro-preview",), lmstudio_win=("gguf/zelda/oracle-9b-candidate-v5-q4km.gguf",))
+    gateway, calls = _recording_gateway(monkeypatch, snap)
+
+    with pytest.raises(ModelUnavailableError) as excinfo:
+        asyncio.run(gateway.chat(_chat_request("scawfulbot-qwen35"), gateway._access_profiles[0]))
+
+    message = str(excinfo.value)
+    assert "scawfulbot-qwen35" in message
+    assert "lmstudio: " in message and "lmstudio_win: " in message
+    assert calls == [], "no provider may be called when the requested model has no live backend"
+
+
+def test_chat_unknown_model_still_uses_best_live_model(monkeypatch) -> None:
+    snap = _snapshot(google=("models/gemini-3.1-pro-preview",))
+    gateway, calls = _recording_gateway(monkeypatch, snap)
+
+    _, routed = asyncio.run(gateway.chat(_chat_request("not-a-catalog-model"), gateway._access_profiles[0]))
+
+    assert routed == "gemini-3.1-pro"
+    assert calls == ["google:gemini-3.1-pro"]

@@ -233,6 +233,7 @@ STATIC_MODEL_SPECS: tuple[GatewayModelSpec, ...] = (
                 provider="lmstudio_win",
                 provider_model="scawfulbot-qwen35-v1-dpo-q5_k_m",
                 aliases=(
+                    "qwen35-v1-dpo",  # medical-mechanica LM Studio model key (models/scawfulbot/qwen35-v1-dpo/)
                     "scawfulbot-qwen35-v1-dpo",
                     "scawfulbot-qwen35-v1-dpo-q5_k_m",
                     "scawfulbot-qwen35-v1-sft",
