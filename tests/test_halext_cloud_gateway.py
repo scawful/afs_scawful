@@ -16,6 +16,7 @@ from afs_scawful.halext_cloud_gateway import AccessProfile
 from afs_scawful.halext_cloud_gateway import ChatMessageRow
 from afs_scawful.halext_cloud_gateway import HalextCloudGateway
 from afs_scawful.halext_cloud_gateway import ModelUnavailableError
+from afs_scawful.halext_cloud_gateway_core import STATIC_MODEL_SPECS
 from afs_scawful.halext_cloud_gateway import _persist_issue_report
 from afs_scawful.halext_cloud_gateway import create_app
 from afs_scawful.halext_cloud_gateway import load_access_profiles
@@ -986,7 +987,12 @@ def test_chat_refuses_to_answer_unavailable_explicit_model_with_another_model(mo
 
     message = str(excinfo.value)
     assert "scawfulbot-qwen35" in message
-    assert "lmstudio: " in message and "lmstudio_win: " in message
+    # Every backend the spec would have tried must be named, so the error says why nothing served it.
+    # Derived from the spec rather than hardcoded: the promoted lane has one backend, and routing
+    # topology changes with each promotion.
+    spec = next(s for s in STATIC_MODEL_SPECS if s.public_id == "scawfulbot-qwen35")
+    providers = {spec.provider, *(backend.provider for backend in spec.fallback_backends)}
+    assert all(f"{provider}: " in message for provider in providers)
     assert calls == [], "no provider may be called when the requested model has no live backend"
 
 

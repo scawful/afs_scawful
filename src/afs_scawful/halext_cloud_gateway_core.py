@@ -217,30 +217,35 @@ STATIC_MODEL_SPECS: tuple[GatewayModelSpec, ...] = (
         ),
     ),
     GatewayModelSpec(
+        # Promoted 2026-09-16 after the Claude judge eval: curated+masked SFT passes 47% of cases with
+        # the system prompt and 32% without it, against 3% and 0% for the April DPO model it replaces
+        # (paired diff +0.45 [+0.33, +0.57]; noise floor is 9 points). The legacy v1-dpo aliases now
+        # resolve here on purpose: this is the promoted scawfulbot lane. The old weights stay
+        # addressable as scawfulbot-qwen35-v1-dpo-q8 below.
         public_id="scawfulbot-qwen35",
-        provider="lmstudio",
-        provider_model="scawfulbot-qwen35-v1-dpo-q5_k_m",
+        provider="lmstudio_win",
+        provider_model="qwen35-curated-masked",
         aliases=(
+            "qwen35-curated-masked",  # medical-mechanica LM Studio key (models/scawfulbot/qwen35-curated-masked/)
+            "scawfulbot-qwen35-curated-masked",
+            "lmstudio@q5_k_m",
             "scawfulbot-qwen35-v1-dpo",
             "scawfulbot-qwen35-v1-dpo-q5_k_m",
             "scawfulbot-qwen35-v1-sft",
             "scawfulbot-qwen35-v1-sft-q5_k_m",
         ),
         display_name="Scawfulbot Qwen 3.5",
-        description="Qwen 3.5 scawfulbot candidate lane via LM Studio. Testing only until eval/promotion.",
-        fallback_backends=(
-            GatewayModelBackend(
-                provider="lmstudio_win",
-                provider_model="scawfulbot-qwen35-v1-dpo-q5_k_m",
-                aliases=(
-                    "qwen35-v1-dpo",  # medical-mechanica LM Studio model key (models/scawfulbot/qwen35-v1-dpo/)
-                    "scawfulbot-qwen35-v1-dpo",
-                    "scawfulbot-qwen35-v1-dpo-q5_k_m",
-                    "scawfulbot-qwen35-v1-sft",
-                    "scawfulbot-qwen35-v1-sft-q5_k_m",
-                ),
-            ),
-        ),
+        description="Qwen 3.5 scawfulbot, promoted 2026-09-16 (curated corpus, response-only loss).",
+        # No Mac fallback: that box only holds the April weights, and falling back to them would serve
+        # a different model under the same name, which is the silent substitution this gateway refuses.
+    ),
+    GatewayModelSpec(
+        public_id="scawfulbot-qwen35-v1-dpo-q8",
+        provider="lmstudio_win",
+        provider_model="qwen35-v1-dpo@q8_0",
+        aliases=("qwen35-v1-dpo@q8_0", "qwen35-v1-dpo"),
+        display_name="Scawfulbot Qwen 3.5 (April DPO)",
+        description="Superseded 2026-09-16; kept addressable for comparison against the promoted lane.",
     ),
     # -- Windows-hosted Oracle models (medical-mechanica via LM Studio) --
     # Qwen2.5 current fleet (will be replaced by Qwen3 after rebase)
@@ -267,6 +272,22 @@ STATIC_MODEL_SPECS: tuple[GatewayModelSpec, ...] = (
         display_name="Oracle Farore",
         aliases=("farore", "farore-v5"),
         description="Windows-hosted fast debugger — room inspection, breakpoints, diagnostics.",
+    ),
+    GatewayModelSpec(
+        public_id="oracle-veran",
+        provider="lmstudio_win",
+        provider_model="gguf/lmstudio/veran-v4.gguf",
+        display_name="Oracle Veran",
+        aliases=("veran", "veran-v4"),
+        description="Windows-hosted deep analysis — cross-system investigation.",
+    ),
+    GatewayModelSpec(
+        public_id="oracle-majora",
+        provider="lmstudio_win",
+        provider_model="gguf/lmstudio/majora-v2-q8_0.gguf",
+        display_name="Oracle Majora",
+        aliases=("majora", "majora-v2"),
+        description="Windows-hosted architecture specialist — subsystems, cross-references.",
     ),
     GatewayModelSpec(
         public_id="gemini-2.5-pro",
@@ -408,6 +429,8 @@ PRIORITY_PREFERRED_IDS: tuple[str, ...] = (
     "oracle-nayru",
     "oracle-din",
     "oracle-farore",
+    "oracle-veran",
+    "oracle-majora",
 )
 
 
