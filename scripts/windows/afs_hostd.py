@@ -1,8 +1,20 @@
 #!/usr/bin/env python3
 from __future__ import annotations
 
+import os
 import sys
 from pathlib import Path
+
+
+def load_hostd_token() -> None:
+    """Load the daemon token from a local ACL-protected file, never the process command line."""
+    if os.environ.get("AFS_HOSTD_TOKEN"):
+        return
+    token_path = Path(os.environ.get("AFS_HOSTD_TOKEN_FILE", "D:/afs_training/config/hostd.token"))
+    if token_path.exists():
+        token = token_path.read_text(encoding="utf-8").strip()
+        if token:
+            os.environ["AFS_HOSTD_TOKEN"] = token
 
 
 def add_afs_scawful_src() -> None:
@@ -22,6 +34,7 @@ def add_afs_scawful_src() -> None:
             return
 
 
+load_hostd_token()
 add_afs_scawful_src()
 
 from afs_scawful.windows.hostd import main  # noqa: E402
