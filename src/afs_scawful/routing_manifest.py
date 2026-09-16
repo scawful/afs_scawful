@@ -157,6 +157,36 @@ def load_manifest(path: Path = DEFAULT_MANIFEST_PATH) -> tuple[Lane, ...]:
         return parse_manifest(tomllib.load(handle))
 
 
+def manifest_specs(lanes) -> tuple:
+    """Turn lanes into gateway catalog specs.
+
+    Aliases are generated, never hand-typed: a lane's declared request ids plus, for each backend,
+    the ids that box may report for those exact weights (`model` and `model@quant`). Nothing else
+    can bind a lane, which is what kept a legacy alias able to pull a promoted lane back onto the
+    weights it replaced.
+    """
+    from .halext_cloud_gateway_core import GatewayModelBackend, GatewayModelSpec
+
+    specs = []
+    for lane in lanes:
+        primary, *rest = lane.backends
+        specs.append(GatewayModelSpec(
+            public_id=lane.id,
+            provider=primary.provider,
+            provider_model=primary.served_id,
+            aliases=primary.ids(),          # what counts as these weights being present
+            request_aliases=lane.also_answers_to,  # what a client may call them
+            display_name=lane.display_name or lane.id,
+            description=lane.description,
+            fallback_backends=tuple(
+                GatewayModelBackend(provider=backend.provider, provider_model=backend.served_id,
+                                    aliases=backend.ids())
+                for backend in rest
+            ),
+        ))
+    return tuple(specs)
+
+
 def lane_for_request(lanes, requested_id: str) -> Lane | None:
     """Exact, case-insensitive match on a lane's declared request ids. No fuzzy matching."""
     wanted = requested_id.strip().lower()

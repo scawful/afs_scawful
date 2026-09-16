@@ -14,10 +14,10 @@ version = 1
 # -- Scawfulbot lanes (medical-mechanica, RTX 5090, LM Studio on :1234) ------------------------
 
 [[lanes]]
-id = "scawfulbot"
+id = "scawfulbot-qwen35"
 display_name = "Scawfulbot"
 description = "Justin's voice. Promoted 2026-09-16 after the Claude judge eval."
-also_answers_to = ["scawfulbot-qwen35"]
+also_answers_to = ["scawfulbot"]
 on_unavailable = "error"
 
   [[lanes.serves]]
@@ -59,10 +59,10 @@ on_unavailable = "error"
   judged = "2026-09-16"
 
 [[lanes]]
-id = "scawfulbot-april"
+id = "scawfulbot-qwen35-v1-dpo-q8"
 display_name = "Scawfulbot (April DPO)"
 description = "Superseded 2026-09-16. Kept addressable as the eval baseline."
-also_answers_to = ["scawfulbot-qwen35-v1-dpo-q8"]
+also_answers_to = ["scawfulbot-april"]
 on_unavailable = "error"
 
   [[lanes.serves]]
@@ -105,31 +105,11 @@ on_unavailable = "error"
   model = "gguf/zelda/qwen3-oracle-14b-v8-q4km.gguf"
   sha256 = "b2e026193c0bcc58"
 
-# -- Work lanes: chosen deliberately, never as an automatic substitute for a lane above ---------
-
-[[lanes]]
-id = "work-smart"
-display_name = "Claude Sonnet 4.6"
-description = "Code and analysis. Cloud weights, so no sha256 to pin."
-also_answers_to = ["claude-sonnet-4.6"]
-on_unavailable = "error"
-
-  [[lanes.serves]]
-  host = "anthropic"
-  provider = "anthropic"
-  model = "claude-sonnet-4-6"
-
-[[lanes]]
-id = "work-thoughtful"
-display_name = "Gemini 3.1 Pro"
-description = "Long-context synthesis."
-also_answers_to = ["gemini-3.1-pro"]
-on_unavailable = "error"
-
-  [[lanes.serves]]
-  host = "google"
-  provider = "google"
-  model = "models/gemini-3.1-pro"
+# -- Cloud models are deliberately NOT lanes ---------------------------------------------------
+# A lane pins weights by sha256, which only means something for models we train and host. Cloud
+# models keep their static specs, whose identity is the provider's and which carry provider-specific
+# settings (api mode, dated ids) a lane does not express. The app chooses them explicitly; nothing
+# here ever substitutes one for a lane above.
 
 # -- Not lanes yet -----------------------------------------------------------------------------
 # The Oracle personas (nayru, din, farore, veran, majora) are advertised by the gateway's static

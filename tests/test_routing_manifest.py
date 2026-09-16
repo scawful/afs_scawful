@@ -105,3 +105,30 @@ def test_lanes_can_declare_tools_for_assistant_surfaces():
     (lane,) = parse_manifest(_manifest(tools=["tasks", "home"]))
     assert lane.tools == ("tasks", "home")
     assert Lane(id="bare", backends=(CURATED,)).tools == ()
+
+
+def test_a_short_request_alias_is_not_evidence_that_weights_are_present():
+    # "scawfulbot" as an availability candidate matched a box's "scawfulbot-gemma4-…gguf", so the
+    # lane went live and served the wrong weights under the right name.
+    from afs_scawful.routing_manifest import manifest_specs
+
+    (spec,) = manifest_specs(parse_manifest(_manifest(id="scawfulbot-qwen35", also_answers_to=["scawfulbot"])))
+    assert spec.request_aliases == ("scawfulbot",), "requestable"
+    assert "scawfulbot" not in spec.aliases, "but never counted as these weights"
+    assert set(spec.aliases) == {"qwen35-curated-masked", "qwen35-curated-masked@q8_0"}
+    assert "scawfulbot" in spec.all_ids(), "still resolvable by request"
+
+
+def test_the_quant_a_lane_declares_wins_over_list_order():
+    from afs_scawful.halext_cloud_gateway_core import AvailabilitySnapshot, ProviderAvailability
+    from afs_scawful.routing_manifest import manifest_specs
+
+    data = _manifest()
+    data["lanes"][0]["serves"][0]["model"] = "qwen35-v1-dpo"
+    (spec,) = manifest_specs(parse_manifest(data))
+    # The box lists every quant it holds, q5 first.
+    snap = AvailabilitySnapshot(created=1.0, providers={
+        "lmstudio_win": ProviderAvailability(healthy=True, models=("qwen35-v1-dpo@q5_k_m", "qwen35-v1-dpo@q8_0")),
+    })
+    live = spec.live_route(snap)
+    assert live is not None and live.provider_model == "qwen35-v1-dpo@q8_0"

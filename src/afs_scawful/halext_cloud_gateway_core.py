@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import re
 import time
 import tomllib
 import uuid
@@ -27,9 +28,13 @@ class GatewayModelSpec:
     description: str = ""
     append_to_last_user_message: str = ""
     fallback_backends: tuple["GatewayModelBackend", ...] = ()
+    # Names clients may request that must NEVER count as evidence these weights are present.
+    # `aliases` does both jobs for legacy specs, which is how a short alias such as "scawfulbot"
+    # could match a box's "scawfulbot-gemma4-...gguf" and serve a lane under the wrong weights.
+    request_aliases: tuple[str, ...] = ()
 
     def all_ids(self) -> tuple[str, ...]:
-        candidates = [self.public_id]
+        candidates = [self.public_id, *self.request_aliases]
         for backend in self.backends():
             candidates.extend((backend.provider_model, *backend.aliases))
         return tuple(candidates)
@@ -97,6 +102,15 @@ class AvailabilitySnapshot:
     providers: dict[ProviderName, ProviderAvailability]
 
 
+_QUANT_SUFFIX = re.compile(r"[-@](?:i?q\d[a-z0-9_]*|f16|f32|bf16)$", re.IGNORECASE)
+
+
+def _strip_quant_suffix(name: str) -> str:
+    """"model-q4_k_m.gguf" -> "model". Only recognised quant tags are stripped."""
+    stem = name[:-5] if name.endswith(".gguf") else name
+    return _QUANT_SUFFIX.sub("", stem)
+
+
 def _lmstudio_raw_id_matches_candidate(raw_id: str, candidate: str) -> bool:
     """Match LM Studio model ids that may be path- or quant-suffixed (Windows / Medical Mechanica)."""
 
@@ -126,22 +140,47 @@ def _lmstudio_raw_id_matches_candidate(raw_id: str, candidate: str) -> bool:
     b = _normalize_model_id(base)
     if b == cand:
         return True
-    if b.startswith(cand + "-") or (b.startswith(cand + ".") and len(cand) >= min_len):
+    # A filename may carry its quant as a suffix ("…-q4_k_m.gguf") rather than "@q4_k_m". Strip a
+    # recognised quant and compare exactly; anything else after the name is a different model.
+    if _strip_quant_suffix(b) == cand:
         return True
+    # No prefix matching: "scawfulbot-qwen3-8b-v1" must not be satisfied by a differently trained
+    # "scawfulbot-qwen3-8b-v1-dpo", and a short alias must not swallow a whole family.
     return False
 
 
+def _lmstudio_match_rank(raw_id: str, candidate: str) -> int:
+    """0 no match, 1 base-only, 2 the quant agrees (or neither side states one).
+
+    A box lists every quant it holds: asking for "qwen35-v1-dpo" while it serves both
+    "@q5_k_m" and "@q8_0" must not take whichever comes first in its list.
+    """
+    if not _lmstudio_raw_id_matches_candidate(raw_id, candidate):
+        return 0
+    _, _, raw_quant = _normalize_model_id(raw_id).partition("@")
+    _, _, cand_quant = _normalize_model_id(candidate).partition("@")
+    return 1 if raw_quant and not cand_quant else 2
+
+
+def _lmstudio_backend_match_rank(raw_id: str, backend: GatewayModelBackend) -> int:
+    return max(
+        (_lmstudio_match_rank(raw_id, candidate)
+         for candidate in (backend.provider_model, *backend.aliases)),
+        default=0,
+    )
+
+
 def _lmstudio_raw_matches_backend(raw_id: str, backend: GatewayModelBackend) -> bool:
-    if _lmstudio_raw_id_matches_candidate(raw_id, backend.provider_model):
-        return True
-    return any(_lmstudio_raw_id_matches_candidate(raw_id, alias) for alias in backend.aliases)
+    return _lmstudio_backend_match_rank(raw_id, backend) > 0
 
 
 def _resolve_lmstudio_chat_model_id(backend: GatewayModelBackend, state: ProviderAvailability) -> str:
+    best_rank, best_raw = 0, None
     for raw in state.models:
-        if _lmstudio_raw_matches_backend(raw, backend):
-            return raw
-    return backend.provider_model
+        rank = _lmstudio_backend_match_rank(raw, backend)
+        if rank > best_rank:
+            best_rank, best_raw = rank, raw
+    return best_raw if best_raw is not None else backend.provider_model
 
 
 def _backend_matches_provider_snapshot(
@@ -189,6 +228,7 @@ def ordered_live_route_specs(
 
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
+DEFAULT_ROUTING_MANIFEST_PATH = PROJECT_ROOT / "config/routing_manifest.toml"
 DEFAULT_CHAT_REGISTRY_PATH = PROJECT_ROOT / "config" / "chat_registry.toml"
 
 STATIC_MODEL_SPECS: tuple[GatewayModelSpec, ...] = (
@@ -589,8 +629,28 @@ def load_registry_model_specs(registry_path: Path | None = None) -> tuple[Gatewa
     return tuple(specs)
 
 
-def load_gateway_model_specs(registry_path: Path | None = None) -> tuple[GatewayModelSpec, ...]:
-    return _merge_specs([*STATIC_MODEL_SPECS, *load_registry_model_specs(registry_path)])
+def load_gateway_model_specs(
+    registry_path: Path | None = None,
+    manifest_path: Path | None = None,
+) -> tuple[GatewayModelSpec, ...]:
+    """Catalog order: routing manifest, then static specs, then the chat registry.
+
+    Manifest lanes come first so they win `resolve_model_spec`, which takes the first spec claiming
+    an id. A static spec whose public_id or aliases a lane already claims is dropped entirely: two
+    specs fishing in one name space is how a request for the promoted lane could land on the weights
+    it replaced.
+    """
+    from .routing_manifest import load_manifest, manifest_specs
+
+    # A broken manifest raises ManifestError here rather than silently falling back to stale routing.
+    path = manifest_path or DEFAULT_ROUTING_MANIFEST_PATH
+    lane_specs: tuple[GatewayModelSpec, ...] = manifest_specs(load_manifest(path)) if path.exists() else ()
+    claimed = {_normalize_model_id(model_id) for spec in lane_specs for model_id in spec.all_ids()}
+    static = [
+        spec for spec in STATIC_MODEL_SPECS
+        if not claimed.intersection(_normalize_model_id(model_id) for model_id in spec.all_ids())
+    ]
+    return _merge_specs([*lane_specs, *static, *load_registry_model_specs(registry_path)])
 
 
 def build_default_priority(catalog: tuple[GatewayModelSpec, ...]) -> tuple[str, ...]:

@@ -206,7 +206,7 @@ def test_scawfulbot_routes_can_fall_back_to_windows_scawfulbot_backends() -> Non
     snapshot = _snapshot(
         lmstudio_win=(
             "gguf/lmstudio/scawfulbot-gemma4-e4b-sft-dpo-q4km.gguf",
-            "scawfulbot-qwen35-v1-dpo-q5_k_m",
+            "qwen35-curated-masked",
             "scawfulbot-qwen3-8b-v1",
         )
     )
@@ -222,9 +222,20 @@ def test_scawfulbot_routes_can_fall_back_to_windows_scawfulbot_backends() -> Non
     assert gemma_route.provider == "lmstudio_win"
     assert gemma_route.provider_model == "gguf/lmstudio/scawfulbot-gemma4-e4b-sft-dpo-q4km.gguf"
     assert qwen35_route.provider == "lmstudio_win"
-    assert qwen35_route.provider_model == "scawfulbot-qwen35-v1-dpo-q5_k_m"
+    assert qwen35_route.provider_model == "qwen35-curated-masked", "the promoted lane, per the manifest"
     assert qwen_route.provider == "lmstudio_win"
     assert qwen_route.provider_model == "scawfulbot-qwen3-8b-v1"
+
+
+def test_the_weights_a_lane_replaced_can_no_longer_answer_for_it() -> None:
+    # The box still holds April's weights under their own ids. Before the manifest, the promoted
+    # lane kept legacy aliases that let exactly this snapshot bind it back to those weights.
+    snapshot = _snapshot(lmstudio_win=("qwen35-v1-dpo@q5_k_m", "qwen35-v1-dpo@q8_0"))
+
+    route = choose_route("scawfulbot-qwen35", snapshot)
+
+    assert route is None or route.public_id != "scawfulbot-qwen35", "must not serve the replaced weights"
+    assert choose_route("scawfulbot-qwen35-v1-dpo-q8", snapshot).provider_model == "qwen35-v1-dpo@q8_0"
 
 
 def test_build_models_payload_is_openai_compatible() -> None:
@@ -822,7 +833,7 @@ def test_chat_preserves_provider_reasoning_content(monkeypatch) -> None:
         gateway._catalog = load_gateway_model_specs()
         gateway._priority = build_default_priority(gateway._catalog)
         gateway._access_profiles = (AccessProfile(profile_id="owner", token="owner-secret"),)
-        snap = _snapshot(lmstudio_win=("scawfulbot-qwen35-v1-sft-q5_k_m",))
+        snap = _snapshot(lmstudio_win=("qwen35-curated-masked",))
 
         async def fake_snapshot(force: bool = False) -> AvailabilitySnapshot:
             return snap
@@ -873,7 +884,7 @@ def test_chat_does_not_promote_qwen35_reasoning_to_visible_reply(monkeypatch) ->
         gateway._catalog = load_gateway_model_specs()
         gateway._priority = build_default_priority(gateway._catalog)
         gateway._access_profiles = (AccessProfile(profile_id="owner", token="owner-secret"),)
-        snap = _snapshot(lmstudio_win=("scawfulbot-qwen35-v1-sft-q5_k_m",))
+        snap = _snapshot(lmstudio_win=("qwen35-curated-masked",))
 
         async def fake_snapshot(force: bool = False) -> AvailabilitySnapshot:
             return snap
