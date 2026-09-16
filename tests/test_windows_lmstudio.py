@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import hashlib
 import json
 
 import pytest
@@ -59,6 +60,43 @@ def test_load_model_resolves_fuzzy_id_and_includes_identifier(monkeypatch: pytes
     result = lmstudio.load_model(model_id="qwen3-oracle-8b-v1-corrective2-q4km", identifier="oracle-fast")
     assert result["resolved_model_id"] == "gguf/zelda/qwen3-oracle-8b-v1-corrective2-q4km.gguf"
     assert seen[-1][:5] == ["load", "gguf/zelda/qwen3-oracle-8b-v1-corrective2-q4km.gguf", "--yes", "--identifier", "oracle-fast"]
+
+
+def test_model_file_identity_hashes_the_indexed_artifact(tmp_path) -> None:
+    model_root = tmp_path / "models"
+    model_path = model_root / "scawfulbot" / "candidate.gguf"
+    model_path.parent.mkdir(parents=True)
+    model_path.write_bytes(b"exact weights")
+
+    identified = lmstudio.model_with_file_identity(
+        {"modelKey": "candidate", "path": "scawfulbot/candidate.gguf"},
+        model_root=model_root,
+    )
+
+    assert identified["sha256"] == hashlib.sha256(b"exact weights").hexdigest()
+    assert identified["identitySizeBytes"] == len(b"exact weights")
+
+
+def test_hostd_model_inventory_exposes_hashes_by_model_key(monkeypatch: pytest.MonkeyPatch) -> None:
+    pytest.importorskip("fastapi")
+    from fastapi.testclient import TestClient
+    from afs_scawful.windows.hostd import create_app
+
+    sha = hashlib.sha256(b"weights").hexdigest()
+    monkeypatch.setattr(lmstudio, "resolve_lms_path", lambda lms_path=None: "C:/LM Studio/lms.exe")
+    monkeypatch.setattr(
+        lmstudio,
+        "available_models_with_identity",
+        lambda **kwargs: [{"modelKey": "candidate", "path": "publisher/candidate.gguf", "sha256": sha}],
+    )
+
+    response = TestClient(create_app()).get("/v1/lmstudio/models?include_sha256=true")
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["model_sha256"]["candidate"] == sha
+    assert payload["model_sha256"]["publisher/candidate.gguf"] == sha
+    assert payload["host"]
 
 
 def test_hostd_status_surface(monkeypatch: pytest.MonkeyPatch) -> None:

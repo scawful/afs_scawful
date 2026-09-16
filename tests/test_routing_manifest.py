@@ -75,6 +75,34 @@ def test_two_lanes_may_not_claim_the_same_request_id():
     assert "scawfulbot-qwen35" in str(caught.value)
 
 
+def test_lane_ids_cannot_collide_case_insensitively_or_with_backend_evidence():
+    data = _manifest()
+    data["lanes"].append({
+        "id": "SCAWFULBOT-QWEN35",
+        "serves": [{
+            "host": "other-host",
+            "provider": "lmstudio_win",
+            "model": "other-model",
+            "sha256": "0" * 64,
+        }],
+    })
+    with pytest.raises(ManifestError, match="claimed by both"):
+        parse_manifest(data)
+
+    data = _manifest()
+    data["lanes"].append({
+        "id": "qwen35-curated-masked",
+        "serves": [{
+            "host": "other-host",
+            "provider": "lmstudio_win",
+            "model": "other-model",
+            "sha256": "0" * 64,
+        }],
+    })
+    with pytest.raises(ManifestError, match="claimed by both"):
+        parse_manifest(data)
+
+
 def test_substituting_another_model_cannot_be_configured():
     with pytest.raises(ManifestError):
         parse_manifest(_manifest(on_unavailable="fallback"))
@@ -85,8 +113,12 @@ def test_substituting_another_model_cannot_be_configured():
     ({"version": 1, "lanes": []}, "empty lanes"),
     ({"version": 1, "lanes": [{"id": "x"}]}, "no serves"),
     ({"version": 1, "lanes": [{"id": "x", "serves": [{"host": "h", "provider": "p"}]}]}, "no model"),
+    ({"version": 1, "lanes": [{"id": "x", "serves": [{"host": "h", "provider": "p", "model": "m"}]}]},
+     "no hash"),
     ({"version": 1, "lanes": [{"id": "x", "serves": [{"host": "h", "provider": "p", "model": "m",
                                                       "sha256": "abc"}]}]}, "short sha"),
+    ({"version": 1, "lanes": [{"id": "x", "serves": [{"host": "h", "provider": "p", "model": "m",
+                                                      "sha256": "not-a-sha256"}]}]}, "non-hex hash"),
 ])
 def test_a_broken_manifest_fails_at_load_not_at_request_time(bad, reason):
     with pytest.raises(ManifestError):
@@ -117,6 +149,7 @@ def test_a_short_request_alias_is_not_evidence_that_weights_are_present():
     assert "scawfulbot" not in spec.aliases, "but never counted as these weights"
     assert set(spec.aliases) == {"qwen35-curated-masked", "qwen35-curated-masked@q8_0"}
     assert "scawfulbot" in spec.all_ids(), "still resolvable by request"
+    assert "qwen35-curated-masked" not in spec.all_ids(), "backend evidence is not a public request id"
 
 
 def test_the_quant_a_lane_declares_wins_over_list_order():
@@ -128,7 +161,116 @@ def test_the_quant_a_lane_declares_wins_over_list_order():
     (spec,) = manifest_specs(parse_manifest(data))
     # The box lists every quant it holds, q5 first.
     snap = AvailabilitySnapshot(created=1.0, providers={
-        "lmstudio_win": ProviderAvailability(healthy=True, models=("qwen35-v1-dpo@q5_k_m", "qwen35-v1-dpo@q8_0")),
+        "lmstudio_win": ProviderAvailability(
+            healthy=True,
+            models=("qwen35-v1-dpo@q5_k_m", "qwen35-v1-dpo@q8_0"),
+            host="medical-mechanica",
+            model_sha256={"qwen35-v1-dpo@q8_0": "b4490ba25882fe82"},
+        ),
     })
     live = spec.live_route(snap)
     assert live is not None and live.provider_model == "qwen35-v1-dpo@q8_0"
+
+
+@pytest.mark.parametrize("reported", [
+    "qwen35-v1-dpo@q5_k_m",
+    "qwen35-v1-dpo-q5_k_m.gguf",
+])
+def test_a_wrong_quant_alone_cannot_satisfy_a_quant_pinned_lane(reported):
+    from afs_scawful.halext_cloud_gateway_core import AvailabilitySnapshot, ProviderAvailability
+    from afs_scawful.routing_manifest import manifest_specs
+
+    data = _manifest()
+    data["lanes"][0]["serves"][0]["model"] = "qwen35-v1-dpo"
+    (spec,) = manifest_specs(parse_manifest(data))
+    snap = AvailabilitySnapshot(created=1.0, providers={
+        "lmstudio_win": ProviderAvailability(
+            healthy=True,
+            models=(reported,),
+            host="medical-mechanica",
+            model_sha256={reported: "b4490ba25882fe82"},
+        ),
+    })
+
+    assert spec.live_route(snap) is None
+
+
+@pytest.mark.parametrize("host, measured", [
+    ("medical-mechanica", None),
+    ("medical-mechanica", "0" * 64),
+    ("some-other-host", "b4490ba25882fe82" + "0" * 48),
+])
+def test_a_lane_is_unavailable_without_its_declared_host_and_hash(host, measured):
+    from afs_scawful.halext_cloud_gateway_core import AvailabilitySnapshot, ProviderAvailability
+    from afs_scawful.routing_manifest import manifest_specs
+
+    (spec,) = manifest_specs(parse_manifest(_manifest()))
+    hashes = {"qwen35-curated-masked": measured} if measured else {}
+    snap = AvailabilitySnapshot(created=1.0, providers={
+        "lmstudio_win": ProviderAvailability(
+            healthy=True,
+            models=("qwen35-curated-masked",),
+            host=host,
+            model_sha256=hashes,
+        ),
+    })
+
+    assert spec.live_route(snap) is None
+
+
+def test_a_missing_manifest_fails_closed(tmp_path):
+    from afs_scawful.halext_cloud_gateway_core import load_gateway_model_specs
+
+    with pytest.raises(ManifestError, match="not found"):
+        load_gateway_model_specs(manifest_path=tmp_path / "missing.toml")
+
+
+def test_registry_metadata_cannot_recombine_a_manifest_lane_namespace(tmp_path):
+    from afs_scawful.halext_cloud_gateway_core import (
+        load_gateway_model_specs,
+        resolve_model_spec,
+    )
+
+    registry = tmp_path / "registry.toml"
+    registry.write_text(
+        """
+[[models]]
+name = "scawfulbot"
+provider = "openai"
+model_id = "wrong"
+""",
+        encoding="utf-8",
+    )
+
+    catalog = load_gateway_model_specs(registry_path=registry)
+    lane = resolve_model_spec("scawfulbot", catalog)
+    assert lane is not None
+    assert lane.host == "medical-mechanica"
+    assert lane.sha256 == "b4490ba25882fe82"
+    assert resolve_model_spec("wrong", catalog) is None
+
+
+def test_distinct_catalog_specs_cannot_share_a_request_id():
+    from afs_scawful.halext_cloud_gateway_core import (
+        GatewayModelSpec,
+        _validate_request_namespace,
+    )
+
+    specs = (
+        GatewayModelSpec(
+            public_id="lane-a",
+            provider="openai",
+            provider_model="model-a",
+            display_name="A",
+            aliases=("shared",),
+        ),
+        GatewayModelSpec(
+            public_id="lane-b",
+            provider="openai",
+            provider_model="model-b",
+            display_name="B",
+            aliases=("shared",),
+        ),
+    )
+    with pytest.raises(ValueError, match="claimed by both"):
+        _validate_request_namespace(specs)

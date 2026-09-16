@@ -1,11 +1,14 @@
 from __future__ import annotations
 
+import hashlib
 import json
 import os
 import re
 import shutil
 import subprocess
 from collections.abc import Mapping, Sequence
+from functools import lru_cache
+from pathlib import Path
 from typing import Any
 
 
@@ -196,6 +199,57 @@ def server_status(*, lms_path: str | None = None) -> dict[str, Any]:
 def available_models(*, lms_path: str | None = None) -> list[dict[str, Any]]:
     payload = _json_from_output(run_lms(["ls", "--json"], lms_path=lms_path))
     return payload if isinstance(payload, list) else []
+
+
+def resolve_model_file(entry: Mapping[str, Any], *, model_root: Path | None = None) -> Path | None:
+    """Resolve an `lms ls --json` row to the file LM Studio indexed."""
+    raw = _coerce_str(entry.get("path")) or _coerce_str(entry.get("indexedModelIdentifier"))
+    if not raw:
+        return None
+    path = Path(raw)
+    if path.is_absolute():
+        return path
+    root = model_root or (Path.home() / ".lmstudio" / "models")
+    return root / path
+
+
+@lru_cache(maxsize=128)
+def _sha256_for_file_version(path: str, size: int, mtime_ns: int) -> str:
+    """Hash one immutable file version; size and mtime invalidate the in-process cache."""
+    del size, mtime_ns
+    digest = hashlib.sha256()
+    with Path(path).open("rb") as handle:
+        for chunk in iter(lambda: handle.read(8 * 1024 * 1024), b""):
+            digest.update(chunk)
+    return digest.hexdigest()
+
+
+def model_with_file_identity(entry: Mapping[str, Any], *, model_root: Path | None = None) -> dict[str, Any]:
+    """Copy an LM Studio model row and attach its independently measured file identity."""
+    result = dict(entry)
+    path = resolve_model_file(entry, model_root=model_root)
+    if path is None:
+        result["identityError"] = "model row has no path"
+        return result
+    try:
+        stat = path.stat()
+        result["sha256"] = _sha256_for_file_version(str(path), stat.st_size, stat.st_mtime_ns)
+        result["identitySizeBytes"] = stat.st_size
+        result["identityMtimeNs"] = stat.st_mtime_ns
+    except OSError as exc:
+        result["identityError"] = str(exc)
+    return result
+
+
+def available_models_with_identity(
+    *,
+    lms_path: str | None = None,
+    model_root: Path | None = None,
+) -> list[dict[str, Any]]:
+    return [
+        model_with_file_identity(entry, model_root=model_root)
+        for entry in available_models(lms_path=lms_path)
+    ]
 
 
 def loaded_models(*, lms_path: str | None = None) -> list[dict[str, Any]]:

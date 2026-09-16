@@ -3,11 +3,13 @@
 from __future__ import annotations
 
 import json
+import os
 import re
 import time
 import tomllib
 import uuid
 from dataclasses import dataclass
+from dataclasses import field
 from dataclasses import replace
 from pathlib import Path
 from typing import Literal
@@ -32,11 +34,23 @@ class GatewayModelSpec:
     # `aliases` does both jobs for legacy specs, which is how a short alias such as "scawfulbot"
     # could match a box's "scawfulbot-gemma4-...gguf" and serve a lane under the wrong weights.
     request_aliases: tuple[str, ...] = ()
+    # Manifest lanes pin the host and file hash. Legacy/cloud specs leave both unset.
+    host: str | None = None
+    sha256: str | None = None
+    # Legacy specs historically exposed provider IDs as request aliases. Manifest lanes keep
+    # backend evidence private so a filename can never become another lane's public request ID.
+    expose_backend_ids: bool = True
+
+    def backend_ids(self) -> tuple[str, ...]:
+        candidates: list[str] = []
+        for backend in self.backends():
+            candidates.extend((backend.provider_model, *backend.aliases))
+        return tuple(candidates)
 
     def all_ids(self) -> tuple[str, ...]:
         candidates = [self.public_id, *self.request_aliases]
-        for backend in self.backends():
-            candidates.extend((backend.provider_model, *backend.aliases))
+        if self.expose_backend_ids:
+            candidates.extend(self.backend_ids())
         return tuple(candidates)
 
     def backends(self) -> tuple["GatewayModelBackend", ...]:
@@ -45,6 +59,8 @@ class GatewayModelSpec:
                 provider=self.provider,
                 provider_model=self.provider_model,
                 aliases=self.aliases,
+                host=self.host,
+                sha256=self.sha256,
             ),
             *self.fallback_backends,
         )
@@ -72,6 +88,8 @@ class GatewayModelSpec:
                 provider=backend.provider,
                 provider_model=resolved_model,
                 aliases=backend.aliases,
+                host=backend.host,
+                sha256=backend.sha256,
             )
         return None
 
@@ -83,6 +101,8 @@ class GatewayModelBackend:
     provider: ProviderName
     provider_model: str
     aliases: tuple[str, ...] = ()
+    host: str | None = None
+    sha256: str | None = None
 
 
 @dataclass(frozen=True)
@@ -92,6 +112,9 @@ class ProviderAvailability:
     healthy: bool
     models: tuple[str, ...]
     error: str | None = None
+    host: str | None = None
+    model_sha256: dict[str, str] = field(default_factory=dict)
+    identity_error: str | None = None
 
 
 @dataclass(frozen=True)
@@ -102,13 +125,21 @@ class AvailabilitySnapshot:
     providers: dict[ProviderName, ProviderAvailability]
 
 
-_QUANT_SUFFIX = re.compile(r"[-@](?:i?q\d[a-z0-9_]*|f16|f32|bf16)$", re.IGNORECASE)
+_QUANT_SUFFIX = re.compile(r"[-@](?P<quant>i?q\d[a-z0-9_]*|f16|f32|bf16)$", re.IGNORECASE)
 
 
 def _strip_quant_suffix(name: str) -> str:
     """"model-q4_k_m.gguf" -> "model". Only recognised quant tags are stripped."""
     stem = name[:-5] if name.endswith(".gguf") else name
     return _QUANT_SUFFIX.sub("", stem)
+
+
+def _quant_from_model_id(name: str) -> str | None:
+    """Return a recognised quant from either `model@q8_0` or `model-q8_0.gguf`."""
+    normalized = _normalize_model_id(name).rsplit("/", 1)[-1].rsplit("\\", 1)[-1]
+    stem = normalized[:-5] if normalized.endswith(".gguf") else normalized
+    match = _QUANT_SUFFIX.search(stem)
+    return match.group("quant").lower() if match else None
 
 
 def _lmstudio_raw_id_matches_candidate(raw_id: str, candidate: str) -> bool:
@@ -162,22 +193,69 @@ def _lmstudio_match_rank(raw_id: str, candidate: str) -> int:
     return 1 if raw_quant and not cand_quant else 2
 
 
-def _lmstudio_backend_match_rank(raw_id: str, backend: GatewayModelBackend) -> int:
+def _normalized_host(value: str | None) -> str:
+    return (value or "").strip().lower().split(".", 1)[0]
+
+
+def _model_sha256(state: ProviderAvailability, raw_id: str) -> str | None:
+    for key in (raw_id, raw_id.lower(), _normalize_model_id(raw_id)):
+        value = state.model_sha256.get(key)
+        if value:
+            return value.lower()
+    wanted = _normalize_model_id(raw_id)
+    for key, value in state.model_sha256.items():
+        if _normalize_model_id(key) == wanted:
+            return value.lower()
+    return None
+
+
+def _backend_identity_matches(
+    raw_id: str,
+    backend: GatewayModelBackend,
+    state: ProviderAvailability,
+) -> bool:
+    if backend.host and _normalized_host(backend.host) != _normalized_host(state.host):
+        return False
+    if not backend.sha256:
+        return True
+    measured = _model_sha256(state, raw_id)
+    return measured is not None and measured.startswith(backend.sha256.lower())
+
+
+def _lmstudio_backend_match_rank(
+    raw_id: str,
+    backend: GatewayModelBackend,
+    state: ProviderAvailability | None = None,
+) -> int:
+    candidates = (backend.provider_model, *backend.aliases)
+    declared_quants = {
+        quant for candidate in candidates
+        if (quant := _quant_from_model_id(candidate)) is not None
+    }
+    raw_quant = _quant_from_model_id(raw_id)
+    if raw_quant and declared_quants and raw_quant not in declared_quants:
+        return 0
+    if state is not None and not _backend_identity_matches(raw_id, backend, state):
+        return 0
     return max(
         (_lmstudio_match_rank(raw_id, candidate)
-         for candidate in (backend.provider_model, *backend.aliases)),
+         for candidate in candidates),
         default=0,
     )
 
 
-def _lmstudio_raw_matches_backend(raw_id: str, backend: GatewayModelBackend) -> bool:
-    return _lmstudio_backend_match_rank(raw_id, backend) > 0
+def _lmstudio_raw_matches_backend(
+    raw_id: str,
+    backend: GatewayModelBackend,
+    state: ProviderAvailability,
+) -> bool:
+    return _lmstudio_backend_match_rank(raw_id, backend, state) > 0
 
 
 def _resolve_lmstudio_chat_model_id(backend: GatewayModelBackend, state: ProviderAvailability) -> str:
     best_rank, best_raw = 0, None
     for raw in state.models:
-        rank = _lmstudio_backend_match_rank(raw, backend)
+        rank = _lmstudio_backend_match_rank(raw, backend, state)
         if rank > best_rank:
             best_rank, best_raw = rank, raw
     return best_raw if best_raw is not None else backend.provider_model
@@ -190,14 +268,17 @@ def _backend_matches_provider_snapshot(
     if state is None or not state.healthy:
         return False
     if backend.provider in ("lmstudio", "lmstudio_win"):
-        return any(_lmstudio_raw_matches_backend(model_id, backend) for model_id in state.models)
+        return any(_lmstudio_raw_matches_backend(model_id, backend, state) for model_id in state.models)
+    if backend.host and _normalized_host(backend.host) != _normalized_host(state.host):
+        return False
     live_ids = {_normalize_model_id(model_id) for model_id in state.models}
     candidates = (
         _normalize_model_id(backend.provider_model),
         *(_normalize_model_id(alias) for alias in backend.aliases),
     )
     candidates = tuple(c for c in candidates if c)
-    return any(candidate in live_ids for candidate in candidates)
+    matching = [model_id for model_id in state.models if _normalize_model_id(model_id) in candidates]
+    return any(_backend_identity_matches(model_id, backend, state) for model_id in matching)
 
 
 def ordered_live_route_specs(
@@ -222,13 +303,17 @@ def ordered_live_route_specs(
                 provider=backend.provider,
                 provider_model=resolved_model,
                 aliases=backend.aliases,
+                host=backend.host,
+                sha256=backend.sha256,
             )
         )
     return tuple(routes)
 
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
-DEFAULT_ROUTING_MANIFEST_PATH = PROJECT_ROOT / "config/routing_manifest.toml"
+DEFAULT_ROUTING_MANIFEST_PATH = Path(
+    os.environ.get("HALEXT_ROUTING_MANIFEST_PATH", PROJECT_ROOT / "config/routing_manifest.toml")
+).expanduser()
 DEFAULT_CHAT_REGISTRY_PATH = PROJECT_ROOT / "config" / "chat_registry.toml"
 
 STATIC_MODEL_SPECS: tuple[GatewayModelSpec, ...] = (
@@ -563,9 +648,17 @@ def _registry_aliases(provider: ProviderName, public_id: str, name: str, model_i
 def _merge_specs(specs: list[GatewayModelSpec]) -> tuple[GatewayModelSpec, ...]:
     merged: dict[str, GatewayModelSpec] = {}
     for spec in specs:
-        existing = merged.get(spec.public_id)
+        key = _normalize_model_id(spec.public_id)
+        existing = merged.get(key)
         if existing is None:
-            merged[spec.public_id] = spec
+            merged[key] = spec
+            continue
+        # A manifest lane is authoritative. Registry/static metadata must not add requestable
+        # aliases or discard its host/hash identity merely because the public IDs coincide.
+        if not existing.expose_backend_ids:
+            continue
+        if not spec.expose_backend_ids:
+            merged[key] = spec
             continue
         aliases: list[str] = []
         seen: set[str] = set()
@@ -575,10 +668,16 @@ def _merge_specs(specs: list[GatewayModelSpec]) -> tuple[GatewayModelSpec, ...]:
                 continue
             seen.add(normalized)
             aliases.append(alias)
-        merged[spec.public_id] = GatewayModelSpec(
-            public_id=existing.public_id,
-            provider=existing.provider,
-            provider_model=existing.provider_model,
+        request_aliases: list[str] = []
+        seen_requests: set[str] = set()
+        for alias in (*existing.request_aliases, *spec.request_aliases):
+            normalized = alias.lower()
+            if normalized in seen_requests:
+                continue
+            seen_requests.add(normalized)
+            request_aliases.append(alias)
+        merged[key] = replace(
+            existing,
             display_name=existing.display_name or spec.display_name,
             aliases=tuple(aliases),
             openai_api_mode=existing.openai_api_mode or spec.openai_api_mode,
@@ -586,8 +685,22 @@ def _merge_specs(specs: list[GatewayModelSpec]) -> tuple[GatewayModelSpec, ...]:
             append_to_last_user_message=(
                 existing.append_to_last_user_message or spec.append_to_last_user_message
             ),
+            request_aliases=tuple(request_aliases),
         )
     return tuple(merged.values())
+
+
+def _validate_request_namespace(specs: tuple[GatewayModelSpec, ...]) -> None:
+    owners: dict[str, str] = {}
+    for spec in specs:
+        for request_id in spec.all_ids():
+            normalized = _normalize_model_id(request_id)
+            owner = owners.get(normalized)
+            if owner is not None and owner != spec.public_id:
+                raise ValueError(
+                    f"model id {request_id!r} is claimed by both {owner!r} and {spec.public_id!r}"
+                )
+            owners[normalized] = spec.public_id
 
 
 def load_registry_model_specs(registry_path: Path | None = None) -> tuple[GatewayModelSpec, ...]:
@@ -644,13 +757,21 @@ def load_gateway_model_specs(
 
     # A broken manifest raises ManifestError here rather than silently falling back to stale routing.
     path = manifest_path or DEFAULT_ROUTING_MANIFEST_PATH
-    lane_specs: tuple[GatewayModelSpec, ...] = manifest_specs(load_manifest(path)) if path.exists() else ()
-    claimed = {_normalize_model_id(model_id) for spec in lane_specs for model_id in spec.all_ids()}
-    static = [
-        spec for spec in STATIC_MODEL_SPECS
-        if not claimed.intersection(_normalize_model_id(model_id) for model_id in spec.all_ids())
+    lane_specs: tuple[GatewayModelSpec, ...] = manifest_specs(load_manifest(path))
+    # Reserve backend evidence as well as public request IDs. Evidence is deliberately not
+    # requestable, and a legacy/static spec must not make it requestable again.
+    reserved = {
+        _normalize_model_id(model_id)
+        for spec in lane_specs
+        for model_id in (*spec.all_ids(), *spec.backend_ids())
+    }
+    legacy = [
+        spec for spec in (*STATIC_MODEL_SPECS, *load_registry_model_specs(registry_path))
+        if not reserved.intersection(_normalize_model_id(model_id) for model_id in spec.all_ids())
     ]
-    return _merge_specs([*lane_specs, *static, *load_registry_model_specs(registry_path)])
+    catalog = _merge_specs([*lane_specs, *legacy])
+    _validate_request_namespace(catalog)
+    return catalog
 
 
 def build_default_priority(catalog: tuple[GatewayModelSpec, ...]) -> tuple[str, ...]:

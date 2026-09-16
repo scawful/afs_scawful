@@ -46,7 +46,22 @@ def _snapshot(
     google: tuple[str, ...] = (),
     lmstudio: tuple[str, ...] = (),
     lmstudio_win: tuple[str, ...] = (),
+    lmstudio_win_hashes: dict[str, str] | None = None,
+    lmstudio_win_host: str | None = "medical-mechanica",
 ) -> AvailabilitySnapshot:
+    if lmstudio_win_hashes is None:
+        known_hashes = {
+            "qwen35-curated-masked": "b4490ba25882fe82",
+            "qwen35-voicefix-small": "ead32f5bc5016f4b",
+            "qwen35-v1-dpo@q8_0": "023b1db708eb417b",
+            "gguf/zelda/oracle-9b-candidate-v5-nothink-q4km.gguf": "e592b09f181a41c4",
+            "gguf/zelda/qwen3-oracle-14b-v8-q4km.gguf": "b2e026193c0bcc58",
+        }
+        lmstudio_win_hashes = {
+            model_id: known_hashes[model_id]
+            for model_id in lmstudio_win
+            if model_id in known_hashes
+        }
     return AvailabilitySnapshot(
         created=1_713_000_000.0,
         providers={
@@ -54,9 +69,38 @@ def _snapshot(
             "anthropic": ProviderAvailability(healthy=bool(anthropic), models=anthropic),
             "google": ProviderAvailability(healthy=bool(google), models=google),
             "lmstudio": ProviderAvailability(healthy=bool(lmstudio), models=lmstudio),
-            "lmstudio_win": ProviderAvailability(healthy=bool(lmstudio_win), models=lmstudio_win),
+            "lmstudio_win": ProviderAvailability(
+                healthy=bool(lmstudio_win),
+                models=lmstudio_win,
+                host=lmstudio_win_host,
+                model_sha256=lmstudio_win_hashes,
+            ),
         },
     )
+
+
+def test_windows_provider_availability_includes_independent_model_identity(monkeypatch) -> None:
+    class Client:
+        async def list_models(self):
+            return ["qwen35-curated-masked"]
+
+    sha = "b4490ba25882fe82" + "0" * 48
+    gateway = HalextCloudGateway()
+    gateway._clients = {"lmstudio_win": Client()}  # type: ignore[assignment]
+    monkeypatch.setenv("HALEXT_WINDOWS_HOSTD_URL", "http://127.0.0.1:8766")
+    monkeypatch.setattr(
+        "afs_scawful.halext_cloud_gateway._windows_model_identity_payload",
+        lambda: {
+            "host": "Medical-Mechanica",
+            "model_sha256": {"qwen35-curated-masked": sha},
+        },
+    )
+
+    state = asyncio.run(gateway._provider_models("lmstudio_win"))
+
+    assert state.healthy
+    assert state.host == "Medical-Mechanica"
+    assert state.model_sha256["qwen35-curated-masked"] == sha
 
 
 def test_resolve_model_spec_accepts_public_and_provider_aliases() -> None:

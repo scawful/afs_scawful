@@ -62,6 +62,10 @@ def _backend_status_summary(spec: Any, snapshot: Any) -> str:
             detail = "not configured"
         elif not state.healthy:
             detail = state.error or "unhealthy"
+        elif backend.sha256 and state.identity_error:
+            detail = f"identity unavailable ({state.identity_error})"
+        elif backend.sha256:
+            detail = "model missing or host/quant/hash mismatch"
         else:
             detail = "model not listed"
         parts.append(f"{backend.provider}: {detail}")
@@ -249,7 +253,11 @@ class HalextCloudGateway:
     async def startup(self) -> None:
         _bootstrap_env()
         registry_override = os.environ.get("HALEXT_CHAT_REGISTRY_PATH", "").strip()
-        self._catalog = load_gateway_model_specs(Path(registry_override).expanduser() if registry_override else None)
+        manifest_override = os.environ.get("HALEXT_ROUTING_MANIFEST_PATH", "").strip()
+        self._catalog = load_gateway_model_specs(
+            Path(registry_override).expanduser() if registry_override else None,
+            Path(manifest_override).expanduser() if manifest_override else None,
+        )
         self._priority = build_default_priority(self._catalog)
         self._access_profiles = load_access_profiles()
         self._clients = {
@@ -326,7 +334,33 @@ class HalextCloudGateway:
             models = tuple(await client.list_models())
             if not models:
                 return ProviderAvailability(healthy=False, models=(), error="no models")
-            return ProviderAvailability(healthy=True, models=models)
+            host = None
+            model_sha256: dict[str, str] = {}
+            identity_error = None
+            if provider == "lmstudio_win":
+                if not _windows_hostd_is_configured():
+                    identity_error = "Windows hostd is not configured"
+                else:
+                    try:
+                        inventory = await asyncio.to_thread(_windows_model_identity_payload)
+                        host = str(inventory.get("host") or "").strip() or None
+                        raw_hashes = inventory.get("model_sha256") or {}
+                        if isinstance(raw_hashes, dict):
+                            model_sha256 = {
+                                str(key): str(value).lower()
+                                for key, value in raw_hashes.items()
+                                if isinstance(value, str) and value
+                            }
+                    except Exception as exc:
+                        logger.exception("Windows model identity inventory failed")
+                        identity_error = str(exc)
+            return ProviderAvailability(
+                healthy=True,
+                models=models,
+                host=host,
+                model_sha256=model_sha256,
+                identity_error=identity_error,
+            )
         except Exception as exc:
             logger.exception("Provider model listing failed: %s", provider)
             return ProviderAvailability(healthy=False, models=(), error=str(exc))
@@ -703,6 +737,16 @@ def _windows_hostd_client() -> WindowsHostClient:
 
 def _windows_host_request(method: str, path: str, payload: dict[str, Any] | None = None) -> dict[str, Any]:
     return _windows_hostd_client().request_hostd_json(path, method=method, payload=payload)
+
+
+def _windows_model_identity_payload() -> dict[str, Any]:
+    """Fetch independently measured hashes for the Windows LM Studio catalog."""
+    timeout = float(os.environ.get("HALEXT_WINDOWS_HOSTD_IDENTITY_TIMEOUT", "180"))
+    return WindowsHostClient(
+        hostd_url=_windows_hostd_base_url(),
+        token=_windows_hostd_token() or None,
+        timeout=timeout,
+    ).request_hostd_json("/v1/lmstudio/models?include_sha256=true")
 
 
 def _windows_host_status_payload() -> dict[str, Any]:

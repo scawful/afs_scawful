@@ -19,7 +19,7 @@ from . import wsl
 SUPPORTED_MODES = {"interactive", "serve", "train"}
 SERVICE_NAME = "afs-hostd"
 DEPLOYMENT_PHASE = "0"
-HOSTD_API_VERSION = "0.1.1"
+HOSTD_API_VERSION = "0.1.2"
 
 
 def _utc_now() -> str:
@@ -57,6 +57,19 @@ def _source_file_payload(path: Path) -> dict[str, object]:
     payload["size_bytes"] = stat.st_size
     payload["mtime"] = datetime.fromtimestamp(stat.st_mtime, timezone.utc).isoformat()
     return payload
+
+
+def _model_hash_lookup(models: list[dict[str, Any]]) -> dict[str, str]:
+    """Map every LM Studio lookup key to the measured hash of its indexed file."""
+    hashes: dict[str, str] = {}
+    for entry in models:
+        sha256 = entry.get("sha256")
+        if not isinstance(sha256, str) or not sha256:
+            continue
+        for key in lmstudio.loaded_model_lookup_keys(entry):
+            hashes[key] = sha256
+            hashes[key.lower()] = sha256
+    return hashes
 
 
 def _run_git(args: list[str], *, cwd: Path) -> str | None:
@@ -488,12 +501,21 @@ def create_app(*, token: str | None = None):
         }
 
     @app.get("/v1/lmstudio/models", dependencies=[Depends(require_auth)])
-    def lmstudio_models(lms_path: str | None = None) -> dict[str, object]:
-        models = lmstudio.available_models(lms_path=lms_path)
+    def lmstudio_models(
+        lms_path: str | None = None,
+        include_sha256: bool = False,
+    ) -> dict[str, object]:
+        models = (
+            lmstudio.available_models_with_identity(lms_path=lms_path)
+            if include_sha256
+            else lmstudio.available_models(lms_path=lms_path)
+        )
         return {
+            "host": platform.node(),
             "lms_path": lmstudio.resolve_lms_path(lms_path),
             "models": models,
             "model_ids": [key for entry in models for key in lmstudio.loaded_model_lookup_keys(entry)],
+            "model_sha256": _model_hash_lookup(models),
             "ts": _utc_now(),
         }
 

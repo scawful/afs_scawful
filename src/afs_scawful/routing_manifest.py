@@ -18,6 +18,7 @@ weights are not present is an error: no lane ever answers with different weights
 
 from __future__ import annotations
 
+import re
 import tomllib
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -110,9 +111,12 @@ def _backend_from_row(row: dict, lane_id: str) -> LaneBackend:
     for key in ("host", "provider", "model"):
         _require(isinstance(row.get(key), str) and row[key].strip(), f"lane {lane_id!r}: backend needs {key}")
     sha = row.get("sha256")
-    if sha is not None:
-        _require(isinstance(sha, str) and len(sha) >= 12, f"lane {lane_id!r}: sha256 must be at least 12 hex chars")
-        sha = sha.strip().lower()
+    _require(isinstance(sha, str), f"lane {lane_id!r}: backend needs sha256")
+    sha = sha.strip().lower()
+    _require(
+        12 <= len(sha) <= 64 and re.fullmatch(r"[0-9a-f]+", sha) is not None,
+        f"lane {lane_id!r}: sha256 must be 12 to 64 hex chars",
+    )
     quant = row.get("quant")
     _require(quant is None or isinstance(quant, str), f"lane {lane_id!r}: quant must be a string")
     return LaneBackend(host=row["host"], provider=row["provider"], model=row["model"], quant=quant, sha256=sha)
@@ -142,10 +146,18 @@ def parse_manifest(data: dict) -> tuple[Lane, ...]:
             tools=tuple(row.get("tools", ()) or ()),
             provenance=dict(row.get("provenance", {}) or {}),
         )
-        for request_id in lane.request_ids():
-            owner = seen.get(request_id)
-            _require(owner is None, f"id {request_id!r} is claimed by both {owner!r} and {lane_id!r}")
-            seen[request_id] = lane_id
+        declared_ids = (
+            *lane.request_ids(),
+            *(backend_id for backend in lane.backends for backend_id in backend.ids()),
+        )
+        for declared_id in declared_ids:
+            normalized = declared_id.strip().lower()
+            owner = seen.get(normalized)
+            _require(
+                owner in (None, lane_id),
+                f"id {declared_id!r} is claimed by both {owner!r} and {lane_id!r}",
+            )
+            seen[normalized] = lane_id
         lanes.append(lane)
     return tuple(lanes)
 
@@ -178,9 +190,12 @@ def manifest_specs(lanes) -> tuple:
             request_aliases=lane.also_answers_to,  # what a client may call them
             display_name=lane.display_name or lane.id,
             description=lane.description,
+            host=primary.host,
+            sha256=primary.sha256,
+            expose_backend_ids=False,
             fallback_backends=tuple(
                 GatewayModelBackend(provider=backend.provider, provider_model=backend.served_id,
-                                    aliases=backend.ids())
+                                    aliases=backend.ids(), host=backend.host, sha256=backend.sha256)
                 for backend in rest
             ),
         ))
