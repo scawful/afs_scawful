@@ -106,11 +106,21 @@ def _lmstudio_raw_id_matches_candidate(raw_id: str, candidate: str) -> bool:
         return False
     if lid == cand:
         return True
+    # LM Studio relabels a model as "name@quant" the moment a second quant of it exists. Compare the
+    # base name, and when both sides state a quant they must agree: a q5 build is not the q8 weights.
+    raw_base, _, raw_quant = lid.partition("@")
+    cand_base, _, cand_quant = cand.partition("@")
+    if raw_base == cand_base and raw_quant and not cand_quant:
+        return True
+    if raw_quant and cand_quant and (raw_base, raw_quant) != (cand_base, cand_quant):
+        return False
     # Avoid loose suffix matches on very short slugs.
     min_len = 10
     if len(cand) < min_len:
         return lid.endswith("/" + cand) or lid.endswith("\\" + cand)
-    if lid.endswith("/" + cand) or lid.endswith("\\" + cand) or lid.endswith(cand):
+    # Path suffixes only. A bare endswith let any id ending in an alias bind to that lane, e.g.
+    # "some-other-lmstudio@q5_k_m" satisfying the alias "lmstudio@q5_k_m".
+    if lid.endswith("/" + cand) or lid.endswith("\\" + cand):
         return True
     base = lid.rsplit("/", 1)[-1].rsplit("\\", 1)[-1]
     b = _normalize_model_id(base)
@@ -719,8 +729,9 @@ def choose_route(
         spec = live_by_public_id.get(public_id)
         if spec:
             return spec
-    if requested_spec:
-        return requested_spec
+    # Never hand back the requested spec unresolved. The caller compares public_id to decide whether
+    # substitution happened, so returning it here read as "the requested model is live" and POSTed a
+    # dead id upstream, where LM Studio's own loose matching could load different weights.
     return None
 
 

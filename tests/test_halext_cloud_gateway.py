@@ -1004,3 +1004,35 @@ def test_chat_unknown_model_still_uses_best_live_model(monkeypatch) -> None:
 
     assert routed == "gemini-3.1-pro"
     assert calls == ["google:gemini-3.1-pro"]
+
+
+def test_a_box_relabelling_a_model_to_name_at_quant_still_matches_its_lane() -> None:
+    # LM Studio renames a model to "name@quant" as soon as a second quant of it exists. That rename
+    # happened to qwen35-v1-dpo on 2026-09-16 and would have dropped a promoted lane out of the
+    # catalog entirely, leaving the lane with zero backends.
+    from afs_scawful.halext_cloud_gateway_core import _lmstudio_raw_id_matches_candidate as matches
+
+    assert matches("qwen35-curated-masked@q8_0", "qwen35-curated-masked")
+    assert matches("qwen35-curated-masked", "qwen35-curated-masked")
+    assert matches("qwen35-v1-dpo@q8_0", "qwen35-v1-dpo@q8_0")
+
+
+def test_weights_of_a_different_quant_or_a_shared_suffix_never_match() -> None:
+    from afs_scawful.halext_cloud_gateway_core import _lmstudio_raw_id_matches_candidate as matches
+
+    assert not matches("qwen35-v1-dpo@q5_k_m", "qwen35-v1-dpo@q8_0"), "a q5 build is not the q8 weights"
+    # A bare endswith let any id ending in an alias bind to that lane.
+    assert not matches("some-other-lmstudio@q5_k_m", "lmstudio@q5_k_m")
+    assert not matches("scawfulbot-qwen3-8b-v1-dpo", "scawfulbot-qwen3-8b-v1-dpo-extra")
+
+
+def test_chat_raises_instead_of_dispatching_a_dead_id_when_nothing_is_live(monkeypatch) -> None:
+    # choose_route used to hand back the requested spec unresolved when no backend was live. The
+    # caller compares public_id to detect substitution, saw a match, and POSTed the dead id upstream,
+    # where LM Studio's own loose matching could load different weights.
+    snap = _snapshot()
+    gateway, calls = _recording_gateway(monkeypatch, snap)
+
+    with pytest.raises(ModelUnavailableError):
+        asyncio.run(gateway.chat(_chat_request("scawfulbot-qwen35"), gateway._access_profiles[0]))
+    assert calls == [], "a dead lane must reach no provider at all"

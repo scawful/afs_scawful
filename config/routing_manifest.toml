@@ -1,0 +1,141 @@
+# Routing manifest: which lane serves which weights, on which box.
+#
+# A lane is a name clients request. `serves` names the exact weights allowed to answer to it, by
+# sha256, because a box relabels models (LM Studio renames `m` to `m@quant` once a second quant of
+# it exists) and a name alone does not pin what is behind it.
+#
+# Requesting a lane whose weights are not present is an error. No lane answers with other weights.
+# Promotion is editing `serves` here; it is not a code change and not a deploy.
+#
+# sha256 values are the first 16 hex characters, enough to identify a file without pasting 64.
+
+version = 1
+
+# -- Scawfulbot lanes (medical-mechanica, RTX 5090, LM Studio on :1234) ------------------------
+
+[[lanes]]
+id = "scawfulbot"
+display_name = "Scawfulbot"
+description = "Justin's voice. Promoted 2026-09-16 after the Claude judge eval."
+also_answers_to = ["scawfulbot-qwen35"]
+on_unavailable = "error"
+
+  [[lanes.serves]]
+  host = "medical-mechanica"
+  provider = "lmstudio_win"
+  model = "qwen35-curated-masked"
+  quant = "q8_0"
+  sha256 = "b4490ba25882fe82"
+
+  [lanes.provenance]
+  # Every number here comes from eval/run_evals.jsonl in the scawfulbot repo.
+  corpus_sha256 = "c20695b8c9c2"
+  corpus_rows = 19047
+  recipe = "qwen3.5-9b QLoRA, lr 5e-5, 1 epoch, train-on-responses-only"
+  eval_pass_system = 0.47
+  eval_pass_no_system = 0.32
+  judged = "2026-09-16"
+  promoted = "2026-09-16"
+
+[[lanes]]
+id = "scawfulbot-voicefix"
+display_name = "Scawfulbot (voice-fix SFT)"
+description = "First corpus-fix run. Kept addressable to compare against the promoted lane."
+on_unavailable = "error"
+
+  [[lanes.serves]]
+  host = "medical-mechanica"
+  provider = "lmstudio_win"
+  model = "qwen35-voicefix-small"
+  quant = "q8_0"
+  sha256 = "ead32f5bc5016f4b"
+
+  [lanes.provenance]
+  corpus_sha256 = "a559ea39b338"
+  corpus_rows = 8174
+  recipe = "qwen3.5-9b QLoRA, lr 5e-5, 1 epoch, loss on all tokens"
+  eval_pass_system = 0.31
+  eval_pass_no_system = 0.22
+  judged = "2026-09-16"
+
+[[lanes]]
+id = "scawfulbot-april"
+display_name = "Scawfulbot (April DPO)"
+description = "Superseded 2026-09-16. Kept addressable as the eval baseline."
+also_answers_to = ["scawfulbot-qwen35-v1-dpo-q8"]
+on_unavailable = "error"
+
+  [[lanes.serves]]
+  host = "medical-mechanica"
+  provider = "lmstudio_win"
+  model = "qwen35-v1-dpo"
+  quant = "q8_0"
+  sha256 = "023b1db708eb417b"
+
+  [lanes.provenance]
+  eval_pass_system = 0.03
+  eval_pass_no_system = 0.0
+  judged = "2026-09-16"
+
+# -- Oracle lanes (Zelda / ROM-hacking models, same box) ---------------------------------------
+
+[[lanes]]
+id = "oracle-9b"
+display_name = "Oracle 9B"
+description = "Oracle of Secrets assistant, no-think variant."
+also_answers_to = ["oracle-9b-v5"]
+on_unavailable = "error"
+
+  [[lanes.serves]]
+  host = "medical-mechanica"
+  provider = "lmstudio_win"
+  model = "gguf/zelda/oracle-9b-candidate-v5-nothink-q4km.gguf"
+  sha256 = "e592b09f181a41c4"
+
+[[lanes]]
+id = "oracle-14b"
+display_name = "Oracle 14B"
+description = "Larger Oracle model for escalation."
+also_answers_to = ["oracle-14b-v8"]
+on_unavailable = "error"
+
+  [[lanes.serves]]
+  host = "medical-mechanica"
+  provider = "lmstudio_win"
+  model = "gguf/zelda/qwen3-oracle-14b-v8-q4km.gguf"
+  sha256 = "b2e026193c0bcc58"
+
+# -- Work lanes: chosen deliberately, never as an automatic substitute for a lane above ---------
+
+[[lanes]]
+id = "work-smart"
+display_name = "Claude Sonnet 4.6"
+description = "Code and analysis. Cloud weights, so no sha256 to pin."
+also_answers_to = ["claude-sonnet-4.6"]
+on_unavailable = "error"
+
+  [[lanes.serves]]
+  host = "anthropic"
+  provider = "anthropic"
+  model = "claude-sonnet-4-6"
+
+[[lanes]]
+id = "work-thoughtful"
+display_name = "Gemini 3.1 Pro"
+description = "Long-context synthesis."
+also_answers_to = ["gemini-3.1-pro"]
+on_unavailable = "error"
+
+  [[lanes.serves]]
+  host = "google"
+  provider = "google"
+  model = "models/gemini-3.1-pro"
+
+# -- Not lanes yet -----------------------------------------------------------------------------
+# The Oracle personas (nayru, din, farore, veran, majora) are advertised by the gateway's static
+# specs but medical-mechanica does not index those GGUFs, so nothing can serve them. They are left
+# out deliberately rather than declared and dead. Adding one means importing it into LM Studio,
+# recording its sha256, and adding a lane here.
+#
+# Assistant lanes (tasks, home) will declare `tools = [...]` alongside `serves`, so a lane can be a
+# model plus the tools it is allowed to call.
