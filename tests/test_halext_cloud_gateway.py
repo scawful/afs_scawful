@@ -1051,14 +1051,13 @@ def test_chat_refuses_to_answer_unavailable_explicit_model_with_another_model(mo
     assert calls == [], "no provider may be called when the requested model has no live backend"
 
 
-def test_chat_unknown_model_still_uses_best_live_model(monkeypatch) -> None:
+def test_chat_refuses_unknown_model_instead_of_silently_substituting(monkeypatch) -> None:
     snap = _snapshot(google=("models/gemini-3.1-pro-preview",))
     gateway, calls = _recording_gateway(monkeypatch, snap)
 
-    _, routed = asyncio.run(gateway.chat(_chat_request("not-a-catalog-model"), gateway._access_profiles[0]))
-
-    assert routed == "gemini-3.1-pro"
-    assert calls == ["google:gemini-3.1-pro"]
+    with pytest.raises(ValueError, match="Unknown model 'not-a-catalog-model'"):
+        asyncio.run(gateway.chat(_chat_request("not-a-catalog-model"), gateway._access_profiles[0]))
+    assert calls == [], "an unknown public id must reach no provider"
 
 
 def test_a_box_relabelling_a_model_to_name_at_quant_still_matches_its_lane() -> None:

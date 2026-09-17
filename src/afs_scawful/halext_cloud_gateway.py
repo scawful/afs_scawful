@@ -397,6 +397,8 @@ class HalextCloudGateway:
         filtered_catalog = access_profile.filter_catalog(self._catalog)
         filtered_priority = access_profile.filter_priority(self._priority)
         requested_spec = resolve_model_spec(request.model, self._catalog)
+        if requested_spec is None:
+            raise ValueError(f"Unknown model '{request.model}'")
         if requested_spec and requested_spec not in filtered_catalog:
             raise PermissionError(f"Model '{requested_spec.public_id}' is not available for this token")
         snapshot = await self.availability_snapshot()
