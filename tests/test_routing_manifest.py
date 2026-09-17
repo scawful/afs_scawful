@@ -199,7 +199,10 @@ def test_a_wrong_quant_alone_cannot_satisfy_a_quant_pinned_lane(reported):
 @pytest.mark.parametrize("host, measured", [
     ("medical-mechanica", None),
     ("medical-mechanica", "0" * 64),
-    ("some-other-host", "b4490ba25882fe825ebd95c4a4af50d419b59e5a6204807f9dc24fa8438fea48" + "0" * 48),
+    # A malformed inventory value that begins with the complete expected digest must still fail.
+    # This case specifically catches a regression from equality back to startswith.
+    ("medical-mechanica", CURATED_SHA + "0" * 48),
+    ("some-other-host", CURATED_SHA),
 ])
 def test_a_lane_is_unavailable_without_its_declared_host_and_hash(host, measured):
     from afs_scawful.halext_cloud_gateway_core import AvailabilitySnapshot, ProviderAvailability
