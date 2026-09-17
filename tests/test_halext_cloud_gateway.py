@@ -51,11 +51,11 @@ def _snapshot(
 ) -> AvailabilitySnapshot:
     if lmstudio_win_hashes is None:
         known_hashes = {
-            "qwen35-curated-masked": "b4490ba25882fe82",
-            "qwen35-voicefix-small": "ead32f5bc5016f4b",
-            "qwen35-v1-dpo@q8_0": "023b1db708eb417b",
-            "gguf/zelda/oracle-9b-candidate-v5-nothink-q4km.gguf": "e592b09f181a41c4",
-            "gguf/zelda/qwen3-oracle-14b-v8-q4km.gguf": "b2e026193c0bcc58",
+            "qwen35-curated-masked": "b4490ba25882fe825ebd95c4a4af50d419b59e5a6204807f9dc24fa8438fea48",
+            "qwen35-voicefix-small": "ead32f5bc5016f4bffd4d9755f6a2cacb836f9efe988e73c7c17521fde387e49",
+            "qwen35-v1-dpo@q8_0": "023b1db708eb417bb9a6fa31c7a6bff3bb60594cc966f0ea93b0e987194b770f",
+            "gguf/zelda/oracle-9b-candidate-v5-nothink-q4km.gguf": "e592b09f181a41c42496d5abe0d4a83b3efaddd59f6be82b6fffa508666aa5a5",
+            "gguf/zelda/qwen3-oracle-14b-v8-q4km.gguf": "b2e026193c0bcc58f9f9dd01568528080d5d58425dc055d86c736c13c0fe333b",
         }
         lmstudio_win_hashes = {
             model_id: known_hashes[model_id]
@@ -84,7 +84,7 @@ def test_windows_provider_availability_includes_independent_model_identity(monke
         async def list_models(self):
             return ["qwen35-curated-masked"]
 
-    sha = "b4490ba25882fe82" + "0" * 48
+    sha = "b4490ba25882fe825ebd95c4a4af50d419b59e5a6204807f9dc24fa8438fea48" + "0" * 48
     gateway = HalextCloudGateway()
     gateway._clients = {"lmstudio_win": Client()}  # type: ignore[assignment]
     monkeypatch.setenv("HALEXT_WINDOWS_HOSTD_URL", "http://127.0.0.1:8766")

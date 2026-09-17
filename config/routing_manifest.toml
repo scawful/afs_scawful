@@ -7,7 +7,9 @@
 # Requesting a lane whose weights are not present is an error. No lane answers with other weights.
 # Promotion is editing `serves` here; it is not a code change and not a deploy.
 #
-# sha256 values are the first 16 hex characters, enough to identify a file without pasting 64.
+# sha256 is the full 64-hex digest of the file, compared for exact equality. A prefix would let a
+# different file with a shared prefix satisfy a lane, and prefixes cannot be lengthened later
+# without a flag day, so the manifest never carries one.
 
 version = 1
 
@@ -25,7 +27,7 @@ on_unavailable = "error"
   provider = "lmstudio_win"
   model = "qwen35-curated-masked"
   quant = "q8_0"
-  sha256 = "b4490ba25882fe82"
+  sha256 = "b4490ba25882fe825ebd95c4a4af50d419b59e5a6204807f9dc24fa8438fea48"
 
   [lanes.provenance]
   # Every number here comes from eval/run_evals.jsonl in the scawfulbot repo.
@@ -48,7 +50,7 @@ on_unavailable = "error"
   provider = "lmstudio_win"
   model = "qwen35-voicefix-small"
   quant = "q8_0"
-  sha256 = "ead32f5bc5016f4b"
+  sha256 = "ead32f5bc5016f4bffd4d9755f6a2cacb836f9efe988e73c7c17521fde387e49"
 
   [lanes.provenance]
   corpus_sha256 = "a559ea39b338"
@@ -70,7 +72,7 @@ on_unavailable = "error"
   provider = "lmstudio_win"
   model = "qwen35-v1-dpo"
   quant = "q8_0"
-  sha256 = "023b1db708eb417b"
+  sha256 = "023b1db708eb417bb9a6fa31c7a6bff3bb60594cc966f0ea93b0e987194b770f"
 
   [lanes.provenance]
   eval_pass_system = 0.03
@@ -90,7 +92,7 @@ on_unavailable = "error"
   host = "medical-mechanica"
   provider = "lmstudio_win"
   model = "gguf/zelda/oracle-9b-candidate-v5-nothink-q4km.gguf"
-  sha256 = "e592b09f181a41c4"
+  sha256 = "e592b09f181a41c42496d5abe0d4a83b3efaddd59f6be82b6fffa508666aa5a5"
 
 [[lanes]]
 id = "oracle-14b"
@@ -103,7 +105,7 @@ on_unavailable = "error"
   host = "medical-mechanica"
   provider = "lmstudio_win"
   model = "gguf/zelda/qwen3-oracle-14b-v8-q4km.gguf"
-  sha256 = "b2e026193c0bcc58"
+  sha256 = "b2e026193c0bcc58f9f9dd01568528080d5d58425dc055d86c736c13c0fe333b"
 
 # -- Cloud models are deliberately NOT lanes ---------------------------------------------------
 # A lane pins weights by sha256, which only means something for models we train and host. Cloud

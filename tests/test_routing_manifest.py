@@ -13,8 +13,9 @@ from afs_scawful.routing_manifest import (
     resolve_backend,
 )
 
+CURATED_SHA = "b4490ba25882fe825ebd95c4a4af50d419b59e5a6204807f9dc24fa8438fea48"
 CURATED = LaneBackend(host="medical-mechanica", provider="lmstudio_win",
-                      model="qwen35-curated-masked", quant="q8_0", sha256="b4490ba25882fe82")
+                      model="qwen35-curated-masked", quant="q8_0", sha256=CURATED_SHA)
 
 
 def test_a_box_renaming_a_model_to_name_at_quant_still_resolves():
@@ -50,7 +51,7 @@ def _manifest(**overrides):
         "id": "scawfulbot",
         "display_name": "Scawfulbot",
         "serves": [{"host": "medical-mechanica", "provider": "lmstudio_win",
-                    "model": "qwen35-curated-masked", "quant": "q8_0", "sha256": "b4490ba25882fe82"}],
+                    "model": "qwen35-curated-masked", "quant": "q8_0", "sha256": "b4490ba25882fe825ebd95c4a4af50d419b59e5a6204807f9dc24fa8438fea48"}],
         "also_answers_to": ["scawfulbot-qwen35"],
         "provenance": {"corpus_sha256": "ad32b2cd6eb9", "eval_pass_system": 0.47},
     }
@@ -60,7 +61,7 @@ def _manifest(**overrides):
 
 def test_a_lane_carries_the_weights_identity_and_its_provenance():
     (lane,) = parse_manifest(_manifest())
-    assert lane.backends[0].sha256 == "b4490ba25882fe82"
+    assert lane.backends[0].sha256 == "b4490ba25882fe825ebd95c4a4af50d419b59e5a6204807f9dc24fa8438fea48"
     assert lane.provenance["eval_pass_system"] == 0.47
     assert lane.on_unavailable == "error", "a lane must default to erroring, never substituting"
     assert lane.request_ids() == ("scawfulbot", "scawfulbot-qwen35")
@@ -165,7 +166,7 @@ def test_the_quant_a_lane_declares_wins_over_list_order():
             healthy=True,
             models=("qwen35-v1-dpo@q5_k_m", "qwen35-v1-dpo@q8_0"),
             host="medical-mechanica",
-            model_sha256={"qwen35-v1-dpo@q8_0": "b4490ba25882fe82"},
+            model_sha256={"qwen35-v1-dpo@q8_0": "b4490ba25882fe825ebd95c4a4af50d419b59e5a6204807f9dc24fa8438fea48"},
         ),
     })
     live = spec.live_route(snap)
@@ -188,7 +189,7 @@ def test_a_wrong_quant_alone_cannot_satisfy_a_quant_pinned_lane(reported):
             healthy=True,
             models=(reported,),
             host="medical-mechanica",
-            model_sha256={reported: "b4490ba25882fe82"},
+            model_sha256={reported: "b4490ba25882fe825ebd95c4a4af50d419b59e5a6204807f9dc24fa8438fea48"},
         ),
     })
 
@@ -198,7 +199,7 @@ def test_a_wrong_quant_alone_cannot_satisfy_a_quant_pinned_lane(reported):
 @pytest.mark.parametrize("host, measured", [
     ("medical-mechanica", None),
     ("medical-mechanica", "0" * 64),
-    ("some-other-host", "b4490ba25882fe82" + "0" * 48),
+    ("some-other-host", "b4490ba25882fe825ebd95c4a4af50d419b59e5a6204807f9dc24fa8438fea48" + "0" * 48),
 ])
 def test_a_lane_is_unavailable_without_its_declared_host_and_hash(host, measured):
     from afs_scawful.halext_cloud_gateway_core import AvailabilitySnapshot, ProviderAvailability
@@ -246,7 +247,7 @@ model_id = "wrong"
     lane = resolve_model_spec("scawfulbot", catalog)
     assert lane is not None
     assert lane.host == "medical-mechanica"
-    assert lane.sha256 == "b4490ba25882fe82"
+    assert lane.sha256 == "b4490ba25882fe825ebd95c4a4af50d419b59e5a6204807f9dc24fa8438fea48"
     assert resolve_model_spec("wrong", catalog) is None
 
 
@@ -274,3 +275,25 @@ def test_distinct_catalog_specs_cannot_share_a_request_id():
     )
     with pytest.raises(ValueError, match="claimed by both"):
         _validate_request_namespace(specs)
+
+
+def test_a_prefix_digest_is_refused_at_load():
+    # Prefixes were accepted until 2026-09-16. Two problems: a different file sharing those leading
+    # digits satisfies the lane, and a prefix cannot be lengthened later without a flag day.
+    data = _manifest()
+    data["lanes"][0]["serves"][0]["sha256"] = CURATED_SHA[:16]
+    with pytest.raises(ManifestError, match="full 64-hex digest"):
+        parse_manifest(data)
+    for bad in ("", "zz" * 32, CURATED_SHA + "00", CURATED_SHA[:63]):
+        data["lanes"][0]["serves"][0]["sha256"] = bad
+        with pytest.raises(ManifestError):
+            parse_manifest(data)
+
+
+def test_the_shipped_manifest_pins_full_digests():
+    from afs_scawful.routing_manifest import DEFAULT_MANIFEST_PATH, load_manifest
+    import re
+
+    for lane in load_manifest(DEFAULT_MANIFEST_PATH):
+        for backend in lane.backends:
+            assert re.fullmatch(r"[0-9a-f]{64}", backend.sha256 or ""), f"{lane.id} carries a partial digest"

@@ -219,7 +219,9 @@ def _backend_identity_matches(
     if not backend.sha256:
         return True
     measured = _model_sha256(state, raw_id)
-    return measured is not None and measured.startswith(backend.sha256.lower())
+    # Exact equality: a prefix comparison accepts any file sharing those leading hex digits, and the
+    # whole point of pinning by hash is that only these bytes may answer for this lane.
+    return measured is not None and measured == backend.sha256.lower()
 
 
 def _lmstudio_backend_match_rank(

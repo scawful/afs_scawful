@@ -9,7 +9,7 @@ came out of that (2026-09-16):
   * A legacy alias kept on a promoted lane could bind that lane to the weights it replaced, because
     availability matching walks the box's model list and takes the first raw id matching any alias.
 
-A lane here names the weights by sha256, not by a string a box may relabel. Requesting a lane whose
+A lane here names the weights by their full sha256, not by a string a box may relabel. Requesting a lane whose
 weights are not present is an error: no lane ever answers with different weights than it declares.
 
   lanes = load_manifest(Path("config/routing_manifest.toml"))
@@ -114,8 +114,8 @@ def _backend_from_row(row: dict, lane_id: str) -> LaneBackend:
     _require(isinstance(sha, str), f"lane {lane_id!r}: backend needs sha256")
     sha = sha.strip().lower()
     _require(
-        12 <= len(sha) <= 64 and re.fullmatch(r"[0-9a-f]+", sha) is not None,
-        f"lane {lane_id!r}: sha256 must be 12 to 64 hex chars",
+        re.fullmatch(r"[0-9a-f]{64}", sha) is not None,
+        f"lane {lane_id!r}: sha256 must be the full 64-hex digest, got {len(sha)} chars",
     )
     quant = row.get("quant")
     _require(quant is None or isinstance(quant, str), f"lane {lane_id!r}: quant must be a string")
