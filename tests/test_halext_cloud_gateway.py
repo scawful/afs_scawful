@@ -52,6 +52,7 @@ def _snapshot(
     if lmstudio_win_hashes is None:
         known_hashes = {
             "qwen35-curated-masked": "b4490ba25882fe825ebd95c4a4af50d419b59e5a6204807f9dc24fa8438fea48",
+            "qwen35-rtc-patch-4k": "a92f2f5d9c360dd20102adcc7e2841aa7e1d76f13ead514bbdd76c3450f8919c",
             "qwen35-voicefix-small": "ead32f5bc5016f4bffd4d9755f6a2cacb836f9efe988e73c7c17521fde387e49",
             "qwen35-v1-dpo@q8_0": "023b1db708eb417bb9a6fa31c7a6bff3bb60594cc966f0ea93b0e987194b770f",
             "gguf/zelda/oracle-9b-candidate-v5-nothink-q4km.gguf": "e592b09f181a41c42496d5abe0d4a83b3efaddd59f6be82b6fffa508666aa5a5",
@@ -250,7 +251,7 @@ def test_scawfulbot_routes_can_fall_back_to_windows_scawfulbot_backends() -> Non
     snapshot = _snapshot(
         lmstudio_win=(
             "gguf/lmstudio/scawfulbot-gemma4-e4b-sft-dpo-q4km.gguf",
-            "qwen35-curated-masked",
+            "qwen35-rtc-patch-4k",
             "scawfulbot-qwen3-8b-v1",
         )
     )
@@ -266,7 +267,7 @@ def test_scawfulbot_routes_can_fall_back_to_windows_scawfulbot_backends() -> Non
     assert gemma_route.provider == "lmstudio_win"
     assert gemma_route.provider_model == "gguf/lmstudio/scawfulbot-gemma4-e4b-sft-dpo-q4km.gguf"
     assert qwen35_route.provider == "lmstudio_win"
-    assert qwen35_route.provider_model == "qwen35-curated-masked", "the promoted lane, per the manifest"
+    assert qwen35_route.provider_model == "qwen35-rtc-patch-4k", "the promoted lane, per the manifest"
     assert qwen_route.provider == "lmstudio_win"
     assert qwen_route.provider_model == "scawfulbot-qwen3-8b-v1"
 
@@ -803,6 +804,92 @@ def test_google_route_enforces_minimum_token_budget() -> None:
     asyncio.run(run())
 
 
+def test_lmstudio_win_route_defaults_reasoning_effort_none() -> None:
+    async def run() -> None:
+        gateway = HalextCloudGateway()
+        client = _DummyProviderClient()
+        gateway._clients = {"lmstudio_win": client}  # type: ignore[assignment]
+
+        route = resolve_model_spec("scawfulbot-qwen35")
+        assert route is not None
+        assert route.provider == "lmstudio_win"
+        await gateway._chat_provider(
+            route=route,
+            messages=[{"role": "user", "content": "ping"}],
+            system_text="",
+            temperature=0.2,
+            top_p=0.9,
+            max_tokens=24,
+        )
+        assert client.kwargs is not None
+        assert client.kwargs["thinking_tier"] == "none"
+
+    asyncio.run(run())
+
+
+def test_lmstudio_win_route_honors_client_reasoning_effort() -> None:
+    async def run() -> None:
+        gateway = HalextCloudGateway()
+        client = _DummyProviderClient()
+        gateway._clients = {"lmstudio_win": client}  # type: ignore[assignment]
+
+        route = resolve_model_spec("scawfulbot-qwen35")
+        assert route is not None
+        await gateway._chat_provider(
+            route=route,
+            messages=[{"role": "user", "content": "ping"}],
+            system_text="",
+            temperature=0.2,
+            top_p=0.9,
+            max_tokens=24,
+            reasoning_effort="low",
+        )
+        assert client.kwargs is not None
+        assert client.kwargs["thinking_tier"] == "low"
+
+    asyncio.run(run())
+
+
+def test_coerce_message_content_flattens_multimodal_arrays() -> None:
+    from afs_scawful.halext_cloud_gateway import SimpleChatRequest
+
+    request = SimpleChatRequest.from_payload(
+        {
+            "model": "scawfulbot-qwen35",
+            "messages": [
+                {
+                    "role": "user",
+                    "content": [
+                        {"type": "text", "text": "what is this?"},
+                        {
+                            "type": "image_url",
+                            "image_url": {"url": "data:image/png;base64,AAAA"},
+                        },
+                    ],
+                }
+            ],
+        }
+    )
+    assert len(request.messages) == 1
+    assert "what is this?" in request.messages[0].content
+    assert "cannot view photos" in request.messages[0].content
+    assert "AAAA" not in request.messages[0].content
+    assert request.reasoning_effort is None
+
+
+def test_simple_chat_request_parses_reasoning_effort() -> None:
+    from afs_scawful.halext_cloud_gateway import SimpleChatRequest
+
+    request = SimpleChatRequest.from_payload(
+        {
+            "model": "scawfulbot-qwen35",
+            "messages": [{"role": "user", "content": "hey"}],
+            "reasoning_effort": "low",
+        }
+    )
+    assert request.reasoning_effort == "low"
+
+
 def test_chat_retries_next_lmstudio_backend_on_provider_error(monkeypatch) -> None:
     async def run() -> None:
         gateway = HalextCloudGateway()
@@ -827,6 +914,7 @@ def test_chat_retries_next_lmstudio_backend_on_provider_error(monkeypatch) -> No
             temperature: float,
             top_p: float,
             max_tokens: int,
+            **_: object,
         ) -> object:
             provider_model = getattr(route, "provider_model", "")
             calls.append(str(provider_model))
@@ -877,7 +965,7 @@ def test_chat_preserves_provider_reasoning_content(monkeypatch) -> None:
         gateway._catalog = load_gateway_model_specs()
         gateway._priority = build_default_priority(gateway._catalog)
         gateway._access_profiles = (AccessProfile(profile_id="owner", token="owner-secret"),)
-        snap = _snapshot(lmstudio_win=("qwen35-curated-masked",))
+        snap = _snapshot(lmstudio_win=("qwen35-rtc-patch-4k",))
 
         async def fake_snapshot(force: bool = False) -> AvailabilitySnapshot:
             return snap
@@ -890,6 +978,7 @@ def test_chat_preserves_provider_reasoning_content(monkeypatch) -> None:
             temperature: float,
             top_p: float,
             max_tokens: int,
+            **_: object,
         ) -> object:
             return SimpleNamespace(
                 text="OK",
@@ -928,7 +1017,7 @@ def test_chat_does_not_promote_qwen35_reasoning_to_visible_reply(monkeypatch) ->
         gateway._catalog = load_gateway_model_specs()
         gateway._priority = build_default_priority(gateway._catalog)
         gateway._access_profiles = (AccessProfile(profile_id="owner", token="owner-secret"),)
-        snap = _snapshot(lmstudio_win=("qwen35-curated-masked",))
+        snap = _snapshot(lmstudio_win=("qwen35-rtc-patch-4k",))
 
         async def fake_snapshot(force: bool = False) -> AvailabilitySnapshot:
             return snap
@@ -941,6 +1030,7 @@ def test_chat_does_not_promote_qwen35_reasoning_to_visible_reply(monkeypatch) ->
             temperature: float,
             top_p: float,
             max_tokens: int,
+            **_: object,
         ) -> object:
             return SimpleNamespace(
                 text="",

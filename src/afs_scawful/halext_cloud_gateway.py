@@ -89,6 +89,7 @@ class SimpleChatRequest:
     top_p: float = 0.9
     max_tokens: int | None = None
     stream: bool = False
+    reasoning_effort: str | None = None
 
     @classmethod
     def from_payload(cls, payload: dict[str, Any]) -> "SimpleChatRequest":
@@ -105,7 +106,7 @@ class SimpleChatRequest:
             if not isinstance(raw_message, dict):
                 raise ValueError("message rows must be objects")
             role = str(raw_message.get("role", "")).strip()
-            content = str(raw_message.get("content", "")).strip()
+            content = _coerce_message_content(raw_message.get("content"))
             if not role or not content:
                 raise ValueError("each message must include role and content")
             messages.append(ChatMessageRow(role=role, content=content))
@@ -115,6 +116,10 @@ class SimpleChatRequest:
         raw_max_tokens = payload.get("max_tokens")
         max_tokens = int(raw_max_tokens) if raw_max_tokens is not None else None
         stream = bool(payload.get("stream", False))
+        raw_effort = payload.get("reasoning_effort")
+        reasoning_effort = str(raw_effort).strip().lower() if raw_effort is not None else None
+        if reasoning_effort == "":
+            reasoning_effort = None
         return cls(
             model=model,
             messages=messages,
@@ -122,7 +127,38 @@ class SimpleChatRequest:
             top_p=top_p,
             max_tokens=max_tokens,
             stream=stream,
+            reasoning_effort=reasoning_effort,
         )
+
+
+def _coerce_message_content(raw: Any) -> str:
+    """Normalize OpenAI message content to plain text for text-only backends.
+
+    Multimodal arrays are flattened to text plus an image-count note so text GGUFs
+    (scawfulbot) do not receive megabyte base64 dumps that time out the request.
+    """
+    if isinstance(raw, list):
+        text_parts: list[str] = []
+        image_count = 0
+        for part in raw:
+            if not isinstance(part, dict):
+                continue
+            part_type = str(part.get("type") or "").strip().lower()
+            if part_type == "text":
+                text = str(part.get("text") or "").strip()
+                if text:
+                    text_parts.append(text)
+            elif part_type in {"image_url", "image"}:
+                image_count += 1
+        body = "\n".join(text_parts).strip()
+        if image_count:
+            note = (
+                f"[user attached {image_count} image(s); this model cannot view photos — "
+                "ask them to describe what they see]"
+            )
+            return f"{body}\n\n{note}".strip() if body else note
+        return body
+    return str(raw or "").strip()
 
 
 @dataclass(frozen=True)
@@ -441,6 +477,7 @@ class HalextCloudGateway:
                 temperature=request.temperature,
                 top_p=request.top_p,
                 max_tokens=request.max_tokens or 1024,
+                reasoning_effort=getattr(request, "reasoning_effort", None),
             )
             if not response.error:
                 chosen_route = spec_route
@@ -466,6 +503,7 @@ class HalextCloudGateway:
         temperature: float,
         top_p: float,
         max_tokens: int,
+        reasoning_effort: str | None = None,
     ) -> Any:
         client = self._clients[route.provider]
         if client is None:
@@ -489,6 +527,13 @@ class HalextCloudGateway:
             kwargs["temperature"] = None
             kwargs["top_p"] = None
             kwargs["options"] = {"api_mode": route.openai_api_mode}
+        if route.provider in ("lmstudio", "lmstudio_win"):
+            # Default none so empty-content Qwen3.5 failures stay fixed; honor client
+            # reasoning_effort when the companion recipe asks for visible thinking.
+            effort = (reasoning_effort or "none").strip().lower()
+            if effort not in {"none", "low", "medium", "high"}:
+                effort = "none"
+            kwargs["thinking_tier"] = effort
         return await client.chat(**kwargs)
 
 

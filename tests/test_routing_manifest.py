@@ -250,7 +250,7 @@ model_id = "wrong"
     lane = resolve_model_spec("scawfulbot", catalog)
     assert lane is not None
     assert lane.host == "medical-mechanica"
-    assert lane.sha256 == "b4490ba25882fe825ebd95c4a4af50d419b59e5a6204807f9dc24fa8438fea48"
+    assert lane.sha256 == "a92f2f5d9c360dd20102adcc7e2841aa7e1d76f13ead514bbdd76c3450f8919c"
     assert resolve_model_spec("wrong", catalog) is None
 
 
