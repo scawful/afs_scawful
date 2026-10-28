@@ -1,4 +1,4 @@
-"""Re-expose legacy AFS command groups through the afs-scawful extension."""
+"""Expose afs-scawful command groups through the AFS extension CLI."""
 
 from __future__ import annotations
 
@@ -6,14 +6,12 @@ import argparse
 
 
 def register_parsers(subparsers: argparse._SubParsersAction) -> None:
-    """Register command groups that no longer ship in core AFS by default."""
+    """Register the gateway and vastai groups; core AFS already owns training and claude."""
     try:
-        from afs.cli import claude, training
         from afs_scawful import gateway_cli
     except Exception as exc:  # pragma: no cover - defensive boundary
         raise RuntimeError(
             "afs-scawful extension requires the core afs package on PYTHONPATH"
         ) from exc
 
-    for module in (training, gateway_cli, claude):
-        module.register_parsers(subparsers)
+    gateway_cli.register_parsers(subparsers)

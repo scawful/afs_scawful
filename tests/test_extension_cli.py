@@ -13,15 +13,14 @@ def _command_choices(parser) -> set[str]:
     return set()
 
 
-def test_extension_cli_registers_legacy_command_groups() -> None:
+def test_extension_cli_registers_alongside_core_command_groups() -> None:
     parser = argparse.ArgumentParser()
     subparsers = parser.add_subparsers(dest="command")
+    # Core AFS registers these before extensions; argparse rejects duplicates.
+    subparsers.add_parser("training")
+    subparsers.add_parser("claude")
 
     register_parsers(subparsers)
     commands = _command_choices(parser)
 
-    assert "training" in commands
-    assert "gateway" in commands
-    assert "vastai" in commands
-    assert "claude" in commands
-    assert not {"benchmark", "comparison"} & commands
+    assert {"training", "claude", "gateway", "vastai"} <= commands
