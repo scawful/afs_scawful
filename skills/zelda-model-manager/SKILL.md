@@ -1,64 +1,41 @@
 ---
 name: zelda-model-manager
-description: Manage Zelda/ALTTP/Oracle model training, datasets, evals, registry updates, and deployment artifacts. Use when planning or running training runs, curating ASM datasets, selecting base models, evaluating outputs, or converting/serving GGUF or MLX models.
+description: Evaluate, train, register, or serve Zelda/ALTTP/Oracle models; curate ASM and tool-use datasets; verify GGUF/MLX artifacts and model readiness. Use for model lifecycle work, not ordinary Oracle or yaze code changes.
 ---
 
 # Zelda Model Manager
 
-## Scope
-- Manage Zelda and ASM model lifecycle: dataset inventory, training runs, evals, registry, and deployment artifacts.
-- Treat model names and deployment state as volatile. Verify the registry and
-  target run/evaluation artifacts before recommending a launch or promotion.
+1. **Name one adoption outcome.** Identify the task, model role, owner, consumer,
+   and result the consumer will use. Tie release support to the existing Oracle
+   Christmas plan. A model review does not start a training or deployment lane.
+2. **Inspect the actual consumer.** AFS chat uses
+   `~/src/lab/afs-scawful/config/chat_registry.toml`. Hobby z3cli defaults to
+   `~/src/hobby/z3cli/config/chat_registry.toml`; check `Z3CLI_REGISTRY` for an
+   override. Inspect the consumer's route implementation as well as its names.
+   Offline answer selection, a prompt guard, and live model routing differ.
+3. **Read raw results before portfolio prose.** Locate the candidate's newest
+   `runs/<run>/result.json`, completions, compile/CPU reports and held-out gates
+   under `~/src/training/`, plus real z3cli reports when applicable. Report failed
+   or missing gates with their denominators and evidence scope. Distinguish
+   development, held-out, offline selection, and live-tool results. Training loss,
+   successful tool transport and a model's completion claim are not task success.
+4. **State verified model state.** Use explicit terms: configured, artifact
+   present, endpoint advertised, loaded, inference-tested, evaluated, promoted.
+   Bind the relevant artifact/config/revision to the result. Catalog discovery
+   proves availability, not loading or quality; deployment needs endpoint proof.
+5. **Teach current tools before changing weights.** Discover the actual yaze,
+   z3ed or MCP catalog and reuse its schemas and verified examples. Evaluate the
+   model with that same contract. Train only for a measured gap; use verified
+   tool/result/correction trajectories and keep held-out answers separate.
+   Before an authorized run, check dataset schema, overlap, freshness and the
+   slot's current hard gates. For ASM, require unchanged-source assembly and
+   execution contracts; keep CPU fixtures separate from native game proof.
 
-## Workflow
-1. Confirm the target model role and naming.
-   - Use `~/src/lab/afs-scawful/config/chat_registry.toml` for the live runtime
-     contract and `~/src/training/docs/ORACLE_FAMILY_SLOT_PLAN_20260420.md` for
-     promotion criteria.
-   - Use `~/src/docs/NAMING_CONVENTIONS.md` and
-     `~/src/lab/afs-scawful/docs/MODEL_PORTFOLIO.md` only as supporting context;
-     both contain dated historical sections.
-   - Keep hostnames as SSH aliases (medical-mechanica, halext-nj) instead of IPs.
-2. Locate datasets and scripts before deciding on a run.
-   - Read `~/src/training/INDEX.md` and `~/src/training/README.md` for dataset paths and scripts.
-   - Read the target's `~/src/training/runs/<run>/README.md`, TOML under
-     `~/src/training/configs/zelda/`, and latest matching result/readiness doc.
-   - Use `~/src/training/docs/TRAINING_OVERVIEW.md` for architecture and
-     `~/src/training/docs/HOME_GPU_LAB_HARDWARE_TOPOLOGY.md` for placement.
-3. Choose base model and hardware based on tool-calling needs.
-   - Choose from measured slot-specific evaluations; do not hard-code one base
-     model family across every Oracle role.
-4. Run QA before training.
-   - Run the dataset builder's validation plus the target's held-out overlap,
-     schema, and readiness gates before launch.
-   - Use `afs training freshness-gate` and `afs training dataset ...` for the
-     supported AFS lifecycle surface; do not use the removed
-     `python -m afs_scawful datasets index` command.
-5. Monitor training and evaluate.
-   - Use `~/src/training/scripts/windows_zelda_ctl.py` for passive Windows/WSL
-     status and machine modes; use Vast only as the documented fallback.
-   - Use eval packs in `~/src/training/evals/`.
-   - Track ASAR pass rate for ASM validity.
-6. Register and deploy artifacts.
-   - Use the AFS registry (`~/src/lab/afs-scawful/config/chat_registry.toml`) to define personas, ports, and parameters.
-   - Use `~/src/tools/model-mgr/model-mgr` for GGUF/MLX conversion and Ollama imports.
-   - Refresh artifacts with `model-mgr artifacts-index`, then verify the actual
-     serving endpoint or Windows host status before claiming deployment.
+For cross-session delivery, update the existing AFS tooling task with entry point,
+verification, adoption target and next action. Notify its consumer through AFS.
+Verified branch output is ready; close delivery after adoption or explicit
+deferral. Reuse the existing readiness watcher for changed-state alerts.
 
-## Commands to reuse
-- `model-mgr list` and `model-mgr info <model>` for inventory.
-- `model-mgr working-set-report` for the local footprint and active set.
-- `model-mgr convert <model> --quantize q4km` for GGUF.
-- `model-mgr mlx-convert <model> --hf-path <path>` for MLX exports.
-
-## Knowledge References
-Consult the global knowledge base at `~/.context/knowledge/models/` for background:
-- Model portfolio & status: `models/portfolio.md`
-- Training pipeline architecture: `models/training-pipeline.md`
-- Dataset catalog: `models/datasets.md`
-- GGUF conversion & deployment: `models/infrastructure.md`
-- Step-by-step workflows: `models/workflows.md`
-- Serving & routing: `models/serving.md`
-
-## References
-- Read `references/sources.md` for source paths and anchors.
+Load [operational sources](references/sources.md) only for the selected task.
+Keep model family, hardware and quantization choices based on measured results
+and the current serving contract, rather than a fixed size ladder.

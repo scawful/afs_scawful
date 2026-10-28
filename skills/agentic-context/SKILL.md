@@ -1,32 +1,47 @@
 ---
 name: agentic-context
-description: Use the Agentic File System (AFS) context model for discovery, mounts, scratchpad memory, and file-based tool workflows. Use when a task involves .context operations, AFS CLI usage, or cross-agent context coordination.
+description: Use AFS for project context, scratchpad notes, conditional file writes, and cross-agent handoffs. Trigger for .context operations, AFS CLI usage, context roots, mounts, or shared-file conflicts.
 ---
 
 # Agentic Context
 
-## Scope
-- Operate AFS context safely: discover context roots, read/write scratchpad, and mount knowledge.
+## Startup
 
-## Workflow
-1. Locate the active context root.
-   - Use `~/src/lab/afs/scripts/afs context discover --path ~/src --json`.
-   - Prefer project `.context` when working inside a repo.
-2. Ensure context scaffolding exists.
-   - Use `~/src/lab/afs/scripts/afs context ensure-all --path ~/src`.
-3. Read and write via AFS, not ad-hoc paths.
-   - For MCP clients, prefer `context.read`, `context.write`, `context.list`, `context.move`, and `context.delete`.
-   - Treat `fs.*` MCP tool names as compatibility aliases.
-   - Read: `afs fs read scratchpad state.md --path ~/src`.
-   - Write: `afs fs write scratchpad notes.md --path ~/src --content "..."`.
-   - List: `afs fs list knowledge --path ~/src --glob "*.md"`.
-4. Keep memory and knowledge read-only.
-   - Write only to `scratchpad` unless explicitly asked.
-   - Treat `session pack` as an explicit handoff/export step, not routine startup.
-5. Use workspace navigation tools.
-   - Use `ws list`, `ws find`, and `ws status` for project discovery.
-6. Use the AFS CLI wrapper for non-interactive agents.
-   - Use `AFS_CLI=~/src/lab/afs/scripts/afs` and `AFS_VENV=~/src/lab/afs/.venv` when needed.
+Run `afs session bootstrap --short --path <workspace> --json` once, unless the
+native SessionStart hook already supplied the AFS short bootstrap. The brief
+contains scoped notes and skill roots. It does not index, match skills, or create
+bootstrap artifacts. Follow a note's source path when its excerpt is truncated.
+
+The local stable CLI is `~/src/runtime/afs/scripts/afs`. Its Python environment
+is `~/src/runtime/afs/.venv`. `~/src/lab/afs` is the development checkout.
+
+## Retrieve only what the task needs
+
+- Use `afs context query <text> --path <workspace> --json` for existing context.
+- Use `afs status --start-dir <workspace> --json` to diagnose health. Inspect
+  `afs context repair --path <workspace> --dry-run --json` before a repair.
+- Use `afs context discover --path <workspace> --json` when the root is unknown.
+  Initialize a missing context only when the task needs one; do not run
+  `context ensure-all` during routine startup.
+- Native hosts load their own skills. Keep `AFS_NATIVE_SKILLS=1` and
+  `AFS_PROMPT_SCAFFOLDING=minimal`. Request full packs only for explicit exports,
+  handoffs, or a concrete retrieval need.
+
+## Write scoped state
+
+Use CLI `afs fs` or MCP `context.read`, `context.write`, and `context.list`.
+Write working notes and handoffs to `scratchpad`; keep `memory` and `knowledge`
+read-only unless the user requests a durable update.
+
+For shared files, read with `afs fs read scratchpad <path> --json`, then write
+with `afs fs write scratchpad <path> --input <file> --if-match <sha256> --json`.
+Use `--if-match missing` for creation. Reconcile a mismatch before retrying.
+
+`messages` aliases the legacy `hivemind` mount. Use it for cross-agent handoffs
+when needed. Extension events go through `afs events emit`; event records never
+grant approval. External sends require approval bound to the exact final content
+and destination, including any split messages or attachments.
 
 ## References
-- Read `references/sources.md` for AFS context docs and contracts.
+
+Read `references/sources.md` for the current contracts and detailed CLI surfaces.

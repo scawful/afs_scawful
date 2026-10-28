@@ -1,55 +1,54 @@
 ---
 name: mesen2-oos-debugging
-description: End-to-end Oracle of Secrets debugging using the Mesen2-OOS socket CLI, z3ed, and label/symbol tooling. Use for breakpoint/trace capture, memory inspection, savestate repro, overlays, or crash/regression triage (replaces mesen2-mcp and legacy Lua bridge workflows).
+description: Debug Oracle of Secrets with an owned Mesen2-OOS socket session. Use for runtime breakpoints, traces, memory, savestate reproduction, crash diagnosis or focused native verification.
 ---
 
-# Mesen2-OOS Debugging
+# Mesen2-OOS debugging
 
-## Overview
-Drive Mesen2-OOS from the socket CLI to reproduce bugs, capture evidence, and map runtime behavior back to labels and source.
+Use the socket client and matching labels to connect observed behavior to source.
+Read Oracle's AFS resource rules before native work; keep one owned bounded
+headless episode and never target scawful's `oos-rc-play` session.
 
-## Quick start
-1. Work from the repo root: `~/src/hobby/oracle-of-secrets`.
-2. Launch Mesen2-OOS with the target ROM (prefer isolated profiles via `scripts/mesen2_launch_instance.sh`).
-3. Ensure a socket exists at `/tmp/mesen2-*.sock` or set `MESEN2_AUTO_ATTACH=1`.
-4. Run:
-   - `python3 scripts/mesen2_client.py health`
-   - `python3 scripts/mesen2_client.py diagnostics`
-   - `python3 scripts/mesen2_client.py debug-status`
-   - `python3 scripts/mesen2_client.py capabilities`
+## Run the focused episode
 
-## Debugging flow
-1. **Stabilize**: Pause, capture `diagnostics`, and save a reproducible state (`capture --json`, `save`, `lib-save`).
-2. **Label**: Sync vanilla labels (`labels-sync`) or load project symbols (`scripts/export_symbols.py --sync`). Use `labels-refresh --sync` when USDASM indexes are stale.
-3. **Reproduce**: Use `repro`, `trace`, `breakpoint`, and `watch` to isolate the trigger.
-4. **Inspect**: Use `cpu`, `pc`, `disasm`, `eval`, `mem-read`, and `mem-search` to inspect the failure.
-5. **Annotate**: Use `state-diff`, `state-compare`, `draw-path`, `collision-overlay`, and `screenshot` to document.
-6. **Verify**: Re-run `repro` or `lib-verify` after fixes.
+1. Identify the candidate ROM, symbols, save/fixture, intended behavior and
+   existing episode bounds. Acquire ownership under `scratchpad/board_rules.md`.
+   A frozen HOLD or failed episode is not permission to retry, extend or relaunch.
+2. Use the selected checkout's `Scripts/Mesen2/mesen2_launch_instance.sh` only
+   when a new session is needed. Keep current headless/`taskpolicy -b` rules.
+   Bind `MESEN2_SOCKET_PATH` to the owned endpoint; verify its ROM identity.
+3. Inspect supported client commands with
+   `python3 Scripts/Mesen2/mesen2_client.py --help`. Use `health`, `diagnostics`,
+   `debug-status` or `capabilities` when that information is needed, rather
+   than running a fixed startup suite.
+4. Capture one reproduction with the smallest useful breakpoint, trace, memory
+   or screenshot evidence. Load labels from this candidate; `labels-sync` is
+   vanilla-only. `SYMBOLS_LOAD` accepts `.mlb` or supported JSON; symbol export
+   lives at `Scripts/Generate/export_symbols.py`.
+5. Run the required changed behavior/control or save/reopen check within the
+   accepted bounds. Retain failures and fixture limits. Release only owned
+   resources through the current helper after exit/cleanup verification.
 
-## Key decisions
-- Launch an isolated Mesen2 instance when another agent or human is using the default profile.
-- Prefer watch profiles (`watch --profile overworld`) before manual watches.
-- Treat `labels-sync` as vanilla-only; use `export_symbols.py --sync` for Oracle labels.
+Use existing repro/state-library features before writing another driver.
+Retry after a changed input, implementation or hypothesis. If native ownership
+is blocked, continue source/offline work in scope; wait for its resolver when
+nothing useful remains.
 
-## Integration notes
-- **yaze/z3dk**: All use the same `MESEN2_SOCKET_PATH` env var for socket targeting; set it when multiple Mesen2 instances exist so the CLI, yaze, and z3lsp target the same instance.
-- **z3dk/z3ed**: Use `z3ed` for ROM validation and `scripts/export_symbols.py --sync` for Oracle labels; refresh z3dk indexes with `python3 scripts/mesen2_client.py labels-refresh` when symbols look stale.
-- **ALTTP tooling**: Use Hyrule Historian for disassembly/RAM lookup; use book-of-mudora for ROM map checks and hook validation.
-- **YAZE**: Call `sync <state_path>` after save/load when yaze needs updated state metadata.
+## Endpoint and API references
 
-## Knowledge References
-Before debugging, consult these for context:
-- Game architecture: `~/.context/knowledge/alttp/architecture.md`
-- RAM addresses: `~/.context/knowledge/alttp/ram_map.md`
-- Vanilla routines: `~/.context/knowledge/alttp/routine_index.md`
-- Oracle flags/progression: `~/.context/knowledge/hobby/oracle-progression.md`
-- Sprite tables: `~/.context/knowledge/hobby/oracle-sprite-ram.md`
-- Debug workflows: `~/.context/knowledge/hobby/workflows.md`
-- Disassembly bank map: `~/.context/knowledge/hobby/usdasm.md`
-- SNES hardware: `~/.context/knowledge/snes/cpu_memory.md`
+Discovery describes available endpoints; it does not prove ownership. Prefer
+an explicit `MESEN2_SOCKET_PATH`. The discovery implementation at
+`~/src/hobby/mesen2-oos/socket_discovery.py` can read status-file `socketPath`
+values and fallback socket names; names need not contain a PID. Do not select
+a live session merely because its status/socket is newest, and do not remove
+another owner's socket or lock.
 
-## References
-- `references/cli-cheatsheet.md`
-- `references/command-map.md`
-- `references/troubleshooting.md`
-- `references/triage-playbook.md`
+- `~/src/hobby/mesen2-oos/docs/Agent_Integration_Guide.md` — discovery/status.
+- `~/src/hobby/mesen2-oos/docs/Socket_API_Reference.md` — actual socket APIs.
+- `~/src/hobby/mesen2-oos/tools/oos_client/README.md` — current client location.
+- Oracle AFS `scratchpad/operations/oracle.md` — project launch/symbol routes.
+
+Check command details in current client help/source before using a historical
+skill-local cheatsheet. Runtime writes, controller input and fixture injection
+must remain within the accepted episode; source/build evidence and sampled
+telemetry retain their actual scope.
