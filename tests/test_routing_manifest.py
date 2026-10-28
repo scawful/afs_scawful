@@ -250,7 +250,7 @@ model_id = "wrong"
     lane = resolve_model_spec("scawfulbot", catalog)
     assert lane is not None
     assert lane.host == "medical-mechanica"
-    assert lane.sha256 == "b4490ba25882fe825ebd95c4a4af50d419b59e5a6204807f9dc24fa8438fea48"
+    assert lane.sha256 == "a92f2f5d9c360dd20102adcc7e2841aa7e1d76f13ead514bbdd76c3450f8919c"
     assert resolve_model_spec("wrong", catalog) is None
 
 
@@ -300,3 +300,47 @@ def test_the_shipped_manifest_pins_full_digests():
     for lane in load_manifest(DEFAULT_MANIFEST_PATH):
         for backend in lane.backends:
             assert re.fullmatch(r"[0-9a-f]{64}", backend.sha256 or ""), f"{lane.id} carries a partial digest"
+
+
+def _failover_spec():
+    from afs_scawful.routing_manifest import manifest_specs
+
+    data = _manifest()
+    data["lanes"][0]["serves"].append({
+        "host": "eva-02", "provider": "lmstudio_eva02",
+        "model": "qwen35-curated-masked", "quant": "q8_0", "sha256": CURATED_SHA,
+    })
+    (spec,) = manifest_specs(parse_manifest(data))
+    return spec
+
+
+def _box(host, sha=CURATED_SHA, healthy=True):
+    from afs_scawful.halext_cloud_gateway_core import ProviderAvailability
+
+    return ProviderAvailability(
+        healthy=healthy,
+        models=("qwen35-curated-masked",) if healthy else (),
+        host=host,
+        model_sha256={"qwen35-curated-masked": sha} if healthy else {},
+    )
+
+
+@pytest.mark.parametrize("mm_up, eva_sha, eva_host, expected", [
+    (True, CURATED_SHA, "EVA-02", ["lmstudio_win", "lmstudio_eva02"]),
+    (False, CURATED_SHA, "EVA-02", ["lmstudio_eva02"]),
+    (False, "0" * 64, "EVA-02", []),
+    (False, CURATED_SHA, "medical-mechanica", []),
+])
+def test_eva02_answers_for_a_lane_only_with_the_same_weights(mm_up, eva_sha, eva_host, expected):
+    from afs_scawful.halext_cloud_gateway_core import AvailabilitySnapshot, ordered_live_route_specs
+
+    spec = _failover_spec()
+    snap = AvailabilitySnapshot(created=1.0, providers={
+        "lmstudio_win": _box("medical-mechanica", healthy=mm_up),
+        "lmstudio_eva02": _box(eva_host, sha=eva_sha),
+    })
+
+    routes = ordered_live_route_specs(spec, snap)
+
+    assert [route.provider for route in routes] == expected
+    assert all(route.provider_model == "qwen35-curated-masked" for route in routes)

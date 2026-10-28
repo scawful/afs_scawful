@@ -18,8 +18,41 @@ version = 1
 [[lanes]]
 id = "scawfulbot-qwen35"
 display_name = "Scawfulbot"
-description = "Justin's voice. Promoted 2026-09-16 after the Claude judge eval."
+description = "Justin's voice. Promoted 2026-09-19 after RTC patch sealed eval (system pass 0.68 vs live 0.475)."
 also_answers_to = ["scawfulbot"]
+on_unavailable = "error"
+
+  [[lanes.serves]]
+  host = "medical-mechanica"
+  provider = "lmstudio_win"
+  model = "qwen35-rtc-patch-4k"
+  quant = "q8_0"
+  sha256 = "a92f2f5d9c360dd20102adcc7e2841aa7e1d76f13ead514bbdd76c3450f8919c"
+
+  # Failover only (listed second): eva-02 is a gaming box whose guard stops this server while a
+  # game runs, so it answers only when medical-mechanica is down and nobody is playing.
+  [[lanes.serves]]
+  host = "eva-02"
+  provider = "lmstudio_eva02"
+  model = "qwen35-rtc-patch-4k"
+  quant = "q8_0"
+  sha256 = "a92f2f5d9c360dd20102adcc7e2841aa7e1d76f13ead514bbdd76c3450f8919c"
+
+  [lanes.provenance]
+  # Numbers from scawfulbot eval/judge report curated-masked-rtc-patch (2026-09-18).
+  discovery_tree = "rtc_patch_4k_20260918"
+  recipe = "RTC grounding 4k merge + patch SFT (lr 1e-5) on rtc_patch_mix_4k, Q8_0"
+  eval_pass_system = 0.68
+  eval_pass_no_system = 0.32
+  live_baseline_system = 0.475
+  judged = "2026-09-18"
+  promoted = "2026-09-19"
+
+[[lanes]]
+id = "scawfulbot-curated-masked"
+display_name = "Scawfulbot (curated-masked)"
+description = "Superseded 2026-09-19 by RTC patch. Kept addressable for rollback/compare."
+also_answers_to = ["qwen35-curated-masked", "scawfulbot-qwen35-curated-masked"]
 on_unavailable = "error"
 
   [[lanes.serves]]
@@ -30,7 +63,6 @@ on_unavailable = "error"
   sha256 = "b4490ba25882fe825ebd95c4a4af50d419b59e5a6204807f9dc24fa8438fea48"
 
   [lanes.provenance]
-  # Every number here comes from eval/run_evals.jsonl in the scawfulbot repo.
   corpus_sha256 = "c20695b8c9c2"
   corpus_rows = 19047
   recipe = "qwen3.5-9b QLoRA, lr 5e-5, 1 epoch, train-on-responses-only"
@@ -38,6 +70,7 @@ on_unavailable = "error"
   eval_pass_no_system = 0.32
   judged = "2026-09-16"
   promoted = "2026-09-16"
+  superseded = "2026-09-19"
 
 [[lanes]]
 id = "scawfulbot-voicefix"

@@ -18,6 +18,7 @@ _DEFAULT_BASE_URL = "https://api.openai.com/v1"
 _MODE_CHAT = "chat"
 _MODE_RESPONSES = "responses"
 _THINKING_EFFORT = {
+    "none": "none",
     "low": "low",
     "medium": "medium",
     "high": "high",
@@ -39,7 +40,7 @@ def _normalize_thinking_tier(value: str | None) -> str | None:
         return None
     normalized = value.strip().lower()
     if normalized in {"none", "off", "false", "0"}:
-        return None
+        return "none"
     if normalized in _THINKING_EFFORT:
         return normalized
     return None
@@ -276,7 +277,8 @@ class OpenAIClient:
                 payload["temperature"] = temperature
             if top_p is not None:
                 payload["top_p"] = top_p
-            if thinking:
+            if thinking is not None:
+                # LM Studio Qwen3.5 thinks unless reasoning_effort is explicitly "none".
                 payload.setdefault("reasoning_effort", _THINKING_EFFORT[thinking])
             payload, extra_headers = self._apply_options(payload, options, {"model", "messages"})
             url = f"{self.base_url}/chat/completions"
