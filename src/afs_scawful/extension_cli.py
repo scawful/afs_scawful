@@ -8,35 +8,12 @@ import argparse
 def register_parsers(subparsers: argparse._SubParsersAction) -> None:
     """Register command groups that no longer ship in core AFS by default."""
     try:
-        from afs.cli import (
-            benchmark,
-            claude,
-            comparison,
-            encoder,
-            entity,
-            generator,
-            generators,
-            pipeline,
-            tokenizer,
-            training,
-        )
+        from afs.cli import claude, training
         from afs_scawful import gateway_cli
     except Exception as exc:  # pragma: no cover - defensive boundary
         raise RuntimeError(
             "afs-scawful extension requires the core afs package on PYTHONPATH"
         ) from exc
 
-    for module in (
-        training,
-        generators,
-        tokenizer,
-        encoder,
-        entity,
-        pipeline,
-        generator,
-        gateway_cli,
-        benchmark,
-        comparison,
-        claude,
-    ):
+    for module in (training, gateway_cli, claude):
         module.register_parsers(subparsers)

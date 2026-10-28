@@ -13,12 +13,13 @@ from typing import Any
 logger = logging.getLogger(__name__)
 
 from afs.agent.tools import (
-    DEFAULT_ASAR_PATH,
     DEFAULT_CONTEXT_ROOT,
     Tool,
     ToolResult,
     create_afs_tools,
 )
+
+DEFAULT_ASAR_PATH = Path("~/src/third_party/asar-repo/build/asar/bin/asar").expanduser()
 
 
 async def asar_handler(args: dict[str, Any]) -> ToolResult:

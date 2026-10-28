@@ -23,6 +23,5 @@ def test_extension_cli_registers_legacy_command_groups() -> None:
     assert "training" in commands
     assert "gateway" in commands
     assert "vastai" in commands
-    assert "benchmark" in commands
-    assert "comparison" in commands
     assert "claude" in commands
+    assert not {"benchmark", "comparison"} & commands

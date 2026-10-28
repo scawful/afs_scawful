@@ -5,9 +5,15 @@ import subprocess
 import sys
 from pathlib import Path
 
+import pytest
+
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 SCRIPT_PATH = REPO_ROOT / "cores" / "eval" / "personality_eval.py"
+
+pytestmark = pytest.mark.skipif(
+    not SCRIPT_PATH.exists(), reason="cores/ is gitignored; present only in local checkouts"
+)
 
 
 def _write_core_fixture(tmp_path: Path) -> tuple[Path, Path]:
