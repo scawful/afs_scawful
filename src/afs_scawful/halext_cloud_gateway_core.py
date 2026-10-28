@@ -14,7 +14,9 @@ from dataclasses import replace
 from pathlib import Path
 from typing import Literal
 
-ProviderName = Literal["openai", "anthropic", "google", "lmstudio", "lmstudio_win"]
+ProviderName = Literal["openai", "anthropic", "google", "lmstudio", "lmstudio_win", "lmstudio_eva02"]
+# OpenAI-compatible LM Studio servers; their model IDs need LM Studio key resolution.
+LMSTUDIO_PROVIDERS: frozenset[str] = frozenset({"lmstudio", "lmstudio_win", "lmstudio_eva02"})
 
 
 @dataclass(frozen=True)
@@ -72,7 +74,7 @@ class GatewayModelSpec:
                 continue
             resolved_model = (
                 _resolve_lmstudio_chat_model_id(backend, provider_state)
-                if backend.provider in ("lmstudio", "lmstudio_win")
+                if backend.provider in LMSTUDIO_PROVIDERS
                 else backend.provider_model
             )
             if (
@@ -269,7 +271,7 @@ def _backend_matches_provider_snapshot(
 ) -> bool:
     if state is None or not state.healthy:
         return False
-    if backend.provider in ("lmstudio", "lmstudio_win"):
+    if backend.provider in LMSTUDIO_PROVIDERS:
         return any(_lmstudio_raw_matches_backend(model_id, backend, state) for model_id in state.models)
     if backend.host and _normalized_host(backend.host) != _normalized_host(state.host):
         return False
@@ -296,7 +298,7 @@ def ordered_live_route_specs(
             continue
         resolved_model = (
             _resolve_lmstudio_chat_model_id(backend, state)
-            if backend.provider in ("lmstudio", "lmstudio_win")
+            if backend.provider in LMSTUDIO_PROVIDERS
             else backend.provider_model
         )
         routes.append(

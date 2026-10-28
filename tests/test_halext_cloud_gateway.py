@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import asyncio
+import time
 from pathlib import Path
 from types import SimpleNamespace
 from typing import cast
@@ -102,6 +103,64 @@ def test_windows_provider_availability_includes_independent_model_identity(monke
     assert state.healthy
     assert state.host == "Medical-Mechanica"
     assert state.model_sha256["qwen35-curated-masked"] == sha
+
+
+def test_eva02_provider_availability_uses_its_own_hostd(monkeypatch) -> None:
+    class Client:
+        async def list_models(self):
+            return ["qwen35-curated-masked"]
+
+    sha = "b4490ba25882fe825ebd95c4a4af50d419b59e5a6204807f9dc24fa8438fea48"
+    gateway = HalextCloudGateway()
+    gateway._clients = {"lmstudio_eva02": Client()}  # type: ignore[assignment]
+    monkeypatch.setenv("HALEXT_EVA02_HOSTD_URL", "http://127.0.0.1:8767")
+    monkeypatch.setattr(
+        "afs_scawful.halext_cloud_gateway._windows_model_identity_payload",
+        lambda: pytest.fail("eva-02 identity must not come from the Windows hostd"),
+    )
+    monkeypatch.setattr(
+        "afs_scawful.halext_cloud_gateway._eva02_model_identity_payload",
+        lambda: {"host": "EVA-02", "model_sha256": {"qwen35-curated-masked": sha.upper()}},
+    )
+
+    state = asyncio.run(gateway._provider_models("lmstudio_eva02"))
+
+    assert state.healthy and state.identity_error is None
+    assert state.host == "EVA-02"
+    assert state.model_sha256["qwen35-curated-masked"] == sha
+
+
+def test_eva02_without_hostd_reports_no_identity(monkeypatch) -> None:
+    class Client:
+        async def list_models(self):
+            return ["qwen35-curated-masked"]
+
+    gateway = HalextCloudGateway()
+    gateway._clients = {"lmstudio_eva02": Client()}  # type: ignore[assignment]
+    monkeypatch.delenv("HALEXT_EVA02_HOSTD_URL", raising=False)
+
+    state = asyncio.run(gateway._provider_models("lmstudio_eva02"))
+
+    assert state.healthy and not state.model_sha256
+    assert state.identity_error == "eva-02 hostd is not configured"
+
+
+def test_an_unreachable_eva02_cannot_stall_the_availability_snapshot(monkeypatch) -> None:
+    class BlackHoledClient:
+        async def list_models(self):
+            await asyncio.sleep(30)
+            return ["qwen35-rtc-patch-4k"]
+
+    gateway = HalextCloudGateway()
+    gateway._clients = {"lmstudio_eva02": BlackHoledClient()}  # type: ignore[assignment]
+    monkeypatch.setenv("HALEXT_LMSTUDIO_EVA02_LIST_TIMEOUT", "0.05")
+
+    started = time.monotonic()
+    state = asyncio.run(gateway._provider_models("lmstudio_eva02"))
+
+    assert time.monotonic() - started < 5
+    assert not state.healthy
+    assert state.error == "model listing timed out"
 
 
 def test_resolve_model_spec_accepts_public_and_provider_aliases() -> None:

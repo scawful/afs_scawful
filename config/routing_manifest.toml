@@ -29,6 +29,15 @@ on_unavailable = "error"
   quant = "q8_0"
   sha256 = "a92f2f5d9c360dd20102adcc7e2841aa7e1d76f13ead514bbdd76c3450f8919c"
 
+  # Failover only (listed second): eva-02 is a gaming box whose guard stops this server while a
+  # game runs, so it answers only when medical-mechanica is down and nobody is playing.
+  [[lanes.serves]]
+  host = "eva-02"
+  provider = "lmstudio_eva02"
+  model = "qwen35-rtc-patch-4k"
+  quant = "q8_0"
+  sha256 = "a92f2f5d9c360dd20102adcc7e2841aa7e1d76f13ead514bbdd76c3450f8919c"
+
   [lanes.provenance]
   # Numbers from scawfulbot eval/judge report curated-masked-rtc-patch (2026-09-18).
   discovery_tree = "rtc_patch_4k_20260918"

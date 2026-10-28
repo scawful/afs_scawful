@@ -18,6 +18,7 @@ import urllib.request
 
 from .halext_cloud_gateway_core import (
     DEFAULT_MODEL_SPECS,
+    LMSTUDIO_PROVIDERS,
     AvailabilitySnapshot,
     ProviderAvailability,
     ProviderName,
@@ -302,6 +303,7 @@ class HalextCloudGateway:
             "google": self._build_google_client(),
             "lmstudio": self._build_lmstudio_client(),
             "lmstudio_win": self._build_lmstudio_win_client(),
+            "lmstudio_eva02": self._build_lmstudio_eva02_client(),
         }
 
     async def shutdown(self) -> None:
@@ -362,23 +364,46 @@ class HalextCloudGateway:
             send_authorization=bool(api_key),
         )
 
+    def _build_lmstudio_eva02_client(self) -> Any:
+        from .integrations.openai_client import OpenAIClient
+
+        base_url = os.environ.get("HALEXT_LMSTUDIO_EVA02_BASE_URL", "").strip()
+        if not base_url:
+            return None
+
+        api_key = os.environ.get("HALEXT_LMSTUDIO_EVA02_API_KEY", "").strip()
+        return OpenAIClient(
+            api_key=api_key or None,
+            api_key_env="HALEXT_LMSTUDIO_EVA02_API_KEY",
+            base_url=base_url,
+            timeout=90,
+            send_authorization=bool(api_key),
+        )
+
     async def _provider_models(self, provider: ProviderName) -> ProviderAvailability:
         client = self._clients[provider]
         if client is None:
             return ProviderAvailability(healthy=False, models=(), error="not configured")
         try:
-            models = tuple(await client.list_models())
+            listing = client.list_models()
+            if provider == "lmstudio_eva02":
+                # Reached by tailnet IP: a powered-off peer black-holes the connect instead of refusing
+                # it, and this runs under the snapshot lock every chat waits on.
+                listing = asyncio.wait_for(listing, timeout=_eva02_list_timeout())
+            models = tuple(await listing)
             if not models:
                 return ProviderAvailability(healthy=False, models=(), error="no models")
             host = None
             model_sha256: dict[str, str] = {}
             identity_error = None
-            if provider == "lmstudio_win":
-                if not _windows_hostd_is_configured():
-                    identity_error = "Windows hostd is not configured"
+            identity_source = _IDENTITY_SOURCES.get(provider)
+            if identity_source is not None:
+                is_configured, fetch_inventory, label = identity_source
+                if not is_configured():
+                    identity_error = f"{label} hostd is not configured"
                 else:
                     try:
-                        inventory = await asyncio.to_thread(_windows_model_identity_payload)
+                        inventory = await asyncio.to_thread(fetch_inventory)
                         host = str(inventory.get("host") or "").strip() or None
                         raw_hashes = inventory.get("model_sha256") or {}
                         if isinstance(raw_hashes, dict):
@@ -388,7 +413,7 @@ class HalextCloudGateway:
                                 if isinstance(value, str) and value
                             }
                     except Exception as exc:
-                        logger.exception("Windows model identity inventory failed")
+                        logger.exception("%s model identity inventory failed", label)
                         identity_error = str(exc)
             return ProviderAvailability(
                 healthy=True,
@@ -397,6 +422,9 @@ class HalextCloudGateway:
                 model_sha256=model_sha256,
                 identity_error=identity_error,
             )
+        except TimeoutError:
+            logger.warning("Provider model listing timed out: %s", provider)
+            return ProviderAvailability(healthy=False, models=(), error="model listing timed out")
         except Exception as exc:
             logger.exception("Provider model listing failed: %s", provider)
             return ProviderAvailability(healthy=False, models=(), error=str(exc))
@@ -406,7 +434,9 @@ class HalextCloudGateway:
             now = time.time()
             if not force and self._snapshot and (now - self._snapshot.created) < self.cache_ttl_seconds:
                 return self._snapshot
-            provider_names: tuple[ProviderName, ...] = ("openai", "anthropic", "google", "lmstudio", "lmstudio_win")
+            provider_names: tuple[ProviderName, ...] = (
+                "openai", "anthropic", "google", "lmstudio", "lmstudio_win", "lmstudio_eva02",
+            )
             results = await asyncio.gather(
                 *(self._provider_models(provider) for provider in provider_names),
             )
@@ -527,7 +557,7 @@ class HalextCloudGateway:
             kwargs["temperature"] = None
             kwargs["top_p"] = None
             kwargs["options"] = {"api_mode": route.openai_api_mode}
-        if route.provider in ("lmstudio", "lmstudio_win"):
+        if route.provider in LMSTUDIO_PROVIDERS:
             # Default none so empty-content Qwen3.5 failures stay fixed; honor client
             # reasoning_effort when the companion recipe asks for visible thinking.
             effort = (reasoning_effort or "none").strip().lower()
@@ -794,6 +824,31 @@ def _windows_model_identity_payload() -> dict[str, Any]:
         token=_windows_hostd_token() or None,
         timeout=timeout,
     ).request_hostd_json("/v1/lmstudio/models?include_sha256=true")
+
+
+def _eva02_hostd_base_url() -> str:
+    return os.environ.get("HALEXT_EVA02_HOSTD_URL", "").strip().rstrip("/")
+
+
+def _eva02_list_timeout() -> float:
+    return float(os.environ.get("HALEXT_LMSTUDIO_EVA02_LIST_TIMEOUT", "8"))
+
+
+def _eva02_model_identity_payload() -> dict[str, Any]:
+    """Fetch independently measured hashes for eva-02's LM Studio catalog (failover box)."""
+    timeout = float(os.environ.get("HALEXT_EVA02_HOSTD_IDENTITY_TIMEOUT", "180"))
+    return WindowsHostClient(
+        hostd_url=_eva02_hostd_base_url(),
+        token=os.environ.get("HALEXT_EVA02_HOSTD_TOKEN", "").strip() or None,
+        timeout=timeout,
+    ).request_hostd_json("/v1/lmstudio/models?include_sha256=true")
+
+
+# Providers whose lanes pin sha256: (configured?, fetch inventory, label). Others report no identity.
+_IDENTITY_SOURCES: dict[str, tuple[Any, Any, str]] = {
+    "lmstudio_win": (_windows_hostd_is_configured, lambda: _windows_model_identity_payload(), "Windows"),
+    "lmstudio_eva02": (lambda: bool(_eva02_hostd_base_url()), lambda: _eva02_model_identity_payload(), "eva-02"),
+}
 
 
 def _windows_host_status_payload() -> dict[str, Any]:
