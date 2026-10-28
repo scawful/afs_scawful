@@ -1,10 +1,10 @@
 # Agentic Context Sources
 
-Use these documents for details on AFS context behavior and CLI surfaces.
+Read only the reference needed for the current task:
 
-- `/Users/scawful/src/lab/afs/docs/TOOLING_STRATEGY.md` - Context-as-files workflow.
-- `/Users/scawful/src/lab/afs/docs/MEMORY_SYSTEM.md` - Context tiers and structure.
-- `/Users/scawful/src/lab/afs/docs/AGENT_SURFACES.md` - CLI wrapper and MCP notes.
-- `/Users/scawful/src/lab/afs/docs/WORKSPACE_INTEGRATION.md` - Workspace integration rules.
-- `/Users/scawful/.context/AFS_SPEC.md` - AFS agent contract.
-- `/Users/scawful/src/docs/GLOSSARY.md` - Workspace terms and roles.
+- `~/src/runtime/afs/docs/AGENT_CONTRACTS.md` — compact startup, native skills,
+  conditional writes, content approvals, events, and hidden-tool authorization.
+- `~/src/runtime/afs/docs/CLI_REFERENCE.md` — CLI commands and arguments.
+- `~/src/runtime/afs/docs/MCP_SERVER.md` — MCP discovery and call boundaries.
+- `~/src/runtime/afs/docs/AGENT_SURFACES.md` — explicit session and runtime flows.
+- `~/src/docs/guides/ai-coder/AGENT_HARNESS_CONTRACT.md` — local harness settings.
