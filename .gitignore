@@ -4,6 +4,7 @@ __pycache__/
 .DS_Store
 .env
 logs/
+/out/
 .context/
 *.egg-info/
 src/*.egg-info/
