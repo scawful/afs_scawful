@@ -144,7 +144,34 @@ def read_prompts(path):
 
 
 def image_body(prompt, config):
-    return {**config, "prompt": prompt, "n": 1, "output_format": "png"}
+    settings = {key: value for key, value in config.items() if key != "references"}
+    body = {**settings, "prompt": prompt, "n": 1, "output_format": "png"}
+    if config.get("references"):
+        body["images"] = []
+        for reference in config["references"]:
+            raw = Path(reference["path"]).read_bytes()
+            if hashlib.sha256(raw).hexdigest() != reference["sha256"]:
+                raise ValueError("Reference image changed after planning; use a new run.")
+            body["images"].append({"image_url": "data:image/png;base64," + base64.b64encode(raw).decode()})
+    return body
+
+
+def references(paths):
+    if len(paths) > 16:
+        raise ValueError("At most16 reference images are supported.")
+    result = []
+    for path in paths:
+        raw = path.read_bytes()
+        if not raw.startswith(PNG):
+            raise ValueError(f"Reference must be a PNG: {path}")
+        if 4 * ((len(raw) + 2) // 3) + 22 > 20971520:
+            raise ValueError(f"Reference exceeds the image data-URL limit: {path}")
+        result.append({"path": str(path.resolve()), "sha256": hashlib.sha256(raw).hexdigest()})
+    return result
+
+
+def endpoint(config):
+    return "/images/edits" if config.get("references") else "/images/generations"
 
 
 def load_state(out, prompts, config):
@@ -248,7 +275,7 @@ def generate(client, out, state, indices):
         state["items"][str(index)] = {"status": "requesting"}
         atomic_json(out / "manifest.json", state)
         try:
-            response = client.request("POST", "/images/generations",
+            response = client.request("POST", endpoint(state["config"]),
                                       image_body(state["prompts"][index - 1], state["config"]))
         except APIError as exc:
             if 400 <= exc.status < 500:
@@ -264,7 +291,7 @@ def submit_batch(client, out, state, indices):
     for index in indices:
         if state["items"].get(str(index), {}).get("status") in {"requesting", "queued"}:
             raise ValueError(f"Image {index} already has an unresolved request; collect it first.")
-    records = [{"custom_id": f"image-{i:04d}", "method": "POST", "url": "/v1/images/generations",
+    records = [{"custom_id": f"image-{i:04d}", "method": "POST", "url": "/v1" + endpoint(state["config"]),
                 "body": image_body(state["prompts"][i - 1], state["config"])} for i in indices]
     payload = ("\n".join(json.dumps(r, ensure_ascii=False) for r in records) + "\n").encode()
     if len(payload) > 200_000_000:
@@ -279,7 +306,7 @@ def submit_batch(client, out, state, indices):
     batch.update(input_file_id=uploaded["id"], status="submitting")
     atomic_json(out / "manifest.json", state)
     result = client.request("POST", "/batches", {
-        "input_file_id": uploaded["id"], "endpoint": "/v1/images/generations",
+        "input_file_id": uploaded["id"], "endpoint": "/v1" + endpoint(state["config"]),
         "completion_window": "24h", "metadata": {"afs_image_run": state["run_id"]}})
     batch.update(id=result["id"], status=result["status"])
     atomic_json(out / "manifest.json", state)
@@ -353,6 +380,8 @@ def main(argv=None):
     parser.add_argument("--size", default="3840x2160")
     parser.add_argument("--model", choices=[MODEL, MODEL + "-2026-09-08"], default=MODEL)
     parser.add_argument("--background", choices=["opaque", "transparent", "auto"], default="opaque")
+    parser.add_argument("--reference", type=Path, action="append", default=[],
+                        help="PNG reference image; repeat for up to16. Uses the Images edits endpoint.")
     parser.add_argument("--limit", type=int, help="Maximum new images in this invocation")
     parser.add_argument("--batch", action="store_true", help="Submit asynchronous image batch")
     parser.add_argument("--collect", action="store_true", help="Retrieve existing batch status/results; never submit")
@@ -371,6 +400,8 @@ def main(argv=None):
             prompts = read_prompts(args.prompts)
             config = {"model": args.model, "quality": args.quality, "size": args.size,
                       "background": args.background}
+            if args.reference:
+                config["references"] = references(args.reference)
         # Preview reads existing state but creates no files and makes no API calls.
         state = load_state(args.out, prompts, config)
         indices = pending(state, args.limit)

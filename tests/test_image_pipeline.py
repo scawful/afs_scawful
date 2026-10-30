@@ -69,6 +69,36 @@ class ImagePipelineTests(unittest.TestCase):
         path.write_text("\ufeffLyra 海\n\nsecond\n", encoding="utf-8")
         self.assertEqual(images.read_prompts(path), ["Lyra 海", "second"])
 
+    def test_reference_png_uses_edits_endpoint_and_pins_source(self):
+        path = self.root / "map.png"
+        path.write_bytes(png_bytes())
+        self.config["references"] = images.references([path])
+        body = images.image_body("island", self.config)
+        self.assertEqual(images.endpoint(self.config), "/images/edits")
+        self.assertNotIn("references", body)
+        self.assertEqual(base64.b64decode(body["images"][0]["image_url"].split(",")[1]), png_bytes())
+        path.write_bytes(png_bytes(1))
+        with self.assertRaisesRegex(ValueError, "changed"):
+            images.image_body("island", self.config)
+
+    def test_batch_reference_payload_routes_to_edits(self):
+        path = self.root / "map.png"
+        path.write_bytes(png_bytes())
+        self.config["references"] = images.references([path])
+        client = Mock()
+        client.upload.return_value = {"id": "file-input"}
+        client.request.return_value = {"id": "batch-edit", "status": "validating"}
+        images.submit_batch(client, self.out, self.state, [1])
+        row = json.loads(client.upload.call_args.args[0].decode())
+        self.assertEqual(row["url"], "/v1/images/edits")
+        self.assertEqual(client.request.call_args.args[2]["endpoint"], "/v1/images/edits")
+
+    def test_bad_reference_is_refused(self):
+        path = self.root / "not-a-map.png"
+        path.write_bytes(b"not PNG")
+        with self.assertRaisesRegex(ValueError, "PNG"):
+            images.references([path])
+
     def test_rate_limit_backoff_and_credit_stop(self):
         limit = urllib.error.HTTPError(images.API, 429, "rate", {}, io.BytesIO(
             b'{"error":{"code":"rate_limit_exceeded","message":"slow"}}'))

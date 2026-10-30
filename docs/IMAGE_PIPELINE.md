@@ -33,6 +33,11 @@ request: inspect API usage before starting a new run, because blindly retrying
 may pay twice. Explicit rate-limit errors use bounded exponential backoff;
 `credit_balance_exhausted` stops immediately.
 
+To generate from existing geography or art, repeat `--reference path/to/map.png`
+for up to16 PNGs. This routes to `/v1/images/edits` and binds each reference's
+path/hash in the manifest. The source images are read only. References can
+also be used with Batch; image input adds token charges.
+
 ## Batch
 
 Use a different directory from a standard run. Submission returns immediately;
